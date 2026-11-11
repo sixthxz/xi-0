@@ -101,6 +101,9 @@
       "git",
       "gh pr create"
     ],
+    "lumen": [
+      "re:^node\\s+\\S*recorrido\\.js\\b"
+    ],
     "sextante": [
       "git status",
       "git log",
@@ -175,7 +178,8 @@
       "wc",
       "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
       "cut",
-      "date"
+      "date",
+      "re:^node\\s+\\S*recorrido\\.js\\b"
     ],
     "egida": [
       "git",
