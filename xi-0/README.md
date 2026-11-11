@@ -173,6 +173,12 @@ Una tarea mediana sobre este mismo repo (el mapa), con la sesión principal en O
 
 Sin medir todavía: una tarea chica, la misma tarea en una sesión sola (no hay con qué comparar los 21 USD), y el relevo, que no se ejercitó porque no hubo corridas largas. Sin revisar: algunos bloqueos negaron trozos de un comando que iban entre comillas, lo que apunta a que el guardián parte los comandos por `|` y `;` sin mirar las comillas. Nadie, ni la sesión principal, puede corregir la config con una tarea abierta: un error ahí termina en un comando a mano de la persona.
 
+## PR desde la sesión principal sin tarea abierta (2026-11-11)
+
+- Sin `activa.json`, la sesión principal puede correr `gh pr create` (con `remoto.pr=true` y `-R` al repo configurado). Sirve para mantener un repo por rama y PR sin abrir una tarea completa.
+- Con una tarea abierta no cambia nada: abre el PR Yunque, o Faro si Yunque no participa. Las tareas con `"reglas": 2` siguen igual.
+- Subir a `main` y unir el PR siguen negados a la sesión principal.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

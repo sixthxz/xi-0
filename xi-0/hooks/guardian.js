@@ -130,7 +130,9 @@ function reglaRemotos(cfg, quien, comando, activa) {
     const gh = subcomandoGh(p);
     if (gh === 'create') {
       if (!r.pr) negar('No se abren PRs reales en este proyecto (remoto.pr=false). Yunque deja el PR en .xi-0/PR.md.');
-      if (!esQuienPublica) negar(`Solo ${Publica} abre el PR de la tarea.`);
+      // Sin tarea abierta no hay Yunque ni Faro: la sesión principal abre el PR de su propia rama (mantenimiento).
+      const mantenimiento = !activa && quien.rol === 'xi-0';
+      if (!esQuienPublica && !mantenimiento) negar(`Solo ${Publica} abre el PR de la tarea.`);
       if (!r.repo_pr || !p.some((t) => t.includes(r.repo_pr))) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
     }
     if (gh === 'merge') {
