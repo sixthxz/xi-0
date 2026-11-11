@@ -160,6 +160,19 @@ Sin hacer: `no_leer` sigue sin que nadie lo aplique (el guardián no intercepta 
 - Se corrigieron textos que ya no cuadraban con la especificación: el selector de tipo ya no se presenta como tamaño, no negociables 10, 14 y 15, ramas y commits, y qué pasa con los commits `wip:` al reiniciarse el límite (se quedan y desaparecen en el commit único).
 - El mapa sigue siendo una vista para personas: si contradice la especificación, manda la especificación.
 
+## Primera tarea medida con ruta por tamaño (2026-11-11)
+
+Una tarea mediana sobre este mismo repo (el mapa), con la sesión principal en Opus y `"reglas": 3`.
+
+- **Costo:** 21.10 USD a precio de API en 488 turnos. Sesión principal 31 %, Argos 19 %, Prisma 15 %, Meridiano 9 %, Lumen 7 %, Égida 6 %; Faro, Norte, Brújula, Códice y un ligero suman el 14 % restante.
+- **Caché vencida:** 3.24 USD (15 %) en turnos que volvieron a escribir el contexto.
+- **Ruta:** 9 compañeros y 1 ligero para un cambio de un archivo HTML y una prueba. Se clasificó mediana, y no chica, porque tocaba una pantalla que ya existía (entra Diseño).
+- **Guardián:** 15 bloqueos. Varios venían de un permitido mal escrito en la config (`node pruebas/`, que nunca coincide); `instalar.js --revisar` ahora lo avisa.
+- **Compactación:** la sesión principal compactó una vez, al final, y después hizo el commit único y cerró a los compañeros sin problema.
+- **Límite de uso:** con el límite de 5 horas en 86 % la habilidad no abrió la tarea, como debe.
+
+Sin medir todavía: una tarea chica, la misma tarea en una sesión sola (no hay con qué comparar los 21 USD), y el relevo, que no se ejercitó porque no hubo corridas largas. Sin revisar: algunos bloqueos negaron trozos de un comando que iban entre comillas, lo que apunta a que el guardián parte los comandos por `|` y `;` sin mirar las comillas. Nadie, ni la sesión principal, puede corregir la config con una tarea abierta: un error ahí termina en un comando a mano de la persona.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
