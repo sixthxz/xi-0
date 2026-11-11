@@ -4,7 +4,7 @@
 
 [![Flujo de una tarea en xi-0: la orden entra a xi-0, pasa por Planeación, Construcción y Calidad y entrega, y sale una rama lista](docs/flujo.svg)](https://sixthxz.github.io/xi-0/)
 
-<p align="center"><b><a href="https://sixthxz.github.io/xi-0/">Abrir el mapa interactivo →</a></b><br>cada agente, qué hace, con quién habla y los límites</p>
+<p align="center"><b><a href="https://sixthxz.github.io/xi-0/">Abrir el mapa interactivo →</a></b><br>cada agente, qué hace, con quién habla, los límites y el flujo de una tarea por tamaño</p>
 
 ## En 30 segundos
 

@@ -153,6 +153,13 @@ Se eligió una prueba y no generar los documentos desde `equipos.json` porque la
 
 Sin hacer: `no_leer` sigue sin que nadie lo aplique (el guardián no intercepta `Read`); la plantilla mínima no se ha usado en una tarea real.
 
+## Mapa con el flujo de una tarea (2026-11-11)
+
+- `mapa.html` muestra el flujo de una tarea por tamaño (chica, mediana, grande), el commit único y el relevo de corridas largas, según las secciones 5, 7 y 9 de la especificación.
+- Se quitaron las animaciones decorativas; las que quedan responden a un paso o a una interacción, y respetan `prefers-reduced-motion`.
+- Se corrigieron textos que ya no cuadraban con la especificación: el selector de tipo ya no se presenta como tamaño, no negociables 10, 14 y 15, ramas y commits, y qué pasa con los commits `wip:` al reiniciarse el límite (se quedan y desaparecen en el commit único).
+- El mapa sigue siendo una vista para personas: si contradice la especificación, manda la especificación.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
