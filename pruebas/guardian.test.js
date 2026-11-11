@@ -30,6 +30,8 @@ const msg = (to, message) => ['SendMessage', { to, message }];
 const bash = (command, extra) => ['Bash', { command, ...extra }];
 const agente = (subagent_type, name) => ['Agent', { subagent_type, name: name || '', prompt: 'p' }];
 const PASA = 'pasa';
+const escribir = (...partes) => ['Write', { file_path: path.join(...partes), content: 'x' }];
+const HOME = path.join(os.homedir(), '.claude');
 
 // [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo, preparación previa]
 const CASOS = [
@@ -107,6 +109,26 @@ const CASOS = [
   ['push: hablar de push en un commit no es push', 'reglas2', 'yunque', bash('git commit -m "listo para git push origin main"'), PASA],
   ['gh: -R antes de pr create', 'medianaYunque', 'faro', bash('gh -R yo/fork pr create --fill'), /Solo Yunque abre/],
   ['gh: merge con env delante', 'reglas2', 'faro', bash('env gh pr merge 3'), /merge está desactivado/],
+  // --- Un agente no cambia xi-0 ni su configuración ---
+  ['protegido: el guardián instalado', 'reglas2', 'forja', escribir(HOME, 'xi-0', 'hooks', 'guardian.js'), /es parte de xi-0/],
+  ['protegido: los settings de la persona', 'reglas2', 'forja', escribir(HOME, 'settings.json'), /es parte de xi-0/],
+  ['protegido: los agentes generados', 'reglas2', 'forja', escribir(HOME, 'agents', 'xi-0', 'forja.md'), /es parte de xi-0/],
+  ['protegido: los settings del repo', 'reglas2', 'faro', escribir(repo, '.claude', 'settings.local.json'), /es parte de xi-0/],
+  ['protegido: la config del repo', 'reglas2', 'faro', escribir(repo, '.claude', 'xi-0', 'config.json'), /es parte de xi-0/],
+  ['protegido: la tarea activa', 'reglas2', 'forja', escribir(repo, '.claude', 'xi-0', 'activa.json'), /es parte de xi-0/],
+  ['protegido: también sin tarea activa', 'ninguna', 'general-purpose', escribir(HOME, 'xi-0', 'equipos.json'), /es parte de xi-0/],
+  ['protegido: la sesión principal sí puede', 'ninguna', null, escribir(repo, '.claude', 'xi-0', 'config.json'), PASA],
+  ['protegido: la memoria en ~/.claude sigue libre', 'reglas2', 'forja', escribir(HOME, 'projects', 'x', 'memory', 'nota.md'), PASA],
+  ['protegido: Bash borra el guardián', 'ninguna', 'forja', bash('rm ~/.claude/xi-0/hooks/guardian.js'), /no puede tocar la instalación/],
+  ['protegido: Bash redirige a la config', 'ninguna', 'forja', bash('echo {} > .claude/xi-0/config.json'), /no puede tocar la instalación/],
+  ['protegido: Bash con sed -i en settings', 'ninguna', 'forja', bash('sed -i s/a/b/ .claude/settings.json'), /no puede tocar la instalación/],
+  ['protegido: Bash con node -e', 'ninguna', 'forja', bash(`node -e "require('fs').rmSync('.claude/xi-0/activa.json')"`), /no puede tocar la instalación/],
+  ['protegido: Bash borra activa.json', 'reglas2', 'forja', bash('rm -f .claude/xi-0/activa.json'), /no puede tocar la instalación/],
+  ['protegido: leer la config vale', 'ninguna', 'forja', bash('cat .claude/xi-0/config.json 2>&1 | head -20'), PASA],
+  ['protegido: correr un script de xi-0 vale', 'ninguna', 'argos', bash('node ~/.claude/xi-0/qa-visual/recorrido.js --dist dist --out .xi-0/qa/capturas'), PASA],
+  // --- Salirse del repo con cd no apaga el guardián ---
+  ['fuera del repo: el push sigue vigilado', 'reglas2', 'forja', bash('git -C ' + JSON.stringify(repo) + ' push fork main'), /Solo Yunque sube/, { fuera: true }],
+  ['fuera del repo: las carpetas siguen', 'reglas2', 'prisma', escribir(repo, 'api', 'x.cs'), /no es dueño/, { fuera: true }],
   // --- Si el guardián falla, niega ---
   ['config con una regex mal escrita', 'reglas2', 'forja', bash('dotnet build'), /El guardián falló/, { config: (c) => { c.comandos.forja = ['re:(']; } }],
   ['config que no es JSON', 'reglas2', 'forja', bash('ls'), /El guardián falló/, { config: 'roto' }],
@@ -158,12 +180,12 @@ function correr(activa, quien, [herramienta, entrada], previo) {
     fs.mkdirSync(path.dirname(guardian), { recursive: true });
     fs.copyFileSync(GUARDIAN, guardian);
   }
-  const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: repo, tool_input: entrada };
+  const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: (previo || {}).fuera ? os.tmpdir() : repo, tool_input: entrada };
   if (quien) evento.agent_type = quien;
   // El guardián deja escribir en la carpeta temporal del sistema; aquí el repo de prueba vive en ella,
   // así que al guardián se le dice que la temporal es otra.
   const otra = path.join(repo, 'sin-tmp');
-  const env = { ...process.env, TEMP: otra, TMP: otra, TMPDIR: otra };
+  const env = { ...process.env, TEMP: otra, TMP: otra, TMPDIR: otra, CLAUDE_PROJECT_DIR: (previo || {}).fuera ? repo : '' };
   const r = spawnSync(process.execPath, [guardian], { input: JSON.stringify(evento), encoding: 'utf8', env });
   if (p.config) fs.writeFileSync(archivoCfg, JSON.stringify(cfg));
   let motivo = null;

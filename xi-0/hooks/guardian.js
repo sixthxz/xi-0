@@ -290,6 +290,37 @@ function reglaDependencias(cfg, clave, s, raizTarea) {
   }
 }
 
+// Lo que hace cumplir las reglas no lo cambia un agente: la instalación de xi-0, los settings (ahí están
+// los hooks) y la carpeta .claude/xi-0 del repo (config, tarea activa, registro). Solo la sesión principal,
+// que es la que conduce la persona. Aplica en cualquier repo con xi-0 activado, haya tarea o no.
+function esProtegido(abs, raiz) {
+  const a = abs.toLowerCase();
+  const home = norm(path.join(os.homedir(), '.claude')).toLowerCase();
+  const repo = `${raiz.toLowerCase()}/.claude`;
+  const dentro = (base) => a === base || a.startsWith(base + '/');
+  return dentro(`${home}/xi-0`) || dentro(`${home}/skills/xi-0`) || dentro(`${home}/agents/xi-0`) || dentro(`${repo}/xi-0`)
+    || [home, repo].some((b) => a.startsWith(`${b}/settings`) && a.endsWith('.json') && !a.slice(b.length + 1).includes('/'));
+}
+function reglaProtegidosArchivo(quien, archivo, raiz) {
+  if (quien.rol === 'xi-0' || !archivo) return;
+  if (esProtegido(norm(archivo), raiz)) negar(`${quien.equipo} no puede escribir en ${norm(archivo)}: es parte de xi-0 o de su configuración. Si hace falta un cambio, díselo a tu líder; lo hace la sesión principal con la persona.`);
+}
+// En Bash es una comprobación por texto, no una garantía: un comando que nombra esas rutas solo pasa si es de lectura.
+const MENCION_PROTEGIDA = /\.claude\/(xi-0|skills\/xi-0|agents\/xi-0)(\/|$)|\.claude\/settings[^\/\s]*\.json|(^|[\/\s'"(])guardian\.js|(^|[\/\s'"(])equipos\.json/i;
+const SOLO_LECTURA = new Set(['cat', 'head', 'tail', 'grep', 'rg', 'ls', 'wc', 'less', 'more', 'stat', 'file', 'diff', 'test', 'cd', 'node']);
+function reglaProtegidosBash(quien, comando) {
+  if (quien.rol === 'xi-0') return;
+  const menciona = (t) => MENCION_PROTEGIDA.test(String(t).replace(/\\/g, '/'));
+  for (const p of piezas(comando)) {
+    if (!p.some(menciona)) continue;
+    const no = () => negar(`${quien.equipo} no puede tocar la instalación ni la configuración de xi-0 desde Bash ("${p.join(' ').slice(0, 80)}"). Leer sí: cat, head, grep, ls, o node <script>.`);
+    const orden = p.find((t) => !/^\w+=/.test(t)) || '';
+    if (!SOLO_LECTURA.has(orden.replace(/^.*[\/\\]/, '').replace(/\.exe$/i, ''))) no();
+    if (orden === 'node' && p.some((t) => /^-(e|p|-eval|-print|r|-require)$/.test(t) || (/\s/.test(t) && menciona(t)))) no();
+    p.forEach((t, i) => { if (t.includes('>') && menciona(t.split('>').pop() || p[i + 1] || '')) no(); });
+  }
+}
+
 function reglaCarpetas(cfg, quien, archivo, raiz) {
   const abs = norm(archivo);
   const home = norm(path.join(os.homedir(), '.claude'));
@@ -518,10 +549,11 @@ process.stdin.on('end', () => { try { atender(); } catch (err) { fallar(err); } 
 function atender() {
   let e;
   try { e = JSON.parse(crudo); } catch { pasar(); }
-  const raiz = raizPrincipal(e.cwd || process.cwd());
+  // El repo es el de la carpeta actual; si un agente se salió con cd, el del proyecto de la sesión.
+  const raiz = [e.cwd, process.env.CLAUDE_PROJECT_DIR, process.cwd()].filter(Boolean).map(raizPrincipal)
+    .find((r) => r && fs.existsSync(path.join(r, '.claude', 'xi-0', 'config.json')));
   if (!raiz) pasar();
   const archivoCfg = path.join(raiz, '.claude', 'xi-0', 'config.json');
-  if (!fs.existsSync(archivoCfg)) pasar();
   enConfig = true;
   eventoActual = e.hook_event_name;
   ctx = { raiz, evento: e.hook_event_name, quien: e.agent_type || 'xi-0', herramienta: e.tool_name, sesion: e.session_id };
@@ -535,6 +567,12 @@ function atender() {
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
   if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa);
+  // Lo mismo la protección de xi-0 y su configuración.
+  if (e.hook_event_name === 'PreToolUse') {
+    const ti = e.tool_input || {};
+    if (e.tool_name === 'Bash') reglaProtegidosBash(quien, ti.command || '');
+    else if (['Write', 'Edit', 'NotebookEdit'].includes(e.tool_name)) reglaProtegidosArchivo(quien, ti.file_path || ti.notebook_path, raiz);
+  }
   if (!activa) pasar();
 
   const limite = nivelLimite(raiz);

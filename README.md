@@ -76,11 +76,16 @@ xi-0 lee cuánto llevas gastado de tu límite y baja el ritmo solo:
 
 ## Lo que el guardián nunca deja pasar
 
-- Subir a `main` o `master`, o subir forzado.
+- Subir a `main`, `master` o la rama base, o subir forzado. El push nombra remoto y rama: `git push <remoto> tarea/<id>`.
 - Subir a un remoto que no sea el permitido en la config del repo.
 - Que un equipo escriba fuera de sus carpetas.
 - Esperar más de 4 minutos dentro de una llamada (la caché de un agente vence a los 5 y el turno siguiente reescribe todo su contexto).
 - Cerrar QA sin evidencia, o debilitar una prueba que ya existía sin justificarlo.
+- Que un agente cambie xi-0 o su configuración: la instalación en `~/.claude`, los `settings` y la carpeta `.claude/xi-0` del repo. Eso solo lo hace la sesión principal, contigo.
+
+Si el guardián falla (por ejemplo, una config mal escrita), niega la llamada y dice qué revisar; no deja pasar.
+
+Límite conocido: las carpetas por equipo se hacen cumplir en las herramientas de escritura. Dentro de Bash el guardián revisa qué comandos puede correr cada equipo, no cada archivo que esos comandos tocan.
 
 ## Requisitos
 

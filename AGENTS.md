@@ -37,7 +37,9 @@ Todo está en español: código, comentarios, mensajes del hook y documentos.
 
 `guardian.js` se registra como hook de `PreToolUse` (Bash, Write, Edit, NotebookEdit, Agent, SendMessage), `SubagentStop`, `TaskCreated` y `TaskCompleted`. Lee el evento por stdin y, si niega, responde con `permissionDecision: "deny"` y un motivo que empieza con `[xi-0]`. Sin `<repo>/.claude/xi-0/config.json` no hace nada.
 
-Reglas principales: carpetas por equipo, lista de comandos por equipo, líneas de mensajes y máximo de palabras, máximo de ligeros, nada de push a `main` ni forzado, ninguna espera de más de 4 minutos dentro de una llamada, y QA no cierra sin evidencia.
+Si el guardián falla en un repo con config, niega (no deja pasar). Si la carpeta actual quedó fuera del repo, usa el repo de `CLAUDE_PROJECT_DIR`.
+
+Reglas principales: ningún agente escribe en la instalación de xi-0, en los settings ni en `.claude/xi-0` del repo (solo la sesión principal), carpetas por equipo, lista de comandos por equipo, líneas de mensajes y máximo de palabras, máximo de ligeros, nada de push a `main` ni forzado, ninguna espera de más de 4 minutos dentro de una llamada, y QA no cierra sin evidencia.
 
 ## Estado del trabajo
 

@@ -110,6 +110,17 @@ Respecto al informe:
   - `costo.md` exigido por el guardián, que no puede saber cuánto va a tardar un comando.
   - RTK: ahorraría unos $15–22 al mes, y su hook global junto al guardián tiene un comportamiento no documentado.
 
+## Endurecimiento del guardián (2026-11-10)
+
+Salió de una revisión del código con eventos sintéticos. Cada hueco se reprodujo primero como caso en `pruebas/guardian.test.js` (fallaba con el guardián anterior) y después se cerró. Aplica a todas las tareas, también con `"reglas": 2`: son correcciones de reglas que ya existían, no reglas nuevas.
+
+- **Push.** La regla de remotos ya no depende de cómo esté escrito el comando. Parte el comando en palabras como lo hace el shell (función `piezas`) y reconoce `git` con opciones delante (`-C`, `-c`), dentro de `$( )`, comillas invertidas, paréntesis, tras `&`, con `env` o dentro de `bash -c`. El remoto es el primer argumento; el destino se lee del refspec (`HEAD:refs/heads/main`, `:main`); `-uf` y `+rama` cuentan como forzado. El push tiene que nombrar la rama: sin rama, o con `--all`, `--mirror` o `--repo`, se niega. `rama_base` queda protegida igual que `main` y `master`.
+- **Falla cerrada.** Una excepción del guardián (regex `re:` inválida, `config.json` o `activa.json` dañados, `equipos.json` ilegible) antes salía con código 1 y Claude Code dejaba pasar la llamada. Ahora niega con el motivo. Sin config en el repo sigue sin hacer nada. En `SubagentStop` solo registra el error, para no dejar a un agente sin poder terminar.
+- **xi-0 no se cambia desde un agente.** Cualquier llamada con `agent_type` tiene negado escribir en `~/.claude/xi-0`, `~/.claude/skills/xi-0`, `~/.claude/agents/xi-0`, `settings*.json` (de la persona y del repo) y `<repo>/.claude/xi-0`. En Write y Edit es exacto, por ruta. En Bash es por texto: un comando que nombra esas rutas solo pasa si es de lectura (`cat`, `head`, `grep`, `ls`, `node <script>`).
+- **Carpeta actual fuera del repo.** Si un agente se sale con `cd`, el guardián usa el repo de `CLAUDE_PROJECT_DIR`.
+
+Sin cerrar: la lista de comandos por equipo sigue usando `segmentos`, que no separa `&` sola ni `$( )`; un push dentro de un alias de git o de un script no se ve; Bash puede escribir en carpetas de otro equipo con comandos permitidos (redirecciones, `node -e`); un script escrito en la carpeta temporal y ejecutado después tampoco se ve. Cerrar eso del todo pide aislamiento del sistema operativo, no un hook.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
