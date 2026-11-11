@@ -52,6 +52,7 @@ Reglas principales: ningún agente escribe en la instalación de xi-0, en los se
 node instalar.js                      # instala en ~/.claude y genera los agentes
 node instalar.js --activar <repo>     # deja config y hooks en un repo
 node pruebas/guardian.test.js         # pruebas del guardián en un repo temporal
+node pruebas/conformidad.test.js      # números y líneas de los documentos contra equipos.json
 node ~/.claude/xi-0/metricas.js <repo>  # costo y bloqueos por agente
 ```
 
@@ -62,3 +63,4 @@ No hay dependencias que instalar salvo `xi-0/qa-visual` (opcional, `npm install`
 - Los agentes se cambian en `generar-agentes.js`, nunca en los `.md` generados.
 - Un cambio en el guardián lleva su caso en `pruebas/guardian.test.js`.
 - Una regla nueva no debe cambiar el comportamiento de tareas con `"reglas": 2`.
+- Un número que cambia (máximos, niveles del límite, palabras, líneas) se cambia en `xi-0/equipos.json` y en la especificación; `pruebas/conformidad.test.js` avisa si un documento quedó atrás.

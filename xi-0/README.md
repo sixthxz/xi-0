@@ -38,7 +38,7 @@ Activar en otro repo: copiar `config.ejemplo.json` a `<repo>/.claude/xi-0/config
   - Argos añade el rol *QA visual* y compara contra esas capturas (`.xi-0/qa/visual/`).
 - **QA no cierra sin las líneas** `pruebas:`, `revision:` y `visual:` en `.xi-0/qa/resultado.md` (guardián); en tareas con reglas de evidencia, también `validez:` (ver abajo).
 - **xi-0 verifica el diff** él mismo antes de entregar.
-- Máximo de Argos subido de 6 a 8 por los dos roles nuevos.
+- Máximo de Argos subido de 6 a 8 por los dos roles nuevos (ya está así en la especificación, secciones 3 y 4).
 - `config.comandos` acepta regex con prefijo `re:`.
 
 ## Reglas de evidencia (2026-11-02)
@@ -134,6 +134,14 @@ La habilidad abre las tareas con `"reglas": 3`, que suma `tamano` y `fases` a `a
 - **Mensajes directos.** Un equipo cuya fase no tiene líder en la tarea le entrega a xi-0 una ficha de hasta 250 palabras (`palabras_max.directo` en `equipos.json`).
 
 Sin verificar en una tarea real: que la corrida desprendida siga viva cuando se cierra el agente que la lanzó (en Windows depende de cómo Claude Code termine el árbol de procesos), que el aviso del vigía despierte a xi-0, y cuánto baja el costo de una chica frente a la ruta completa. La habilidad ya le dice a xi-0 que mire el archivo de resultado si el aviso no llega.
+
+## Una sola fuente para los números (2026-11-10)
+
+`equipos.json` es la fuente de máximos, líneas, niveles del límite, máximos de palabras y vueltas; el guardián y el generador lo leen. La especificación, la habilidad y el README son texto fijo y repiten algunos de esos números, así que `pruebas/conformidad.test.js` comprueba que digan lo mismo: niveles del límite en los tres, vueltas, palabras de la ficha directa, equipos y líderes, fase y máximo de agentes por equipo (tabla de la sección 3), las líneas de comunicación de la sección 7 y que la habilidad tenga los mismos no negociables que la especificación.
+
+La primera corrida encontró una diferencia real: la especificación todavía decía 6 como máximo de QA y no tenía los roles Revisor de código y QA visual. Se corrigió la especificación.
+
+Se eligió una prueba y no generar los documentos desde `equipos.json` porque la especificación es el documento que manda y se escribe a mano; generarla pondría el diseño detrás de un script.
 
 ## Lo que no se pudo implementar tal cual
 

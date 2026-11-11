@@ -160,12 +160,14 @@ xi-0/
   qa-visual/recorrido.js  capturas de escritorio y móvil para el QA visual
   mapa.html               mapa interactivo
 pruebas/guardian.test.js  pruebas del guardián
+pruebas/conformidad.test.js  los números de los documentos contra equipos.json
 ```
 
 ## Probar el guardián
 
 ```bash
 node pruebas/guardian.test.js
+node pruebas/conformidad.test.js
 ```
 
 Crea un repo temporal, le pasa eventos de hook y compara cada decisión. No toca ningún repo real.

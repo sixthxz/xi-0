@@ -150,7 +150,7 @@ Herramientas de los líderes de fase en Claude Code: `Read, Glob, Grep, Bash` (B
 | Herramientas | Planeación | Sextante (`sextante`) | medium | 6 | `/plan/herramientas` |
 | Front end | Construcción | Prisma (`prisma`) | medium | 6 | `/web` |
 | Back end | Construcción | Forja (`forja`) | medium | 6 | `/api + /db` |
-| QA | Calidad y entrega | Argos (`argos`) | high | 6 | `/tests` |
+| QA | Calidad y entrega | Argos (`argos`) | high | 8 | `/tests` |
 | Seguridad | Calidad y entrega | Égida (`egida`) | high | 4 | `/seguridad` |
 | DevOps | Calidad y entrega | Faro (`faro`) | medium | 3 | `/infra + /.github` |
 | Docs | Calidad y entrega | Códice (`codice`) | low | 3 | `/docs` |
@@ -428,6 +428,8 @@ Agentes ligeros que puede lanzar según el tipo de tarea (– = el equipo no ent
 | Pruebas unitarias | 1 | 2 | 3 | 1 a 3 |
 | Pruebas de integración | 0 | 1 | 2 | 0 a 2 |
 | Pruebas de regresión | 0 | 1 | 1 | 0 a 1 |
+| Revisor de código | 1 | 1 | 2 | 1 a 2 |
+| QA visual | 0 (1 si toca interfaz) | 1 | 1 | 0 a 1 |
 
 **Validez de las pruebas.** Una prueba vale como evidencia si falla cuando el criterio no se cumple y pasa con cualquier implementación que sí lo cumpla. Argos (el líder, no un ligero) comprueba que cada prueba:
 
