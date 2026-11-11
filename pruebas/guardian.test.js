@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+// Pruebas del guardián: le pasa eventos de hook sintéticos y compara la decisión.
+// Uso: node pruebas/guardian.test.js [ruta a guardian.js]
+// Crea un repo git temporal con una config de ejemplo; no toca ningún repo real.
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync, execFileSync } = require('child_process');
+
+const GUARDIAN = path.resolve(process.argv[2] || path.join(__dirname, '..', 'xi-0', 'hooks', 'guardian.js'));
+const EJEMPLO = path.join(__dirname, '..', 'xi-0', 'config.ejemplo.json');
+
+const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'xi0-prueba-'));
+execFileSync('git', ['init', '-q', repo]);
+fs.mkdirSync(path.join(repo, '.claude', 'xi-0'), { recursive: true });
+const cfg = JSON.parse(fs.readFileSync(EJEMPLO, 'utf8'));
+cfg.remoto = { push: true, remote_permitido: 'fork', pr: true, repo_pr: 'yo/fork', merge: false };
+fs.writeFileSync(path.join(repo, '.claude', 'xi-0', 'config.json'), JSON.stringify(cfg));
+
+const ACTIVAS = {
+  ninguna: null,
+  reglas2: { tarea: 't1', reglas: 2 },
+  chica: { tarea: 't1', reglas: 3, tamano: 'chica', fases: [] },
+  medianaYunque: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'] },
+  medianaMeridiano: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['meridiano'] },
+};
+const palabras = (n) => Array(n).fill('palabra').join(' ');
+const msg = (to, message) => ['SendMessage', { to, message }];
+const bash = (command, extra) => ['Bash', { command, ...extra }];
+const agente = (subagent_type, name) => ['Agent', { subagent_type, name: name || '', prompt: 'p' }];
+const PASA = 'pasa';
+
+// [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo]
+const CASOS = [
+  // --- Mensajes: como siempre con reglas 2 ---
+  ['xi-0 no ordena a un equipo', 'reglas2', null, msg('prisma', 'haz el cambio'), /saltándose a su líder de fase/],
+  ['xi-0 sí puede cerrar a un equipo', 'reglas2', null, msg('prisma', 'cierra ya'), PASA],
+  ['un equipo no escribe a xi-0', 'reglas2', 'prisma', msg('team-lead', 'entrega lista'), /no tiene línea con xi-0/],
+  ['un equipo escribe a su fase', 'reglas2', 'prisma', msg('yunque', 'entrega lista'), PASA],
+  ['ficha de más de 180 palabras', 'reglas2', 'prisma', msg('yunque', palabras(190)), /Ficha demasiado larga/],
+  ['equipos sin línea', 'reglas2', 'prisma', msg('codice', 'hola'), /no tiene línea con codice/],
+  // --- Mensajes: tarea chica (sin líderes de fase) ---
+  ['chica: xi-0 encarga directo', 'chica', null, msg('prisma', 'haz el cambio'), PASA],
+  ['chica: el equipo reporta a xi-0', 'chica', 'prisma', msg('team-lead', 'entrega lista'), PASA],
+  ['chica: QA reporta a xi-0', 'chica', 'argos', msg('team-lead', 'qa ok'), PASA],
+  ['chica: ficha directa de 240 palabras', 'chica', 'prisma', msg('team-lead', palabras(240)), PASA],
+  ['chica: ficha directa de 260 palabras', 'chica', 'prisma', msg('team-lead', palabras(260)), /Ficha demasiado larga \(260 palabras, máximo 250\)/],
+  ['chica: la fase no está activa', 'chica', 'prisma', msg('yunque', 'entrega lista'), /yunque no está activo/],
+  ['chica: equipos sin línea siguen negados', 'chica', 'prisma', msg('codice', 'hola'), /no tiene línea con codice/],
+  // --- Mensajes: mediana con una sola fase activa ---
+  ['mediana: con su fase activa, pasa por ella', 'medianaYunque', 'prisma', msg('team-lead', 'entrega'), /no tiene línea con xi-0/],
+  ['mediana: xi-0 no se salta una fase activa', 'medianaYunque', null, msg('prisma', 'haz el cambio'), /saltándose a su líder de fase/],
+  ['mediana: equipo de una fase inactiva reporta a xi-0', 'medianaYunque', 'argos', msg('team-lead', 'qa ok'), PASA],
+  // --- Lanzar agentes ---
+  ['xi-0 lanza a un líder', 'chica', null, agente('prisma', 'prisma'), PASA],
+  ['xi-0 no lanza ligeros', 'reglas2', null, agente('prisma-ligero', 'x'), /solo lanza líderes/],
+  ['un equipo lanza su ligero', 'reglas2', 'prisma', agente('prisma-ligero'), PASA],
+  ['chica: sin ligeros', 'chica', 'prisma', agente('prisma-ligero'), /Tarea chica/],
+  ['mediana: con ligeros', 'medianaMeridiano', 'forja', agente('forja-ligero'), PASA],
+  // --- Remotos: con Yunque (o sin tarea) ---
+  ['Yunque sube la rama', 'reglas2', 'yunque', bash('git push fork tarea/t1'), PASA],
+  ['Faro no sube si está Yunque', 'reglas2', 'faro', bash('git push fork tarea/t1'), /Solo Yunque sube/],
+  ['sin tarea activa también aplica', 'ninguna', 'faro', bash('git push fork tarea/t1'), /Solo Yunque sube/],
+  ['Yunque abre el PR', 'medianaYunque', 'yunque', bash('gh pr create -R yo/fork --fill'), PASA],
+  ['Faro no abre el PR si está Yunque', 'medianaYunque', 'faro', bash('gh pr create -R yo/fork --fill'), /Solo Yunque abre/],
+  ['nunca a main', 'reglas2', 'yunque', bash('git push fork main'), /Nunca push a main/],
+  ['nunca forzado', 'reglas2', 'yunque', bash('git push -f fork tarea/t1'), /push forzado/],
+  ['solo el remoto permitido', 'reglas2', 'yunque', bash('git push origin tarea/t1'), /Solo se permite push al remoto/],
+  ['merge desactivado', 'reglas2', 'faro', bash('gh pr merge 3'), /merge está desactivado/],
+  // --- Remotos: sin Yunque publica Faro ---
+  ['chica: Faro sube la rama', 'chica', 'faro', bash('git push fork tarea/t1'), PASA],
+  ['chica: Faro abre el PR', 'chica', 'faro', bash('gh pr create -R yo/fork --fill'), PASA],
+  ['chica: Faro, PR sin -R', 'chica', 'faro', bash('gh pr create --fill'), /debe llevar -R yo\/fork/],
+  ['chica: Faro, nunca a main', 'chica', 'faro', bash('git push fork main'), /Nunca push a main/],
+  ['chica: Faro, nunca forzado', 'chica', 'faro', bash('git push -f fork tarea/t1'), /push forzado/],
+  ['chica: un ligero de Faro no sube', 'chica', 'faro-ligero', bash('git push fork tarea/t1'), /Solo Faro sube/],
+  ['chica: Yunque ya no sube', 'chica', 'yunque', bash('git push fork tarea/t1'), /Solo Faro sube/],
+  ['chica: un constructor no sube', 'chica', 'prisma', bash('git push fork tarea/t1'), /Solo Faro sube/],
+  ['chica: xi-0 no abre el PR', 'chica', null, bash('gh pr create -R yo/fork --fill'), /Solo Faro abre/],
+  ['mediana sin Yunque: Faro sube', 'medianaMeridiano', 'faro', bash('git push fork tarea/t1'), PASA],
+  // --- Esperas ---
+  ['espera corta', 'reglas2', 'forja', bash('sleep 200'), PASA],
+  ['espera larga', 'reglas2', 'forja', bash('sleep 300'), /Ninguna llamada espera más de 4 min/],
+  ['xi-0 puede esperar', 'reglas2', null, bash('sleep 300'), PASA],
+];
+
+function correr(activa, quien, [herramienta, entrada]) {
+  const f = path.join(repo, '.claude', 'xi-0', 'activa.json');
+  if (activa) fs.writeFileSync(f, JSON.stringify(activa)); else fs.rmSync(f, { force: true });
+  fs.rmSync(path.join(repo, '.claude', 'xi-0', 'activos.json'), { force: true });
+  const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: repo, tool_input: entrada };
+  if (quien) evento.agent_type = quien;
+  const r = spawnSync(process.execPath, [GUARDIAN], { input: JSON.stringify(evento), encoding: 'utf8' });
+  let motivo = null;
+  try {
+    const o = JSON.parse(r.stdout).hookSpecificOutput;
+    if (o.permissionDecision === 'deny') motivo = o.permissionDecisionReason;
+  } catch { /* sin salida: pasa */ }
+  if (r.status !== 0) motivo = motivo || `salió con código ${r.status}: ${r.stderr}`;
+  return motivo;
+}
+
+let fallos = 0;
+for (const [nombre, clave, quien, llamada, espera] of CASOS) {
+  const motivo = correr(ACTIVAS[clave], quien, llamada);
+  const bien = espera === PASA ? motivo === null : motivo !== null && espera.test(motivo);
+  if (!bien) {
+    fallos++;
+    console.log(`FALLA  ${nombre}\n       se esperaba: ${espera === PASA ? 'que pasara' : espera}\n       se obtuvo:   ${motivo === null ? 'pasó' : motivo}`);
+  }
+}
+fs.rmSync(repo, { recursive: true, force: true });
+console.log(`${CASOS.length - fallos} de ${CASOS.length} casos bien${fallos ? `, ${fallos} con falla` : ''}.`);
+process.exit(fallos ? 1 : 0);

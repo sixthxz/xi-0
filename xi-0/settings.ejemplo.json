@@ -1,0 +1,44 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "deny": ["Read(**/.env)", "Read(**/.env.*)"]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"<XI0>/statusline.js\"",
+    "padding": 0
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|NotebookEdit|Agent|SendMessage",
+        "hooks": [
+          { "type": "command", "command": "node \"<XI0>/hooks/guardian.js\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"<XI0>/hooks/guardian.js\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"<XI0>/hooks/guardian.js\"", "timeout": 30 }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"<XI0>/hooks/guardian.js\"", "timeout": 30 }
+        ]
+      }
+    ]
+  }
+}
