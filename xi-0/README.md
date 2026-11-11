@@ -205,6 +205,30 @@ El guardián ubica el repo con `git rev-parse`. En una carpeta donde git se nieg
 
 Aparte, en un repo así los agentes tampoco pueden usar git. Se arregla sin tocar la config global, con tres variables en `env` de los settings del repo: `GIT_CONFIG_COUNT=1`, `GIT_CONFIG_KEY_0=safe.directory`, `GIT_CONFIG_VALUE_0=<ruta del repo o *>`.
 
+## Primera tarea chica medida (2026-11-11)
+
+Un cambio de interfaz en una pantalla que ya existía (4 archivos de un módulo y una prueba nueva), en un proyecto de Next con pnpm y recorrido propio (`qa_visual.propio`). Clasificada como chica: Front end y QA en el modelo intermedio, sin líderes de fase ni ligeros, un commit al final, sin publicar.
+
+| | Chica | Mediana (la del mapa) |
+| :- | -: | -: |
+| Costo a precio de API | $6.51 | $21.10 |
+| Turnos | 158 | 488 |
+| Agentes | 2 | 7 |
+| Duración | 93 min | – |
+| Rondas de fallas | 0 | – |
+
+Reparto: Argos 44 %, xi-0 31 %, Prisma 25 %. Los turnos con la caché vencida fueron $2.07 (32 %): es lo siguiente que conviene bajar, y viene de esperas de un agente al otro y de los arranques del servidor de desarrollo.
+
+Lo que salió bien: la ruta por tamaño se respetó, QA probó sobre los cambios sin commit, la prueba nueva falla con el código anterior, y el relevo se exigió antes de dejar un proceso en segundo plano.
+
+Lo que no:
+
+- **No hubo captura del antes.** La instrucción de Argos lo pide, pero nada lo exige y se lo saltó. Falta decidir si se fuerza (una línea más en `qa/resultado.md`) o se quita.
+- **13 bloqueos del guardián.** Cinco eran de la config del repo (permitidos demasiado estrechos para correr una prueba suelta y para `curl` con opciones). El resto son formas de shell que la lista de comandos no entiende: `for … do`, un subshell `( … &)`, `tr`, `python3`, `node -e`. Cada bloqueo cuesta un turno; conviene que la plantilla diga qué formas no usar o que el guardián mire dentro de un `for`.
+- **93 minutos** para un cambio chico: buena parte se fue en levantar el servidor de desarrollo y en esperas.
+
+Sigue sin medir: la misma tarea en una sesión sola, y el aviso del vigía.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
