@@ -8,7 +8,7 @@ const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
 
-const BASE = path.join(os.homedir(), '.claude', 'xi-0');
+const BASE = path.join(__dirname, '..'); // la carpeta xi-0 donde está instalado (normalmente ~/.claude/xi-0)
 const EQ = JSON.parse(fs.readFileSync(path.join(BASE, 'equipos.json'), 'utf8'));
 const LIDERES_FASE = Object.keys(EQ.fases);
 const EQUIPOS = Object.keys(EQ.equipos);
@@ -101,8 +101,13 @@ function identificar(agentType) {
 }
 
 // ---------- reglas ----------
-function reglaRemotos(cfg, quien, comando) {
+function reglaRemotos(cfg, quien, comando, activa) {
   const r = cfg.remoto || {};
+  // Quién sube la rama y abre el PR: Yunque; si no está activo en la tarea (reglas 3), Faro (el líder, no sus ligeros).
+  const sinYunque = Number((activa || {}).reglas) >= 3 && Array.isArray(activa.fases) && !activa.fases.includes('yunque');
+  const publica = sinYunque ? 'faro' : 'yunque';
+  const Publica = sinYunque ? 'Faro' : 'Yunque';
+  const esQuienPublica = quien.equipo === publica && quien.rol !== 'ligero';
   const segs = segmentos(comando);
   for (const s of segs) {
     if (/^git\s+push\b/.test(s)) {
@@ -110,13 +115,13 @@ function reglaRemotos(cfg, quien, comando) {
       const remotoPermitido = r.remote_permitido;
       if (!remotoPermitido || !new RegExp(`\\s${escapar(remotoPermitido)}(\\s|$)`).test(s))
         negar(`Solo se permite push al remoto "${remotoPermitido}". Nunca al repo original.`);
-      if (!['yunque', 'xi-0'].includes(quien.equipo)) negar('Solo Yunque sube la rama de la tarea (y abre su único PR).');
+      if (!esQuienPublica && quien.equipo !== 'xi-0') negar(`Solo ${Publica} sube la rama de la tarea (y abre su único PR).`);
       if (/(\s|:)(main|master)(\s|$)/.test(s)) negar('Nunca push a main/master: se sube la rama tarea/<id> y se abre un PR.');
       if (/\s(-f|--force|--force-with-lease)(\s|=|$)|\s\+\S/.test(s)) negar('Nada de push forzado.');
     }
     if (/^gh\s+pr\s+create\b/.test(s)) {
       if (!r.pr) negar('No se abren PRs reales en este proyecto (remoto.pr=false). Yunque deja el PR en .xi-0/PR.md.');
-      if (quien.equipo !== 'yunque') negar('Solo Yunque abre el PR de la tarea.');
+      if (!esQuienPublica) negar(`Solo ${Publica} abre el PR de la tarea.`);
       if (!r.repo_pr || !s.includes(r.repo_pr)) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
     }
     if (/^gh\s+pr\s+merge\b/.test(s)) {
@@ -168,10 +173,13 @@ function reglaEsperas(quien, ti) {
   }
 }
 
-function reglaComandos(cfg, quien, comando, raizTarea) {
+function reglaComandos(cfg, quien, comando, raizTarea, activa) {
   if (quien.rol === 'xi-0') return; // el líder solo prepara ramas y worktrees; lo vigila su SKILL.md
   const clave = quien.rol === 'fase' ? quien.equipo : quien.equipo;
-  const permitidos = (cfg.comandos || {})[clave] || (cfg.comandos || {})._desconocido || [];
+  let permitidos = (cfg.comandos || {})[clave] || (cfg.comandos || {})._desconocido || [];
+  // Sin Yunque activo (reglas 3), Faro abre el PR; reglaRemotos ya validó repo y remoto.
+  const sinYunque = Number((activa || {}).reglas) >= 3 && Array.isArray(activa.fases) && !activa.fases.includes('yunque');
+  if (sinYunque && quien.rol === 'equipo' && quien.equipo === 'faro') permitidos = [...permitidos, 'gh pr create'];
   for (const s of segmentos(comando)) {
     // Cada permitido es un prefijo ("npm ci") o una regex con "re:" ("re:^node\\s+\\S*recorrido\\.js\\b").
     const vale = (p) => (p.startsWith('re:') ? new RegExp(p.slice(3)).test(s) : s === p || s.startsWith(p + ' '));
@@ -215,7 +223,7 @@ function reglaCarpetas(cfg, quien, archivo, raiz) {
   }
 }
 
-function reglaAgent(cfg, quien, entrada, raiz, limite) {
+function reglaAgent(cfg, quien, entrada, raiz, limite, activa) {
   const tipo = entrada.tool_input.subagent_type || '';
   const nombre = entrada.tool_input.name || '';
   if (limite.nivel === 'pausa') negar(`Límite en ${limite.pct}% (Pausa): no se lanza nadie. xi-0 completa estado.md y cierra.`);
@@ -226,6 +234,8 @@ function reglaAgent(cfg, quien, entrada, raiz, limite) {
     return;
   }
   if (quien.rol !== 'equipo') negar(`${quien.equipo} no puede lanzar agentes.`);
+  if (Number((activa || {}).reglas) >= 3 && activa.tamano === 'chica')
+    negar('Tarea chica: el líder hace el trabajo él mismo, sin agentes ligeros. Si no alcanza, avisa a xi-0 para subirla a mediana.');
   if (tipo !== `${quien.equipo}-ligero`) negar(`${quien.equipo} solo lanza agentes ligeros "${quien.equipo}-ligero" (con el rol en el prompt).`);
   if (limite.nivel !== 'normal') negar(`Límite en ${limite.pct}% (${limite.nivel}): no se lanzan agentes ligeros nuevos. Termina lo que está en curso.`);
   const max = EQ.equipos[quien.equipo].max;
@@ -247,7 +257,7 @@ function cargarActivos(raiz) {
 }
 function guardarActivos(raiz, e) { fs.writeFileSync(archivoActivos(raiz), JSON.stringify(e, null, 1)); }
 
-function reglaMensaje(quien, entrada, v2) {
+function reglaMensaje(quien, entrada, v2, activa) {
   const ti = entrada.tool_input || {};
   const para = String(ti.to || ti.recipient || '').toLowerCase();
   const msg = ti.message !== undefined ? ti.message : ti.content;
@@ -255,10 +265,13 @@ function reglaMensaje(quien, entrada, v2) {
   const palabras = msg.trim().split(/\s+/).length;
   const esLider = EQ.nombres_del_lider.includes(para);
   const destino = esLider ? 'xi-0' : para;
+  const v3 = Number((activa || {}).reglas) >= 3;
+  // Sin reglas 3, o sin lista de fases, todas las fases cuentan como activas (como antes).
+  const faseActiva = (f) => !v3 || !Array.isArray(activa.fases) || activa.fases.includes(f);
 
   if (quien.rol === 'xi-0') {
     if (!LIDERES_FASE.includes(destino) && !EQUIPOS.includes(destino)) return;
-    if (EQUIPOS.includes(destino) && !/^\s*(cierra|apaga|shutdown|para)\b/i.test(msg))
+    if (EQUIPOS.includes(destino) && faseActiva(EQ.equipos[destino].fase) && !/^\s*(cierra|apaga|shutdown|para)\b/i.test(msg))
       negar(`xi-0 no da órdenes a ${destino} saltándose a su líder de fase (${EQ.equipos[destino].fase}).`);
     return;
   }
@@ -272,8 +285,11 @@ function reglaMensaje(quien, entrada, v2) {
   if (quien.rol === 'equipo') {
     const fase = EQ.equipos[quien.equipo].fase;
     const conLinea = EQ.lineas.some(([a, b]) => (a === quien.equipo && b === destino) || (b === quien.equipo && a === destino));
-    if (destino !== fase && !conLinea) negar(`${quien.equipo} no tiene línea con ${destino}. Pásalo por ${fase}.`);
-    if (palabras > EQ.palabras_max.equipo) negar(`Ficha demasiado larga (${palabras} palabras, máximo ${EQ.palabras_max.equipo}). El mensaje solo apunta: entrega, dónde, decisiones, pendiente, necesitas.`);
+    const directo = destino === 'xi-0' && !faseActiva(fase);
+    if (destino === fase && !faseActiva(fase)) negar(`${fase} no está activo en esta tarea. Repórtale a xi-0.`);
+    if (destino !== fase && !conLinea && !directo) negar(`${quien.equipo} no tiene línea con ${destino}. Pásalo por ${fase}.`);
+    const max = directo ? (EQ.palabras_max.directo || 250) : EQ.palabras_max.equipo;
+    if (palabras > max) negar(`Ficha demasiado larga (${palabras} palabras, máximo ${max}). El mensaje solo apunta: entrega, dónde, decisiones, pendiente, necesitas.`);
     return;
   }
   negar(`${quien.equipo} no envía mensajes; entrega su resultado a su líder al terminar.`);
@@ -413,7 +429,7 @@ process.stdin.on('end', () => {
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
-  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '');
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa);
   if (!activa) pasar();
 
   const limite = nivelLimite(raiz);
@@ -422,7 +438,7 @@ process.stdin.on('end', () => {
     case 'PreToolUse':
       if (e.tool_name === 'Bash') {
         reglaEsperas(quien, e.tool_input || {});
-        reglaComandos(cfg, quien, e.tool_input.command || '', raizTarea);
+        reglaComandos(cfg, quien, e.tool_input.command || '', raizTarea, activa);
       }
       else if (['Write', 'Edit', 'NotebookEdit'].includes(e.tool_name)) {
         if (quien.rol === 'desconocido') negar(`"${quien.equipo}" no pertenece al equipo xi-0 y no puede escribir mientras hay una tarea activa.`);
@@ -430,8 +446,8 @@ process.stdin.on('end', () => {
         reglaCarpetas(cfg, quien, archivo, raiz);
         if (v2 && e.tool_name === 'Write') reglaFallaQA(archivo, e.tool_input.content);
       }
-      else if (e.tool_name === 'Agent') reglaAgent(cfg, quien, e, raiz, limite);
-      else if (e.tool_name === 'SendMessage') reglaMensaje(quien, e, v2);
+      else if (e.tool_name === 'Agent') reglaAgent(cfg, quien, e, raiz, limite, activa);
+      else if (e.tool_name === 'SendMessage') reglaMensaje(quien, e, v2, activa);
       break;
     case 'SubagentStop': {
       const tipo = e.agent_type || '';
