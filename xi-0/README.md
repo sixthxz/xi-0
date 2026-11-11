@@ -143,6 +143,16 @@ La primera corrida encontró una diferencia real: la especificación todavía de
 
 Se eligió una prueba y no generar los documentos desde `equipos.json` porque la especificación es el documento que manda y se escribe a mano; generarla pondría el diseño detrás de un script.
 
+## Instalación y plantillas (2026-11-11)
+
+- **`instalar.js --revisar <repo>`** revisa la config sin cambiar nada: JSON inválido, claves que faltan, `<nombre>` sin cambiar, rama base o remoto que no existen, carpetas de código que no existen (casi siempre la plantilla sin ajustar), `re:` inválidas y `remoto` incoherente. También corre al final de `--activar`. Sale con código 1 si hay avisos. Existe porque el guardián ahora niega todo con una config dañada, y eso conviene verlo antes de abrir una tarea.
+- **`--plantilla node`**: `config.node.json`, para un paquete de Node (código en `src/`, pruebas en `test/` o junto al código, sin Front end). La plantilla de ejemplo sigue siendo la que se usa por defecto.
+- **`qa_visual`** estaba en las instrucciones de Lumen y Argos pero no en la plantilla ni en el README. Ahora está en los dos, como opcional.
+- El instalador dice que hay que reiniciar Claude Code, que la lista para copiar a mano incluye `permissions`, y avisa del costo. El README ya no dice "No borra nada" sin aclarar que sobrescribe lo suyo.
+- El README dice qué límite se mide (5 horas; 7 días solo en Pausa) y cuándo no hay dato.
+
+Sin hacer: `no_leer` sigue sin que nadie lo aplique (el guardián no intercepta `Read`); la plantilla mínima no se ha usado en una tarea real.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

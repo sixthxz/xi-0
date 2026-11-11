@@ -1,5 +1,5 @@
 {
-  "_nota": "Plantilla con un proyecto de ejemplo (api en .NET, spa en Angular). Cópiala a <repo>/.claude/xi-0/config.json y ajusta carpetas, comandos, verificacion y no_leer a tu repo.",
+  "_nota": "Plantilla con un proyecto de ejemplo (api en .NET, spa en Angular). Cópiala a <repo>/.claude/xi-0/config.json y ajusta carpetas, comandos, verificacion, qa_visual y no_leer a tu repo. Para un proyecto de Node de un solo paquete hay una más corta: config.node.json.",
   "proyecto": "<nombre>",
   "worktrees": "../<nombre>.worktrees",
   "rama_base": "main",
@@ -24,6 +24,12 @@
       "npx ng test --watch=false",
       "npm run build"
     ]
+  },
+  "qa_visual": {
+    "_nota": "Opcional, solo si el proyecto tiene interfaz web. Pide npm install en ~/.claude/xi-0/qa-visual. Sin esta clave no hay capturas y QA escribe \"visual: no aplica\".",
+    "url_publicada": null,
+    "build": "npm run build",
+    "dist": "spa/dist/mi-app/browser"
   },
   "no_leer": [
     "spa/src/data/**"

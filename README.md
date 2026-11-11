@@ -76,6 +76,8 @@ xi-0 lee cuánto llevas gastado de tu límite y baja el ritmo solo:
 | Guardado | 85% | Cada equipo guarda su avance en un commit `wip:`. |
 | Pausa | 95% | No se lanza a nadie; xi-0 completa el estado y cierra. |
 
+El porcentaje es el del límite de 5 horas. El de 7 días solo cuenta cuando llega a Pausa. El dato lo da Claude Code a la barra de estado con una suscripción Pro o Max; sin la barra de estado de xi-0, o con cobro por API, xi-0 trabaja siempre en Normal.
+
 ## Lo que el guardián nunca deja pasar
 
 - Subir a `main`, `master` o la rama base, o subir forzado. El push nombra remoto y rama: `git push <remoto> tarea/<id>`.
@@ -103,7 +105,7 @@ cd xi-0
 node instalar.js
 ```
 
-Copia `xi-0/` a `~/.claude/xi-0`, la habilidad a `~/.claude/skills/xi-0` y genera los agentes en `~/.claude/agents/xi-0`. No borra nada.
+Copia `xi-0/` a `~/.claude/xi-0`, la habilidad a `~/.claude/skills/xi-0` y genera los agentes en `~/.claude/agents/xi-0`. Sobrescribe los archivos de xi-0 que ya existan ahí y no toca nada más. Si Claude Code está abierto, reinícialo: los agentes y la habilidad se leen al abrir la sesión.
 
 ## Activar en un repo
 
@@ -113,10 +115,20 @@ node instalar.js --activar /ruta/a/tu/repo
 
 Crea en ese repo:
 
-- `.claude/xi-0/config.json`, a partir de la plantilla. **Hay que ajustarla**: qué carpetas toca cada equipo, qué comandos puede correr, cómo se verifica el proyecto y si se permite subir a un remoto. La plantilla viene llena con un proyecto de ejemplo (.NET y Angular) para que se vea la forma.
-- `.claude/settings.json`, con agent teams, la barra de estado y los hooks del guardián. Si ya existe no se toca y se deja una propuesta al lado.
+- `.claude/xi-0/config.json`, a partir de una plantilla. **Hay que ajustarla**: qué carpetas toca cada equipo, qué comandos puede correr, cómo se verifica el proyecto y si se permite subir a un remoto. La plantilla por defecto viene llena con un proyecto de ejemplo (.NET y Angular) para que se vea la forma. Para un proyecto de Node de un solo paquete hay una más corta: añade `--plantilla node`.
+- `.claude/settings.json`, con agent teams, la barra de estado (es la que mide el límite de uso), los hooks del guardián y la lectura de archivos `.env` negada. Si ya existe no se toca y se deja una propuesta al lado para copiar a mano.
 
-Sin `config.json` el guardián no hace nada en ese repo.
+Sin `config.json` el guardián no hace nada en ese repo. Con una `config.json` dañada niega todo, así que después de ajustarla revísala:
+
+```bash
+node instalar.js --revisar /ruta/a/tu/repo
+```
+
+Avisa de JSON inválido, claves que faltan, la plantilla sin ajustar, carpetas de código que no existen, expresiones inválidas en los comandos y un remoto mal configurado. No cambia nada.
+
+Después reinicia Claude Code en ese repo: los hooks y agent teams se leen al abrir la sesión.
+
+**QA visual (opcional).** Si el proyecto tiene interfaz web, la clave `qa_visual` de la config (`url_publicada`, `build`, `dist`) deja que Diseño capture las pantallas actuales y que QA las compare con las del cambio. Pide `npm install` dentro de `~/.claude/xi-0/qa-visual` y Chrome o Edge instalado. Sin esa clave no hay capturas.
 
 ## Usar
 
@@ -136,7 +148,7 @@ node ~/.claude/xi-0/metricas.js /ruta/a/tu/repo
 
 ## Costo
 
-Un equipo de agentes gasta bastante más que una sesión sola. En una tarea real de 21 horas medida con `metricas.js`, casi la mitad del costo fue caché vencida: agentes esperando corridas largas. De ahí salieron la regla de los 4 minutos y el trabajo en curso.
+Un equipo de agentes gasta varias veces lo que una sesión sola: cada agente carga su propio contexto. Vale la pena cuando la tarea necesita planear, construir y comprobar por separado; para un cambio de pocas líneas, una sesión sola es más barata. Empieza con una tarea chica y mira lo que costó con `metricas.js` antes de lanzar algo grande. En una tarea real de 21 horas medida con `metricas.js`, casi la mitad del costo fue caché vencida: agentes esperando corridas largas. De ahí salieron la regla de los 4 minutos y el trabajo en curso.
 
 **Ruta por tamaño y relevo.** Una corrección chica usa 2 agentes en lugar de 9 o más, sin líderes de fase ni agentes ligeros. Un agente que lanza una corrida larga deja un archivo de relevo y se cierra en vez de esperar; otro agente retoma cuando la corrida termina. Todavía falta medirlo en una tarea real: cuánto baja el costo y si el relevo funciona de punta a punta están sin comprobar.
 
@@ -155,7 +167,8 @@ xi-0/
   hooks/guardian.js       las reglas forzadas
   statusline.js           barra de estado con el nivel del límite
   metricas.js             lanzamientos, bloqueos y costo por agente
-  config.ejemplo.json     plantilla de config por repo
+  config.ejemplo.json     plantilla de config por repo (ejemplo con .NET y Angular)
+  config.node.json        plantilla mínima para un paquete de Node
   settings.ejemplo.json   plantilla de settings por repo
   qa-visual/recorrido.js  capturas de escritorio y móvil para el QA visual
   mapa.html               mapa interactivo

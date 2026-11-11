@@ -1,0 +1,236 @@
+{
+  "_nota": "Plantilla mínima para un proyecto de Node de un solo paquete (código en src/, pruebas en test/ o junto al código). Ajusta carpetas, comandos y verificacion a tu repo. Sin interfaz web: Front end no tiene carpetas; si la hay, dale las suyas a prisma y quítalas de forja.",
+  "proyecto": "<nombre>",
+  "worktrees": "../<nombre>.worktrees",
+  "rama_base": "main",
+  "remoto": {
+    "_nota": "Así nada sale de esta máquina. Para subir la rama y abrir el PR: push=true, remote_permitido=<nombre del remoto>, pr=true, repo_pr=<usuario>/<repo>.",
+    "push": false,
+    "remote_permitido": null,
+    "pr": false,
+    "repo_pr": null,
+    "merge": false
+  },
+  "verificacion": {
+    "raiz": [
+      "npm ci",
+      "npm test"
+    ]
+  },
+  "no_leer": [],
+  "carpetas": {
+    "xi-0": [
+      ".xi-0/estado.md",
+      ".xi-0/tarea.md",
+      ".xi-0/metricas.md",
+      ".claude/xi-0/activa.json"
+    ],
+    "norte": [],
+    "yunque": [
+      ".xi-0/PR.md"
+    ],
+    "meridiano": [],
+    "atlas": [
+      ".xi-0/plan/investigacion/**"
+    ],
+    "brujula": [
+      ".xi-0/plan/requisitos/**"
+    ],
+    "lumen": [
+      ".xi-0/plan/diseno/**"
+    ],
+    "plano": [
+      ".xi-0/plan/arq/**",
+      ".xi-0/contratos/**"
+    ],
+    "sextante": [
+      ".xi-0/plan/herramientas/**",
+      ".xi-0/permisos.json"
+    ],
+    "prisma": [],
+    "forja": {
+      "incluye": [
+        "src/**",
+        "lib/**",
+        "bin/**",
+        "index.js",
+        "package.json",
+        "package-lock.json"
+      ],
+      "excluye": [
+        "**/*.test.js",
+        "**/*.spec.js",
+        "**/*.test.ts",
+        "**/*.spec.ts"
+      ]
+    },
+    "argos": [
+      "test/**",
+      "tests/**",
+      "**/*.test.js",
+      "**/*.spec.js",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      ".xi-0/qa/**",
+      ".xi-0/fallas/qa-*"
+    ],
+    "egida": [
+      ".xi-0/seguridad/**",
+      ".xi-0/fallas/seg-*"
+    ],
+    "faro": [
+      ".github/**",
+      ".gitignore",
+      ".gitattributes",
+      ".xi-0/despliegue/**"
+    ],
+    "codice": [
+      "README.md",
+      "docs/**",
+      ".xi-0/docs/**"
+    ]
+  },
+  "comandos": {
+    "norte": [
+      "git"
+    ],
+    "meridiano": [
+      "git"
+    ],
+    "yunque": [
+      "git",
+      "gh pr create"
+    ],
+    "sextante": [
+      "git status",
+      "git log",
+      "git diff",
+      "git show",
+      "npm view",
+      "npm ls",
+      "npm outdated",
+      "ls",
+      "cat",
+      "grep",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "prisma": [
+      "git",
+      "npm",
+      "npx",
+      "node",
+      "mkdir",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "forja": [
+      "git",
+      "npm",
+      "npx",
+      "node",
+      "mkdir",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "argos": [
+      "git",
+      "npm ci",
+      "npm install",
+      "npm test",
+      "npm run test",
+      "npm run build",
+      "node --test",
+      "mkdir",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "egida": [
+      "git",
+      "npm audit",
+      "npm ls",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "faro": [
+      "git",
+      "npm ci",
+      "npm test",
+      "npm run build",
+      "gh run list",
+      "gh run view",
+      "gh workflow view",
+      "mkdir",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "_desconocido": [
+      "git status",
+      "git log",
+      "git diff",
+      "git show",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ]
+  },
+  "dependencias_aprobadas": []
+}

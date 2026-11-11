@@ -22,7 +22,7 @@ La especificación completa está en `~/.claude/xi-0/especificacion.md`. Si duda
 
 ## 0. Requisitos (compruébalos antes de nada)
 
-1. Existe `.claude/xi-0/config.json` en el repo. Si no, dilo y ofrece crearla a partir de `~/.claude/xi-0/config.ejemplo.json`.
+1. Existe `.claude/xi-0/config.json` en el repo. Si no, dilo y ofrece crearla a partir de `~/.claude/xi-0/config.ejemplo.json` (o `config.node.json` si es un paquete de Node).
 2. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` en el entorno (`echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`). Sin eso no hay compañeros: detente y dilo.
 3. Sesión interactiva (con `-p` no se crean compañeros).
 4. Si ya existe `.claude/xi-0/activa.json`, hay una tarea a medias: ve a **Reanudar**.
@@ -184,7 +184,7 @@ Al terminar:
 
 ## Límite
 
-`.claude/limite.json` lo escribe la barra de estado (`five_hour.used_percentage`, `resets_at`). Si no existe, trabaja en Normal.
+`.claude/limite.json` lo escribe la barra de estado (`five_hour.used_percentage`, `resets_at`). Si no existe, trabaja en Normal. El nivel sale del límite de 5 horas; el de 7 días (`seven_day`) solo cuenta cuando llega a Pausa.
 
 - **Normal (<70%)**: avanzas la ruta.
 - **Ahorro (≥70%)**: no abres pasos nuevos. Los líderes terminan lo que tienen en curso. El guardián no deja lanzar ligeros ni crear tareas.
