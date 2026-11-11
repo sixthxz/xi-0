@@ -45,7 +45,7 @@ Una fase solo se activa si entra al menos uno de sus equipos. En cualquier tarea
 
 Equipos y fases: Norte (`norte`, Planeación): Atlas `atlas`, Brújula `brujula`, Lumen `lumen`, Plano `plano`, Sextante `sextante` · Yunque (`yunque`, Construcción): Prisma `prisma`, Forja `forja` · Meridiano (`meridiano`, Calidad y entrega): Argos `argos`, Égida `egida`, Faro `faro`, Códice `codice`.
 
-Si la tarea toca pantallas que ya existen, en la ruta entra Diseño (aunque sea función nueva "chica") para que Lumen capture el estado actual antes de diseñar (`config.qa_visual`), y Argos hará QA visual al final.
+Si la tarea toca pantallas que ya existen, en la ruta entra Diseño (aunque sea función nueva "chica") para que Lumen capture el estado actual antes de diseñar (`config.qa_visual`), y Argos hará QA visual al final. Excepción: un cambio acotado dentro de una pantalla que ya existe, cuando la orden ya dice qué debe verse (estados, textos y dónde va cada cosa) y no queda nada por diseñar, no necesita a Diseño y puede ser chica: Argos captura el antes y el después.
 
 Decide también (negociables): cuántos ligeros por equipo dentro de su rango (tabla en el archivo de cada líder) y qué pasos van en paralelo.
 
@@ -61,7 +61,7 @@ El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación s
 
 Si dudas entre dos tamaños, elige el menor: subir cuesta poco (ver **Subir de tamaño**) y bajar no se puede.
 
-En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]` si se publica. Las condiciones de arriba son las que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica. La verificación del proyecto (`config.verificacion`) la corre quien construye y la repite QA.
+En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]` si se publica. Las condiciones de arriba son las que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica. Tocar una pantalla que ya existe no la saca de chica si la orden ya trae decidido qué debe verse; si hay que decidir flujos, estados o composición, entra Diseño y es mediana. La verificación del proyecto (`config.verificacion`) la corre quien construye y la repite QA.
 
 ## 2. Preparar la tarea
 

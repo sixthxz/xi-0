@@ -605,6 +605,7 @@ El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación s
 | **grande** | Proyecto completo, o una ruta donde las tres fases tienen dos o más equipos. | Los equipos de la ruta y los líderes de sus fases. |
 
 - Las condiciones de una chica son las mismas que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica.
+- Tocar una pantalla que ya existe no saca a una tarea de chica cuando la orden ya dice qué debe verse (estados, textos y dónde va cada cosa): Diseño no entra y QA captura el antes y el después del cambio. Si hay que decidir flujos, estados o composición, entra Diseño y la tarea es mediana.
 - En una chica los agentes se lanzan con el modelo intermedio, y la verificación del proyecto la corre quien construye y la repite QA; por eso DevOps solo entra para publicar.
 - Si xi-0 duda entre dos tamaños, elige el menor. Subir es reescribir `tamano`, `fases` y la ruta en `activa.json` y lanzar a quien falte; bajar no se puede.
 - Cuando una fase no tiene líder en la tarea, xi-0 encarga directo a sus equipos y ellos le reportan a xi-0 (sección 7).
