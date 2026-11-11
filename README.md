@@ -1,8 +1,30 @@
 # xi-0
 
-Orquestación multiagente para [Claude Code](https://claude.com/claude-code): un equipo de desarrollo con 3 fases, 11 equipos y sus agentes ligeros, que lleva una orden desde la idea hasta la rama lista para revisar.
+**Un equipo de desarrollo completo dentro de [Claude Code](https://claude.com/claude-code).** Escribes una orden y 11 equipos de agentes la llevan de la idea a una rama lista para revisar: planean, construyen, prueban y entregan, bajo reglas que un guardián hace cumplir.
 
-Tiene tres capas:
+[![Flujo de una tarea en xi-0: la orden entra a xi-0, pasa por Planeación, Construcción y Calidad y entrega, y sale una rama lista](docs/flujo.svg)](https://sixthxz.github.io/xi-0/)
+
+<p align="center"><b><a href="https://sixthxz.github.io/xi-0/">Abrir el mapa interactivo →</a></b><br>cada agente, qué hace, con quién habla y los límites</p>
+
+## En 30 segundos
+
+```
+/xi-0 agrega exportación a CSV en la pantalla de reportes
+```
+
+xi-0 lee la orden, decide qué tipo de tarea es y qué equipos entran, y te lo dice antes de empezar. Algo así:
+
+```
+Función nueva. Ruta: Producto → Arquitectura → Front end + Back end → QA → Seguridad + Docs → DevOps.
+No entran Exploración, Diseño ni Herramientas: no hay nada que investigar, ni pantallas ni dependencias nuevas.
+Rama: tarea/exportar-csv
+```
+
+Después cada equipo hace su parte en una copia aparte del repo. Tú solo hablas con xi-0. Al final tienes la rama `tarea/<id>` con el código, las pruebas y un registro de lo que decidió cada equipo.
+
+¿Eres un agente de IA leyendo este repo? Empieza por [`AGENTS.md`](AGENTS.md).
+
+## Tres capas
 
 | Capa | Archivo | Qué hace |
 | :- | :- | :- |
@@ -10,7 +32,7 @@ Tiene tres capas:
 | Roles | `xi-0/generar-agentes.js` | Genera los 25 agentes: quién hace qué, con qué herramientas y qué modelo. |
 | Reglas forzadas | `xi-0/hooks/guardian.js` | Un hook que niega lo que rompe las reglas, lo quiera el modelo o no. |
 
-## Vista rápida
+## Equipos
 
 ```mermaid
 flowchart TD
@@ -33,9 +55,7 @@ flowchart TD
 
 Cada líder de equipo puede lanzar agentes ligeros propios (`<equipo>-ligero`, en Sonnet con esfuerzo bajo) dentro de un máximo por equipo.
 
-El mapa interactivo, con la explicación de cada agente y los niveles del límite de uso, está en **[sixthxz.github.io/xi-0/xi-0/mapa.html](https://sixthxz.github.io/xi-0/xi-0/mapa.html)** (el archivo es [`xi-0/mapa.html`](xi-0/mapa.html)).
-
-### Cómo se trabaja
+## Cómo se trabaja
 
 - **Tú hablas solo con xi-0.** xi-0 entiende la orden, elige la ruta, lanza a los líderes y entrega. No escribe código.
 - **Tres tipos de tarea:** corrección, función nueva y proyecto completo. Cada una tiene su ruta de pasos; QA y DevOps entran siempre.
@@ -43,7 +63,7 @@ El mapa interactivo, con la explicación de cada agente y los niveles del límit
 - **Los mensajes siguen líneas fijas.** Un equipo habla con su líder de fase y con los equipos con los que tiene línea, con un máximo de palabras. El detalle va en archivos dentro de `.xi-0/`.
 - **Las decisiones valen por su evidencia.** QA no cierra sin pruebas, revisión de código, validez de las pruebas y cada criterio de la tarea cubierto.
 
-### Límite de uso
+## Límite de uso
 
 xi-0 lee cuánto llevas gastado de tu límite y baja el ritmo solo:
 
@@ -54,7 +74,7 @@ xi-0 lee cuánto llevas gastado de tu límite y baja el ritmo solo:
 | Guardado | 85% | Cada equipo guarda su avance en un commit `wip:`. |
 | Pausa | 95% | No se lanza a nadie; xi-0 completa el estado y cierra. |
 
-### Lo que el guardián nunca deja pasar
+## Lo que el guardián nunca deja pasar
 
 - Subir a `main` o `master`, o subir forzado.
 - Subir a un remoto que no sea el permitido en la config del repo.
@@ -117,6 +137,8 @@ Un equipo de agentes gasta bastante más que una sesión sola. En una tarea real
 
 ```
 instalar.js               instalador
+AGENTS.md                 resumen para agentes de IA que lean el repo
+docs/flujo.svg            la imagen de arriba
 skills/xi-0/SKILL.md      la habilidad /xi-0
 xi-0/
   especificacion.md       el diseño completo; manda sobre todo lo demás
