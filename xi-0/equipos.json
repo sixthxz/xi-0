@@ -1,0 +1,49 @@
+{
+  "_nota": "Datos fijos de la especificación xi-0 (secciones 3, 4 y 7). Lo que cambia por proyecto va en <repo>/.claude/xi-0/config.json.",
+  "lider": "xi-0",
+  "nombres_del_lider": ["team-lead", "lead", "xi-0", "main"],
+  "fases": {
+    "norte": { "nombre": "Planeación", "equipos": ["atlas", "brujula", "lumen", "plano", "sextante"] },
+    "yunque": { "nombre": "Construcción", "equipos": ["prisma", "forja"] },
+    "meridiano": { "nombre": "Calidad y entrega", "equipos": ["argos", "egida", "faro", "codice"] }
+  },
+  "equipos": {
+    "atlas":    { "nombre": "Exploración",  "fase": "norte",     "max": 8 },
+    "brujula":  { "nombre": "Producto",     "fase": "norte",     "max": 3 },
+    "lumen":    { "nombre": "Diseño",       "fase": "norte",     "max": 5 },
+    "plano":    { "nombre": "Arquitectura", "fase": "norte",     "max": 4 },
+    "sextante": { "nombre": "Herramientas", "fase": "norte",     "max": 6 },
+    "prisma":   { "nombre": "Front end",    "fase": "yunque",    "max": 6 },
+    "forja":    { "nombre": "Back end",     "fase": "yunque",    "max": 6 },
+    "argos":    { "nombre": "QA",           "fase": "meridiano", "max": 8 },
+    "egida":    { "nombre": "Seguridad",    "fase": "meridiano", "max": 4 },
+    "faro":     { "nombre": "DevOps",       "fase": "meridiano", "max": 3 },
+    "codice":   { "nombre": "Docs",         "fase": "meridiano", "max": 3 }
+  },
+  "lineas": [
+    ["atlas", "brujula"],
+    ["brujula", "lumen"],
+    ["brujula", "plano"],
+    ["lumen", "plano", "ida y vuelta"],
+    ["lumen", "prisma"],
+    ["plano", "prisma"],
+    ["plano", "forja"],
+    ["prisma", "forja", "ida y vuelta"],
+    ["prisma", "argos"],
+    ["forja", "argos"],
+    ["argos", "egida"],
+    ["argos", "faro"],
+    ["egida", "faro"],
+    ["codice", "faro"],
+    ["argos", "codice"],
+    ["plano", "codice"],
+    ["argos", "prisma"],
+    ["argos", "forja"],
+    ["egida", "forja"],
+    ["brujula", "sextante"],
+    ["sextante", "plano", "ida y vuelta"]
+  ],
+  "limite": { "ahorro": 70, "guardado": 85, "pausa": 95 },
+  "palabras_max": { "equipo": 180, "fase": 120 },
+  "vueltas_max": 3
+}

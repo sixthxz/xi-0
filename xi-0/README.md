@@ -1,0 +1,126 @@
+# xi-0 — implementación
+
+Implementación de `especificacion.md` (manda sobre `mapa.html`).
+
+## Archivos
+
+| Dónde | Qué |
+| :- | :- |
+| `~/.claude/skills/xi-0/SKILL.md` | xi-0 (líder). Solo se invoca con `/xi-0`. |
+| `~/.claude/agents/xi-0/*.md` | 3 líderes de fase, 11 líderes de equipo, 11 agentes ligeros (`<equipo>-ligero`). Generados. |
+| `~/.claude/xi-0/generar-agentes.js` | Regenera los agentes (modelos, textos, tablas de ligeros). |
+| `~/.claude/xi-0/equipos.json` | Datos fijos: fases, máximos, líneas del mapa, umbrales del límite. |
+| `~/.claude/xi-0/hooks/guardian.js` | Todos los hooks de la sección 11. |
+| `~/.claude/xi-0/statusline.js` | Escribe `<repo>/.claude/limite.json` y muestra el nivel. |
+| `~/.claude/xi-0/metricas.js` | Resumen de lanzamientos y bloqueos de una tarea. |
+| `~/.claude/xi-0/config.ejemplo.json` | Plantilla de config por proyecto. |
+| `<repo>/.claude/settings.json` | Activa agent teams, statusline y hooks **solo en ese repo**. |
+| `<repo>/.claude/xi-0/config.json` | Carpetas por equipo, comandos, remotos, verificación, archivos que no se leen. |
+
+Activar en otro repo: copiar `config.ejemplo.json` a `<repo>/.claude/xi-0/config.json` y ajustarlo; copiar `<repo>/.claude/settings.json`; añadir `.claude/` a `.git/info/exclude` si el repo no es tuyo.
+
+## Adaptaciones respecto a la especificación
+
+- **Agentes ligeros**: un archivo por equipo (`<equipo>-ligero`) con el rol en el prompt, en lugar de uno por rol. Así heredan herramientas y carpetas del equipo (punto abierto 4 resuelto por diseño) y el guardián puede contarlos.
+- **Carpetas**: las de la especificación (`/web`, `/api`, `/db`…) se mapean por proyecto en `config.json`. Los documentos de planeación, QA, seguridad y estado viven en `.xi-0/` de la rama `tarea/<id>`.
+- **Equipos de documentos** (Atlas, Brújula, Lumen, Plano, Códice no tienen Bash) escriben directo en el worktree de la tarea y su líder de fase hace el commit. Solo los equipos de código tienen worktree propio.
+- **Yunque** tiene `Write/Edit` restringido a `.xi-0/PR.md` (el PR local).
+- **Remotos**: `config.remoto` bloquea push, `gh pr create` y `gh pr merge` en el proyecto, haya tarea activa o no (también protege de otras sesiones).
+- **Líneas del mapa**: se permiten en ambos sentidos (quien recibe puede responder).
+- **Modelos**: líderes `inherit` (el de la sesión), ligeros `sonnet` con esfuerzo `low`.
+- **Ramas de equipo**: `tarea/<id>-<equipo>`, no `tarea/<id>/<equipo>` (git no deja tener `tarea/<id>` y `tarea/<id>/<equipo>` a la vez; las tareas reales ya lo hacían así).
+
+## Añadidos sobre la especificación (traídos de un orquestador anterior)
+
+- **Revisor de código**: rol ligero de Argos (1–2 por tarea con código). Revisa el diff completo; lo que hay que corregir va como falla `tipo: revisión`.
+- **QA visual**: `qa-visual/recorrido.js` (playwright-core con el Chrome/Edge instalado) captura escritorio y móvil, texto visible, errores de consola y peticiones fallidas, contra la web publicada (`--url`) o un build local (`--dist`).
+  - Lumen añade el rol *Capturador del estado actual* y diseña sobre capturas reales (`.xi-0/plan/diseno/estado-actual/`). Su Bash solo puede correr el recorrido.
+  - Argos añade el rol *QA visual* y compara contra esas capturas (`.xi-0/qa/visual/`).
+- **QA no cierra sin las líneas** `pruebas:`, `revision:` y `visual:` en `.xi-0/qa/resultado.md` (guardián); en tareas con reglas de evidencia, también `validez:` (ver abajo).
+- **xi-0 verifica el diff** él mismo antes de entregar.
+- Máximo de Argos subido de 6 a 8 por los dos roles nuevos.
+- `config.comandos` acepta regex con prefijo `re:`.
+
+## Reglas de evidencia (2026-11-02)
+
+Principio de la sección 2 de la especificación: una decisión vale por la evidencia que la respalda.
+
+- **Criterios con id**: `CT-n` en `tarea.md` (xi-0) y `CA-n` en requisitos (Brújula), como comportamiento observable.
+- **Atlas** separa hechos (con fuente) de hipótesis. **Plano** justifica cada decisión con alternativas y evidencia y escribe la sección *Contrato y libre*, que dice qué puede probar QA.
+- **Argos** comprueba la validez de las pruebas, clasifica cada falla (`clase: implementación | prueba | requisito | cobertura`, con `requisito:`) y entrega `.xi-0/qa/validez.md`. Las de `clase: requisito` suben a xi-0 por Meridiano. Prisma y Forja pueden impugnar una falla con evidencia.
+- **Líderes de fase**: revisan la evidencia de su fase (requisitos / implementación / validación) y su resumen lleva una sexta línea, `evidencia:`.
+- **Formato de falla** (estado, clase, requisito, origen, para, dónde, reproducir, esperado, obtenido, gravedad, commit, vuelta) ahora está en los archivos de Argos y Égida. Antes solo estaba en la especificación y los agentes inventaban el suyo: en un proyecto real ninguna de las 14 fallas tenía `estado:` legible y el guardián no veía fallas abiertas ni vueltas.
+- **Guardián**:
+  - Siempre: lee `estado:` y `vuelta:` aunque vengan como `- estado:` o `**Estado:**`, y si se repiten manda el último.
+  - Solo en tareas con `"reglas": 2` en `activa.json` (las abiertas antes siguen como estaban):
+    - Niega escribir una falla `qa-*` sin `estado`, `clase`, `requisito` o `vuelta`.
+    - Frena el cierre de Argos sin `validez:`, sin `validez.md`, con un `CT-n`/`CA-n` que no aparece en `validez.md`, con fallas de QA sin clasificar, o con pruebas de la rama base cambiadas o borradas que no están en "Pruebas existentes que cambiaron".
+    - Niega un resumen de fase (`estado:`) a xi-0 sin `evidencia:`.
+- Probado con 30 eventos de hook en un repo temporal (incluidas 14 fallas reales de un proyecto). `mapa.html` no se actualizó: ya venía atrasado y manda la especificación.
+
+## Reglas de espera y costo (2026-11-03)
+
+Origen: el post mortem de una tarea real de unas 21 horas, recalculado en USD a precio de API por modelo y por TTL de caché.
+
+Medido en esa tarea (~$66):
+
+- Ligeros esperando corridas dentro de una llamada (`time.sleep(299)`, bucles con `timeout` de 5 a 10 min): $16.90, el 25%. En 104 de 147 esperas la caché ya había vencido (dura 5 min) y el turno siguiente reescribió todo el contexto, de hasta 200k tokens.
+- xi-0 al despertar tras más de 1 h sin actividad: $7.06, el 41% de su costo.
+- Avisos de inactividad: 118 KB, contra 14 KB de mensajes reales.
+- 71 bloqueos del guardián, sobre todo `sed -n` (25), `cut`, `date` y `time`.
+
+Cambios:
+
+- **Guardián**:
+  - Niega las esperas de más de 240 s, o con `timeout` de más de 270 s, fuera de segundo plano, a todos menos xi-0.
+  - `sleep` de hasta 240 s vale siempre.
+  - `time`, `nohup` y `timeout N` se quitan antes de revisar el comando. Antes, `time git push` se saltaba la regla de remotos.
+  - Cada fila de `registro.jsonl` lleva `sesion`.
+- **Generador**:
+  - Ligeros con Bash: regla de esperas y cómo esperar (`sleep 230` con `timeout: 250000`).
+  - Líderes con Bash: sección *Corridas largas*: prueba de humo, nada de cómputo sin encargo, segundo plano y un ligero nuevo que espera.
+  - Encargos a ligeros con `Tope:`.
+  - Todos los compañeros: el texto final del turno es de una línea.
+  - Líderes de fase: encargos con tope, y rutas solo dentro de `carpetas.<equipo>`.
+- **SKILL.md**:
+  - Topes de alcance y tiempo en `tarea.md` para los pasos con cómputo.
+  - Las decisiones se comunican citando el commit.
+  - El resumen de fase es de "seis líneas" (decía cinco).
+- **Configs** (plantilla): `re:^sed\s+-n\s+(''|""|\d+(,\d+)?p)(\s+[^\s-]\S*)*$`, `cut` y `date` en las listas que ya tenían `cat`. La regex solo deja pasar rangos de líneas; `sed -i` sigue bloqueado.
+- **metricas.js**: costo por agente a partir de los transcripts de la sesión.
+
+Pruebas:
+
+- 23 eventos sintéticos.
+- Los 589 Bash reales de compañeros y ligeros de esa sesión, pasados por el guardián viejo y por el nuevo: 417 iguales, 130 esperas ahora negadas, 37 lecturas que antes se bloqueaban ahora pasan, y 5 cambian de motivo.
+
+Respecto al informe:
+
+- **Tomado**: cómputo en segundo plano y un ligero nuevo de contexto chico; topes en los encargos; prueba de cordura antes de una corrida cara; ajuste de comandos; Norte consulta `carpetas`; decisiones en `tarea.md`; métricas por agente.
+- **Cambiado**:
+  - No se depende del aviso de `run_in_background`, porque no llega de forma fiable a subagentes ni a compañeros.
+  - No hay entrega parcial a mitad de plazo, porque sería un avance.
+  - Los comandos van en `config.json`, no en `guardian.js`.
+  - `sed -n` solo por rangos de líneas.
+  - Meridiano sigue solo con `git`.
+- **No se hizo**:
+  - Fichas en archivo: el problema era el aviso de inactividad.
+  - Modelo más barato para ligeros: ya son Sonnet, y Haiku ahorraría menos del 4% del mes con una ventana de 200K que forja-ligero superó.
+  - `paso n` en cada mensaje.
+  - `costo.md` exigido por el guardián, que no puede saber cuánto va a tardar un comando.
+  - RTK: ahorraría unos $15–22 al mes, y su hook global junto al guardián tiene un comportamiento no documentado.
+
+## Lo que no se pudo implementar tal cual
+
+1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
+2. **Probador de Sextante en entorno aislado**: no hay sandbox real; Sextante solo consulta paquetes (`npm view`, `dotnet list`) y no instala.
+3. **Escrituras vía Bash** (`echo > archivo`, `sed -i`) no las ve la regla de carpetas; solo `Write/Edit/NotebookEdit`.
+4. **"Ahorro: salvo para cerrar algo ya empezado"**: el guardián no sabe si un ligero nuevo cierra algo; en Ahorro bloquea todos.
+5. **Panel visual del límite (mod)**: solo la statusline.
+6. **Agent teams en la nube / `-p`**: no crean compañeros (limitación de la plataforma).
+
+## Puntos abiertos (sección 13) verificados en la documentación
+
+- Hooks reciben `agent_type` → un solo script aplica reglas por equipo. ✔
+- `PreToolUse` intercepta `SendMessage` (matcher por nombre de herramienta). ✔ El campo del destinatario se lee como `to`/`recipient`; confirmar con el primer `registro.jsonl` real.
+- Subagentes de un compañero: en primer plano, con las `tools` de su propio archivo. ✔

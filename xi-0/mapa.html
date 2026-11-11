@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapa de agentes de xi-0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;1,500&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#e9eff1;--sea:#dde6ea;--grid:#cbd7dc;--ink:#15232c;--mut:#55656e;--card:#fbfdfd;--line:#b8c6cc;--on:#ffffff;
+--c0:#a8731a;--c0t:rgba(168,115,26,.10);--c1:#2a62ab;--c1t:rgba(42,98,171,.09);--c2:#1f7d5a;--c2t:rgba(31,125,90,.10);
+--info:#b0177a;--fail:#cf3f26}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1c27;--sea:#132433;--grid:#1d3243;--ink:#e5edf0;--mut:#93a6b1;--card:#182b3b;--line:#2f475a;--on:#0f1c27;
+--c0:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}}
+:root[data-theme="dark"]{--bg:#0f1c27;--sea:#132433;--grid:#1d3243;--ink:#e5edf0;--mut:#93a6b1;--card:#182b3b;--line:#2f475a;--on:#0f1c27;
+--c0:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Alegreya Sans",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:14px 16px 0}
+h1{font:500 28px/1.15 Alegreya,Georgia,serif;margin:4px 0 4px;letter-spacing:-.01em}
+.lead{margin:0 0 12px;color:var(--mut);max-width:60ch}
+.tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--sea);margin-bottom:12px}
+.tab{font:inherit;font-weight:500;cursor:pointer;border:0;background:transparent;color:var(--mut);border-radius:999px;padding:6px 18px}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.tab:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.stage{position:relative;height:min(68svh,860px);min-height:440px;background:var(--sea);border-block:1px solid var(--line);overflow:hidden}
+@media (min-width:760px){.stage{max-width:1068px;margin:0 auto;border:1px solid var(--line);border-radius:20px}}
+#map{display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#map.drag{cursor:grabbing}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:500 22px/1 "Alegreya Sans",sans-serif;cursor:pointer;display:grid;place-items:center}
+.zoom svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.hint{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);font-size:14px;line-height:1.35;color:var(--mut);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;transition:opacity .5s}
+.hint.off{opacity:0;pointer-events:none}
+.chip{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--col,var(--ink));transform:translateY(160%);transition:transform .35s cubic-bezier(.2,.9,.3,1)}
+.chip.on{transform:none}
+.sheet{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--bg);transform:translateY(100%);visibility:hidden;transition:transform .35s cubic-bezier(.2,.9,.3,1),visibility 0s .35s}
+.sheet.on{transform:none;visibility:visible;transition:transform .35s cubic-bezier(.2,.9,.3,1)}
+.shbar{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.shbar b{font:500 18px Alegreya,Georgia,serif}
+.shbar button{font:inherit;font-size:15px;cursor:pointer;border:0;border-radius:10px;padding:7px 14px;background:var(--sea);color:var(--ink)}
+.shbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px}
+.chip b{flex:1;min-width:0;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chip button{font:inherit;font-size:15px;cursor:pointer;border:0;border-radius:10px;padding:7px 12px;background:var(--sea);color:var(--ink);white-space:nowrap}
+@media (min-width:760px){.chip{left:auto;width:380px}}
+
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px 4px;max-width:1100px;margin:0 auto}
+.flt{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:15px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;transition:opacity .2s}
+.flt[aria-pressed="false"]{opacity:.45}
+.flt[aria-pressed="false"] span{text-decoration:line-through}
+.flt i{display:inline-block;width:22px;border-top:3px solid}
+.note{font-size:14px;color:var(--mut);padding:2px 16px 0;max-width:1100px;margin:0 auto}
+
+#detail{max-width:1100px;margin:12px auto 40px;padding:0 16px}
+.dcard{border-radius:18px;padding:16px 18px 18px;background:var(--card);border:1px solid var(--line);border-top:5px solid var(--col,var(--ink))}
+.dcard h2{font:500 24px/1.2 Alegreya,Georgia,serif;margin:6px 0 6px}
+.dcard p{margin:0 0 12px;max-width:62ch}
+.crumbs{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:14px;color:var(--mut)}
+.crumbs span+span::before{content:"/";margin-right:6px;opacity:.5}
+.sub{font-size:14px;color:var(--mut);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.chips li{background:var(--sea);border-radius:8px;padding:3px 10px;font-size:15px}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px}
+dt{color:var(--mut)}dd{margin:0}
+.ci{color:var(--info)}.cr{color:var(--fail)}
+
+/* Explicación */
+.lvls{display:grid;gap:8px;margin:4px 0 20px;padding:0;list-style:none}
+.lvls li{display:grid;grid-template-columns:90px 1fr;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:15px}
+.lvls b{font-weight:700}
+.phase{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--col);border-radius:14px;padding:14px;margin-bottom:12px}
+.phase h2{font:500 22px/1.2 Alegreya,Georgia,serif;margin:0;color:var(--col)}
+.phase p{margin:2px 0 10px;color:var(--mut);font-size:15px}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.tb{font:inherit;text-align:left;cursor:pointer;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.tb.prop{border-style:dashed;border-color:var(--col)}
+.tb b{display:block;font-weight:700}.tb span{font-size:14px;color:var(--mut)}
+.c0{--col:var(--c0);--tint:var(--c0t)}.c1{--col:var(--c1);--tint:var(--c1t)}.c2{--col:var(--c2);--tint:var(--c2t)}
+
+/* SVG */
+#map text{font-family:"Alegreya Sans",ui-sans-serif,sans-serif;pointer-events:none}
+.grid line{stroke:var(--grid);stroke-width:1}
+.t-fill{fill:var(--tint);stroke:var(--col);stroke-opacity:.5;stroke-width:1.5}
+.t-line{fill:none;stroke:var(--col);stroke-opacity:.3;stroke-width:1.5;stroke-dasharray:1 8;stroke-linecap:round}
+.tl{font:italic 500 30px Alegreya,Georgia,serif;fill:var(--col);paint-order:stroke;stroke:var(--sea);stroke-width:8px;stroke-linejoin:round}
+#map .tl{font-family:Alegreya,Georgia,serif}
+.edge{fill:none;transition:opacity .35s,stroke-width .35s}
+.edge.d{stroke:var(--col);stroke-width:2;opacity:.5}
+.edge.i{stroke:var(--info);stroke-width:2;opacity:.45}
+.edge.r{stroke:var(--fail);stroke-width:2;stroke-dasharray:7 5;opacity:.45}
+.focus .edge{opacity:.07}
+.focus .edge.hl{opacity:1;stroke-width:3.2}
+.pt{transition:opacity .35s}.pt.i{fill:var(--info)}.pt.r{fill:var(--fail)}.pt.d{fill:var(--col)}
+.focus .pt{opacity:0}.focus .pt.hl{opacity:1}
+.node{cursor:pointer;transition:opacity .35s}
+.node:focus{outline:none}
+.focus .node{opacity:.25}.focus .node.hl{opacity:1}
+.cd{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.team.fix .cd{stroke:var(--col);stroke-width:2.5}.team.neg .cd{stroke:var(--col);stroke-width:2;stroke-dasharray:7 5}
+.sf{fill:var(--ink)}.sx{fill:var(--card);stroke:var(--ink);stroke-width:1.5;stroke-dasharray:3 3}
+#map .tf,#map .tx{font-size:15px;font-weight:700}.tf{fill:var(--bg)}.tx{fill:var(--ink)}
+.ruta{margin:0 0 6px;padding-left:22px;font-size:15px}.ruta li{margin-bottom:4px}.ruta small{color:var(--mut)}
+.nn{margin:0;padding-left:20px;font-size:15px}.nn li{margin-bottom:5px}
+.team.sel .cd{stroke:var(--col);stroke-width:3.5;stroke-dasharray:none}
+.node:focus-visible .cd,.node:focus-visible .disc,.node:focus-visible .core{stroke:var(--ink);stroke-width:4}
+.bar{fill:var(--col)}
+.tn{font-weight:700;font-size:21px;fill:var(--ink)}
+.ts{font-size:15px;fill:var(--mut)}
+.m{fill:var(--col)}
+.ad{fill:var(--col)}
+.disc{fill:var(--col);stroke:var(--sea);stroke-width:5}
+.phase-n.sel .disc{stroke:var(--ink);stroke-width:4}
+.pn{font-weight:700;font-size:19px;fill:var(--on)}
+.phase-n .m{fill:var(--on)}
+.star{fill:var(--ink);opacity:.9}
+.core{fill:var(--ink);stroke:var(--sea);stroke-width:4}
+.root.sel .core{stroke:var(--info)}
+#map .rt{font:700 22px Alegreya,Georgia,serif;fill:var(--sea)}
+.ring{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-dasharray:1.5 9;stroke-linecap:round;opacity:.7}
+.pulse{fill:none;stroke:var(--ink);stroke-width:1.5;opacity:0}
+.el{font-size:15px;font-weight:700;paint-order:stroke;stroke:var(--sea);stroke-width:6px;stroke-linejoin:round;opacity:0;transition:opacity .35s}
+.el.i{fill:var(--info)}.el.r{fill:var(--fail)}
+.el.hl{opacity:1}
+.node.off .cd{fill:none;stroke-dasharray:4 6}.node.off .tn,.node.off .ts,.node.off .mx{opacity:.45}.node.off .bar,.node.off .m{opacity:.3}
+.phase-n.off .disc{fill:var(--sea);stroke:var(--col);stroke-width:2;stroke-dasharray:4 6}.phase-n.off .pn{fill:var(--col);opacity:.6}.phase-n.off .m{fill:var(--col);opacity:.3}
+.edge.off{opacity:.08}.pt.off{opacity:0}.focus .edge.off.hl{opacity:.35}
+.edge.g{stroke:var(--ink);stroke-width:2;opacity:.55}.pt.g{fill:var(--ink)}.el.g{fill:var(--ink)}
+#map:not(.git) .g,#map:not(.git) .tg{display:none}
+#map.git .edge.d,#map.git .edge.i,#map.git .edge.r,#map.git .pt.d,#map.git .pt.i,#map.git .pt.r,#map.git .el.i,#map.git .el.r,#map.git .ts{display:none}
+#map.git .el.g.key{opacity:1}#map.git.focus .el.g.key:not(.hl){opacity:0}
+.tg{font-size:15px;fill:var(--col);font-weight:500}
+.gnode rect{fill:var(--card);stroke:var(--ink);stroke-width:2.5}#map .gn{font:700 18px Alegreya,Georgia,serif;fill:var(--ink)}.gs{font-size:14px;fill:var(--mut)}
+.filters.git .flt,.filters.git .tsel{display:none}
+.mode{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.mdb{font:inherit;font-size:15px;border:0;background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.mdb[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.no-d .d,.no-i .i,.no-r .r{display:none}
+.ap .bg{fill:var(--card);stroke:var(--col);stroke-width:2}
+.ah{font-size:14px;fill:var(--mut)}
+.ag{cursor:pointer}
+.ag .row{fill:transparent;pointer-events:all}
+.ag.sel .row{fill:var(--tint)}
+.ag text{font-size:16px;fill:var(--ink)}
+.ag .dot{fill:var(--col)}.ag .dot.off{fill:none;stroke:var(--col);stroke-width:1.5;opacity:.45}
+.ag .s2{font-size:13px;fill:var(--mut)}.ag.zero text{opacity:.55}
+.mx{font-size:14px;font-weight:700;fill:var(--col)}
+.tot{font-size:16px;font-weight:700;fill:var(--ink)}
+.sz{cursor:pointer}.sz rect{fill:var(--sea);stroke:var(--line)}#map .sz text{font-size:14px;fill:var(--ink)}
+.sz.on rect{fill:var(--col);stroke:var(--col)}#map .sz.on text{fill:var(--on);font-weight:700}
+.sz:focus{outline:none}.sz:focus-visible rect{stroke:var(--ink);stroke-width:2.5}
+.pol{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
+@media (min-width:600px){.pol{grid-template-columns:1fr 1fr}}
+.pol>div{border-radius:12px;padding:10px 12px;background:var(--sea)}
+.pol h3{font:700 15px/1.3 "Alegreya Sans",sans-serif;margin:0 0 6px}
+.pol ul{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:15px;line-height:1.4}
+.pol li{display:grid;grid-template-columns:18px 1fr;gap:4px}
+.pol .si li::before{content:"✓";color:var(--c2);font-weight:700}
+.pol .no li::before{content:"✕";color:var(--fail);font-weight:700}
+details.lvl{margin:-4px 0 14px}details.lvl summary{cursor:pointer;color:var(--mut);font-size:15px;margin-bottom:8px}
+.sec{font:500 22px/1.2 Alegreya,Georgia,serif;margin:22px 0 4px}
+.plv{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px 2px;margin-bottom:10px}
+.plv h3{font:500 19px/1.2 Alegreya,Georgia,serif;margin:0 0 8px}
+.size{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.size span{font-size:14px;color:var(--mut);padding:0 4px 0 8px}
+.szb{font:inherit;font-size:14px;border:0;background:transparent;color:var(--ink);border-radius:999px;padding:6px 10px;cursor:pointer;transition:background .2s,color .2s}
+.szb[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.tsel{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--mut)}
+.tsel select{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;max-width:62vw}
+.tools{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.tools li{border-radius:8px;padding:3px 10px;font-size:15px;background:var(--sea)}
+.tools li.y::before{content:"✓ ";color:var(--c2);font-weight:700}
+.tools li.n{color:var(--mut);text-decoration:line-through;opacity:.7}
+.tools small,.chips small{color:var(--mut);font-size:13px}
+.mat{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 12px;margin-bottom:10px}
+.mat th{font-size:13px;line-height:1.2;vertical-align:bottom;min-width:64px}
+.mat td:first-child,.mat th:first-child{position:sticky;left:0;background:var(--card);min-width:110px}
+.ok{color:var(--c2);font-weight:700}.nx{color:var(--line)}
+.lim{--lc:var(--c2);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px 18px;max-width:560px}
+.lhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lt{font:500 20px/1.2 Alegreya,Georgia,serif}
+.lstate{font-weight:700;font-size:14px;color:var(--bg);background:var(--lc);border-radius:999px;padding:3px 12px;transition:background .3s}
+.lnum{display:flex;align-items:baseline;gap:12px;margin:10px 0 8px;flex-wrap:wrap}
+.lnum b{font:500 44px/1 Alegreya,Georgia,serif;color:var(--lc);transition:color .3s;font-variant-numeric:tabular-nums}
+.lnum span{color:var(--mut);font-size:15px}
+.lbar{position:relative;height:14px;border-radius:999px;background:var(--sea);overflow:hidden}
+.lfill{height:100%;background:var(--lc);border-radius:999px;transition:width .25s,background .3s}
+.lbar i{position:absolute;top:0;bottom:0;width:2px;background:var(--card)}
+.lmarks{position:relative;height:18px;font-size:12px;color:var(--mut)}.lmarks span{position:absolute;transform:translateX(-50%)}
+.lsl{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:15px;color:var(--mut)}.lsl input{flex:1;accent-color:var(--ink)}
+.state{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;white-space:pre;margin:0 0 10px}
+.roles{width:100%;border-collapse:collapse;font-size:15px;margin:0 0 14px}
+.roles th{font-weight:500;color:var(--mut);text-align:center;padding:4px 6px;border-bottom:1px solid var(--line)}
+.roles th:first-child,.roles td:first-child{text-align:left;padding-left:0}
+.roles td{text-align:center;padding:6px;border-bottom:1px solid var(--line)}
+.roles td.on{font-weight:700;color:var(--col)}
+.ag:focus{outline:none}.ag:focus-visible .row{stroke:var(--ink);stroke-width:2}
+
+@media (prefers-reduced-motion:no-preference){
+.node,.ap{transform-box:fill-box;transform-origin:center}
+.ring,.pulse{transform-box:fill-box;transform-origin:center}
+.ring{animation:spin 80s linear infinite}
+.pulse{animation:pulse 5s ease-out infinite}.pulse.b{animation-delay:2.5s}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%{opacity:.45;transform:scale(1)}100%{opacity:0;transform:scale(2.1)}}
+@keyframes fadein{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.35)}}
+.boot .terr,.boot .tl{animation:fadein 1s both;animation-delay:var(--d)}
+.boot .node{animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:var(--d)}
+.boot .edge,.boot .pt{animation:fadein .9s both;animation-delay:var(--d)}
+.ap{transform-origin:50% 0;animation:drop .45s cubic-bezier(.2,.9,.3,1.1) both}
+.ap.up{transform-origin:50% 100%}
+@keyframes drop{from{opacity:0;transform:scaleY(.25)}}
+.ag{animation:fadein .35s both;animation-delay:calc(var(--j)*70ms + 160ms)}
+.ag .dot.on{animation:blink 1.5s ease-in-out infinite;animation-delay:calc(var(--j)*-.4s)}
+.ag .dot{transform-box:fill-box;transform-origin:center}
+.ag .dot.nw{animation:pop .45s cubic-bezier(.2,.9,.3,1.5) both,blink 1.5s ease-in-out .45s infinite}
+.ap.still,.ap.still .ag{animation:none}
+@keyframes blink{50%{opacity:.2}}
+.chip.on.bump{animation:bump .4s}
+@keyframes bump{40%{transform:translateY(-4px)}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Mapa de agentes de xi-0</h1>
+<p class="lead">Toca cualquier nodo para ver con quién se comunica y qué agentes lanza.</p>
+<div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="map" aria-selected="true">Mapa</button><button class="tab" role="tab" data-tab="exp" aria-selected="false">Explicación</button><button class="tab" role="tab" data-tab="lim" aria-selected="false">Límite</button></div>
+</div>
+
+<div id="tab-map" role="tabpanel">
+<div class="stage">
+<svg id="map" class="boot" role="group" aria-label="Mapa de agentes de xi-0">
+<defs>
+<marker id="ma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--info)"/></marker>
+<marker id="mg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--ink)"/></marker>
+<marker id="mr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--fail)"/></marker>
+</defs>
+<g id="cam"><g class="grid" id="grid"></g><g id="terrs"></g><g id="edges"></g><g id="parts"></g><g id="nodes"></g><g id="labels"></g><g id="over"></g></g>
+</svg>
+<div class="size" role="group" aria-label="Tamaño de la tarea"><span>Tarea</span><button class="szb" data-sz="0" aria-pressed="false">Corrección</button><button class="szb" data-sz="1" aria-pressed="true">Función</button><button class="szb" data-sz="2" aria-pressed="false">Proyecto</button></div>
+<div class="hint" id="hint">Arrastra para moverte, pellizca para acercar.</div>
+<div class="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zfit" aria-label="Ver todo el mapa"><svg viewBox="0 0 20 20"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg></button></div>
+<div class="chip" id="chip" aria-hidden="true"><b id="chipt"></b><button id="chipb">Ver detalle</button></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Detalle" aria-hidden="true"><div class="shbar"><b>Detalle</b><button id="shx">Cerrar</button></div><div class="shbody" id="shbody"></div></div>
+</div>
+<div class="filters" id="filters">
+<div class="mode" role="group" aria-label="Vista del mapa"><button class="mdb" data-m="com" aria-pressed="true">Comunicación</button><button class="mdb" data-m="git" aria-pressed="false">Ramas y PRs</button></div>
+<button class="flt" data-l="d" aria-pressed="true"><i style="color:var(--mut)"></i><span>Delegación</span></button>
+<button class="flt" data-l="i" aria-pressed="true"><i style="color:var(--info)"></i><span>Información</span></button>
+<button class="flt" data-l="r" aria-pressed="true"><i style="color:var(--fail);border-top-style:dashed"></i><span>Fallas devueltas</span></button>
+<label class="tsel"><span>Quién puede</span><select id="tool"><option value="">elige una herramienta</option></select></label>
+</div>
+<p class="note" id="gnote" hidden>Vista de ramas: cada tarjeta muestra las carpetas que son suyas. Todo termina en la rama de la tarea, que es un solo PR a main.</p>
+<p class="note">Borde sólido: no negociable. Borde punteado: xi-0 decide si entra. Número: paso de la ruta (hueco si es opcional). Barras: esfuerzo (1 low, 2 medium, 3 high). Número en cada tarjeta: máximo de agentes ligeros que puede lanzar su líder. Arriba eliges el tipo de tarea; lo que se apaga no entra.</p>
+</div>
+
+<div id="tab-exp" role="tabpanel" hidden>
+<div class="wrap">
+<ul class="lvls">
+<li><b>Nivel 0</b><span>xi-0 entiende la tarea, la divide por fases, fija el esfuerzo de cada líder e integra el resultado. Es el único que habla con el usuario.</span></li>
+<li><b>Nivel 1</b><span>Líder de fase: recibe su parte y la reparte entre los equipos de la fase.</span></li>
+<li><b>Nivel 2</b><span>Líder de equipo: lanza, coordina y cierra a sus agentes ligeros.</span></li>
+<li><b>Nivel 3</b><span>Agentes ligeros: nacen para una tarea acotada, con esfuerzo bajo, y terminan al entregarla.</span></li>
+</ul>
+<h2 class="sec">Cómo se arma en Claude Code</h2><p class="lead">Con agent teams. Las secciones se quedan como agentes propios, para que cada una tenga su contexto y xi-0 no se confunda.</p><div class="plv"><ul class="nn" id="imp" style="padding-bottom:12px"></ul></div><h2 class="sec">Políticas por nivel</h2><p class="lead">Regla general: la información solo viaja por las líneas del mapa. Si dos equipos no tienen línea, el mensaje pasa por su líder de fase.</p><div id="pols"></div><h2 class="sec">No negociables</h2><p class="lead">Reglas que nadie puede saltarse, ni siquiera xi-0.</p><div class="plv"><ol class="nn" id="nn"></ol></div><h2 class="sec">Negociables</h2><p class="lead">Lo que xi-0 decide en cada tarea.</p><div class="plv"><ul class="nn" id="ng"></ul></div><h2 class="sec">Rutas obligatorias</h2><p class="lead">El orden por el que siempre pasa cada tipo de tarea. Lo marcado como opcional entra solo si se cumple su condición.</p><div id="rutas"></div><h2 class="sec">Ramas y PRs</h2><p class="lead">Para que no haya conflictos ni un PR por cada agente.</p><div class="plv"><ol class="nn" id="rg"></ol></div><div class="plv"><h3>Archivos compartidos con un solo dueño</h3><dl id="sh" style="padding-bottom:12px"></dl></div><h2 class="sec">Herramientas por equipo</h2><p class="lead">El mod solo deja usar a cada equipo lo marcado. Si un equipo necesita otra, la pide a su líder de fase y Sextante la evalúa; Seguridad puede vetarla.</p><div class="mat" id="tmat"></div><h2 class="sec">Fases y equipos</h2><div id="phases"></div>
+</div>
+</div>
+
+<div id="tab-lim" role="tabpanel" hidden>
+<div class="wrap">
+<p class="lead">Un panel dentro de Claude Code que vigila el límite de la sesión. Antes de llegar al tope, el equipo guarda todo para que al reiniciarse el límite xi-0 retome justo donde iba, sin agentes a medias ni trabajo perdido. Mueve la barra para ver qué pasa en cada nivel.</p>
+<div class="lim" id="lim">
+<div class="lhead"><span class="lt">Límite de sesión</span><span class="lstate" id="lstate"></span></div>
+<div class="lnum"><b id="lpct">40%</b><span id="lsub"></span></div>
+<div class="lbar"><div class="lfill" id="lfill"></div><i style="left:70%"></i><i style="left:85%"></i><i style="left:95%"></i></div>
+<div class="lmarks"><span style="left:70%">70</span><span style="left:85%">85</span><span style="left:95%">95</span></div>
+<label class="lsl"><span>Simular uso</span><input type="range" id="lrange" min="0" max="100" value="40"></label>
+<p class="sub" style="margin:14px 0 6px">Qué hace el equipo ahora</p><ul class="nn" id="ldo"></ul>
+<p class="sub" style="margin:14px 0 6px">Líderes activos en esta tarea</p><ul class="chips" id="lteams"></ul>
+</div>
+<h2 class="sec">Los cuatro niveles</h2><div id="llv"></div>
+<h2 class="sec">El punto de guardado</h2><p class="lead">Se escribe a partir del 85% en la rama de la tarea, así que viaja con el código. Al reanudar, xi-0 solo lee este archivo y no necesita la conversación anterior.</p>
+<pre class="state" id="lstate-md"></pre>
+<h2 class="sec">Al reiniciarse el límite</h2><div class="plv"><ol class="nn" id="lres"></ol></div>
+<p class="note" style="padding:0 0 30px">El dato sale de rate_limits, que Claude Code le pasa a la barra de estado con el porcentaje usado y la hora de reinicio de las ventanas de 5 horas y 7 días. Solo existe con suscripción Pro o Max y aparece después de la primera respuesta. Un script lo guarda en un archivo y xi-0, los hooks o el mod lo leen.</p>
+</div>
+</div>
+
+<section id="detail" aria-live="polite"></section>
+
+<script>
+const P=[
+{n:'Planeación',l:'Norte',d:'Decide qué se construye y cómo, y reparte el trabajo entre sus cinco equipos.',t:[
+{n:'Exploración',l:'Atlas',e:'medium',r:'Investiga productos similares y reúne información para que el resto decida con datos.',a:['Comparador de productos similares','Lector de documentación','Buscador de referencias','Sintetizador de hallazgos'],o:'Informe de hallazgos con fuentes'},
+{n:'Producto',l:'Brújula',e:'medium',n2:1,r:'Define el alcance: qué entra, qué no y cómo se sabe que está terminado.',a:['Redactor de requisitos','Priorizador'],o:'Lista de requisitos con criterios de aceptación'},
+{n:'Diseño',l:'Lumen',e:'medium',r:'Diseña la experiencia: flujos, pantallas y componentes.',a:['Agente de flujos','Agente de interfaz'],o:'Diseño de pantallas y componentes'},
+{n:'Arquitectura',l:'Plano',e:'high',n2:1,r:'Elige el stack, parte el sistema en módulos y define los contratos entre ellos.',a:['Evaluador de opciones técnicas','Definidor de contratos de API'],o:'Documento de arquitectura'}]},
+{n:'Construcción',l:'Yunque',d:'Convierte el plan en código y mantiene a Front end y Back end alineados.',t:[
+{n:'Front end',l:'Prisma',e:'medium',r:'Construye la interfaz que ve el usuario.',a:['Agente de componentes','Agente de estilos','Agente de conexión con la API'],o:'Interfaz funcionando'},
+{n:'Back end',l:'Forja',e:'medium',r:'Construye la lógica, los datos y los servicios.',a:['Agente de endpoints','Agente de base de datos','Agente de lógica de negocio'],o:'Servicios y datos funcionando'}]},
+{n:'Calidad y entrega',l:'Meridiano',d:'Comprueba que funciona, que es seguro y lo deja publicado y explicado.',t:[
+{n:'QA',l:'Argos',e:'high',r:'Prueba lo construido y devuelve las fallas a quien corresponda.',a:['Pruebas unitarias','Pruebas de integración','Pruebas de regresión'],o:'Reporte de fallas o visto bueno'},
+{n:'Seguridad',l:'Égida',e:'high',n2:1,r:'Busca vulnerabilidades y revisa el manejo de datos.',a:['Revisor de dependencias','Auditor de código','Revisor de manejo de datos'],o:'Reporte de riesgos'},
+{n:'DevOps',l:'Faro',e:'medium',n2:1,r:'Publica lo construido y lo mantiene vigilado.',a:['Agente de pipeline','Agente de despliegue','Agente de monitoreo'],o:'Versión publicada y monitoreada'},
+{n:'Docs',l:'Códice',e:'low',n2:1,r:'Documenta cómo funciona y cómo se usa.',a:['Documentador técnico','Redactor de guía de uso'],o:'Documentación final'}]}];
+P[0].e='medium';P[1].e='medium';P[2].e='high';
+const all=[];P.forEach((p,pi)=>p.t.forEach(t=>{t.p=p;t.pi=pi;t.i=all.length;all.push(t)}));
+/* Equipo nuevo de Planeación: elige y valida herramientas */
+{const h={n:'Herramientas',l:'Sextante',e:'medium',n2:1,r:'Decide qué herramientas, librerías y servicios se usan en la tarea, compara alternativas y arma la lista de permisos que el mod aplica a cada equipo.',a:['Inventario de herramientas disponibles','Comparador de alternativas','Probador en entorno aislado','Redactor de la lista de permisos'],o:'Lista de herramientas aprobadas por equipo'};h.p=P[0];h.pi=0;h.i=all.length;P[0].t.push(h);all.push(h)}
+/* Herramientas por equipo (lo que el mod deja usar) */
+const TN={lee:'Leer el proyecto',web:'Buscar en la web',esc:'Escribir código',cmd:'Ejecutar comandos',dep:'Instalar dependencias',bd:'Cambiar la base de datos',pub:'Publicar',doc:'Escribir documentos'};
+const TT=[['lee','web','doc'],['lee','doc'],['lee','web','doc'],['lee','web','doc'],['lee','esc','cmd','dep'],['lee','esc','cmd','dep','bd'],['lee','esc','cmd','doc'],['lee','web','cmd','doc'],['lee','esc','cmd','pub'],['lee','doc'],['lee','web','cmd','doc']];
+const TNOTE={'4dep':'solo de la lista aprobada','5dep':'solo de la lista aprobada','5bd':'un agente a la vez','6cmd':'solo pruebas','6esc':'solo en /tests','8esc':'solo en /infra y /.github','7cmd':'solo escaneos','8pub':'con visto bueno de QA y Seguridad','10cmd':'solo en entorno aislado'};
+/* Cuándo se activa: 0 cualquier tarea, 1 desde mediana, 2 solo grande */
+/* Tipo de tarea: 0 corrección, 1 función nueva, 2 proyecto completo.
+   Por equipo: f = no negociable (siempre entra), x = negociable (xi-0 decide), n = no entra */
+const ST=['n n n x x x f x f x n','x f x x x x f f f f x','f f f f f f f f f f f'].map(r=>r.split(' '));
+/* Paso de la ruta en cada tipo (mismo número = en paralelo) */
+const STEP=[[0,0,0,1,2,2,3,4,5,4,0],[1,2,3,3,4,4,5,6,7,6,3],[1,2,3,3,4,4,5,6,7,6,3]];
+const COND={0:'si hay que investigar algo nuevo',2:'si hay pantallas nuevas',3:'si cambia contratos o módulos',4:'si toca la interfaz',5:'si toca lógica o datos',7:'si toca datos, dependencias o permisos',9:'si cambia cómo se usa',10:'si hace falta una herramienta nueva'};
+all.forEach((t,i)=>{t.tt=TT[i];t.cond=COND[i]||''});
+const NN=['Solo xi-0 habla con el usuario.','Todo cambio de código pasa por QA antes de entregarse, incluidas las correcciones pequeñas.','Nada se publica sin el visto bueno de QA. Si la tarea toca datos, dependencias o permisos, también hace falta el de Seguridad.','Ningún contrato de API cambia sin Arquitectura.','Ninguna herramienta nueva entra sin Sextante, y Seguridad siempre puede vetarla.','Las fallas regresan al equipo que las causó. Si siguen después de 3 vueltas, se escala a xi-0.','Ningún equipo pasa su máximo de agentes.','En cualquier tarea con código entra al menos uno de Front end o Back end.','Nadie escribe fuera de sus carpetas.','Solo Yunque abre el PR de la tarea y solo DevOps lo une a main, y solo si el repo lo permite.','Las pruebas verifican criterios, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.','Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.','Una prueba que ya existía no se debilita ni se borra para que algo pase; si QA la cambia, lo justifica y xi-0 lo revisa antes de entregar.'];
+const NG=['Qué equipos opcionales entran en cada tarea, según sus condiciones','Cuántos agentes ligeros lanza cada líder, dentro de su máximo','El esfuerzo de cada líder; puede bajarlo si la tarea es chica','Qué pasos van en paralelo y cuáles en orden','Si se investiga antes de empezar'];
+/* Ramas y PRs */
+const OWN=['/plan/investigacion','/plan/requisitos','/plan/diseno','/plan/arq + /contratos','/web','/api + /db','/tests','/seguridad','/infra + /.github','/docs','/plan/herramientas'];
+const GIT=[];all.forEach(t=>GIT.push(['t'+t.i,'p'+t.pi,'une su rama']));
+GIT.push(['p0','b','une el plan','',0],['p1','b','une el código y abre el PR','',0,0,1],['p2','b','une pruebas y docs','',-130],['t6','b','aprueba el PR','',0,0,1],['t7','b','aprueba el PR','',[770,880],0,1],['t8','b','une el PR a main','',0,0,1]);
+const PGIT=['Une las ramas de sus equipos a la rama de la tarea, primero que nadie.','Une las ramas de Front end y Back end (Back end primero) y abre el único PR de la tarea.','Une las pruebas, los reportes y la documentación a la rama de la tarea antes de que DevOps la una a main.'];
+const RG=['Cada equipo trabaja en su propio worktree y su propia rama. Sus agentes ligeros hacen commits ahí, sobre archivos distintos; si dos necesitan el mismo archivo, el líder los pone en fila.','Nadie escribe fuera de sus carpetas. Si necesita un cambio en otra, se lo pide al dueño.','Los líderes de fase unen las ramas de sus equipos a la rama de la tarea en el orden que fija Yunque: plan, Back end, Front end, y al final pruebas y docs.','Yunque abre un solo PR por tarea. Nadie más abre PRs.','QA y Seguridad aprueban el PR y Docs mete su parte; después DevOps es el único que lo une a main.','Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.','Los agentes ligeros nunca abren PRs ni hacen merge.'];
+const SH=[['Contratos de API y tipos compartidos','Arquitectura'],['Dependencias de /web y de /api','Front end y Back end, cada uno las suyas, solo con herramientas aprobadas'],['Configuración raíz del repo y CI','DevOps'],['Migraciones de base de datos','Back end, un agente a la vez'],['Lista de permisos de herramientas','Herramientas (Sextante)'],['estado.md, el punto de guardado','xi-0']];
+let TOOL='';const act=t=>ST[SZ][t.i]!='n';
+/* Cuántos agentes de cada rol lanza el líder según el tamaño de la tarea: [pequeña, mediana, grande] */
+const Q=[[[1,2,3],[1,1,2],[0,1,2],[1,1,1]],[[1,1,2],[0,1,1]],[[1,1,2],[1,2,3]],[[1,1,2],[0,1,2]],[[1,2,3],[0,1,1],[1,1,2]],[[1,2,3],[1,1,1],[1,1,2]],[[1,2,3],[0,1,2],[0,1,1]],[[1,1,1],[1,1,2],[0,1,1]],[[0,1,1],[1,1,1],[0,1,1]],[[1,1,2],[0,1,1]],[[0,1,1],[1,1,2],[0,1,2],[1,1,1]]];
+const RP=['Divide por producto o fuente: un comparador por cada producto a comparar, buscadores y lectores trabajando en paralelo, y un solo sintetizador al final que junta todo.',
+'Un redactor por área del producto. El priorizador entra cuando hay más requisitos de los que caben.',
+'Un agente de flujos por recorrido del usuario y uno de interfaz por grupo de pantallas.',
+'Un evaluador por cada decisión técnica abierta. Los contratos se reparten por módulo.',
+'Reparte por pantalla o componente. Estilos solo entra cuando hay que tocar el sistema visual.',
+'Un agente de endpoints por recurso. La base de datos la lleva uno solo para que no choquen los cambios.',
+'Reparte por módulo. Las pruebas de regresión solo entran cuando ya existe una versión anterior.',
+'Un auditor por área del código. Dependencias se revisa una sola vez para todo el proyecto.',
+'Trabaja por etapas, uno detrás de otro: pipeline, despliegue y después monitoreo.',
+'Un documentador por módulo. La guía de uso entra cuando hay algo que el usuario final va a tocar.',
+'Un comparador por cada necesidad abierta (por ejemplo, base de datos o inicio de sesión) y un probador por cada herramienta finalista. La lista de permisos la escribe uno solo.'];
+all.forEach((t,i)=>{t.q=Q[i];t.rp=RP[i];t.max=Q[i].reduce((n,q)=>n+q[2],0)});
+/* Políticas: qué puede y qué no puede hacer cada nivel */
+const L={
+r:{n:'xi-0',si:['Hablar con el usuario y aclarar lo que pide','Dividir la tarea en fases y decidir cuáles se activan','Lanzar a los líderes de fase y, cuando ellos lo pidan, a sus líderes de equipo','Fijar el esfuerzo de cada líder de fase','Pedir que una fase repita su trabajo','Integrar los resultados y entregar al usuario'],
+no:['Hacer el trabajo de un equipo directamente','Dar órdenes a un equipo saltándose a su líder de fase','Entregar al usuario sin el visto bueno de Calidad','Cambiar lo que pidió el usuario sin consultarle']},
+p:{n:'Líder de fase',si:['Repartir su parte entre los equipos de su fase','Pedir a xi-0 que lance o cierre a los líderes de equipo de su fase','Revisar y juntar lo que entregan sus equipos antes de pasarlo a la siguiente fase','Decidir qué va en orden y qué va en paralelo','Fijar el esfuerzo de sus líderes de equipo, sin pasar el suyo','Devolver trabajo a un equipo de su fase','Escalar bloqueos a xi-0'],
+no:['Hablar con el usuario','Dar órdenes a equipos de otra fase','Cambiar el alcance acordado sin pasar por xi-0','Lanzar líderes de equipo o agentes ligeros por su cuenta']},
+t:{n:'Líder de equipo',si:['Lanzar agentes ligeros hasta su máximo','Decidir cuántos lanza y cómo reparte la tarea','Pasar entregables a los equipos con los que tiene línea en el mapa','Cerrar un agente que no avanza y lanzar otro'],
+no:['Pasar su máximo de agentes','Lanzar otros líderes de equipo','Hablar con un equipo sin línea en el mapa; eso va por su líder de fase','Cambiar entregables, requisitos o contratos de otro equipo']},
+w:{n:'Agente ligero',si:['Trabajar solo la tarea acotada que le dieron','Leer lo que su líder le pasa','Entregar su resultado a su líder'],
+no:['Lanzar otros agentes','Hablar con otros equipos o con el usuario','Seguir activo después de entregar','Trabajar con un esfuerzo distinto de low','Tocar cosas fuera de su tarea']}};
+const TP=[
+{si:['Buscar en la web y leer documentación pública','Comparar productos y reunir fuentes'],no:['Decidir el alcance; eso es de Producto','Copiar código o contenido de terceros tal cual']},
+{si:['Definir qué entra y qué no','Escribir criterios de aceptación'],no:['Elegir tecnología','Cambiar requisitos ya aprobados sin pasar por Norte']},
+{si:['Definir flujos, pantallas y componentes','Pedir a Arquitectura que confirme si algo es viable'],no:['Escribir código de producción','Cambiar requisitos']},
+{si:['Elegir el stack','Partir el sistema en módulos y definir contratos de API'],no:['Implementar los módulos','Cambiar un contrato acordado sin avisar a Front end y Back end']},
+{si:['Construir la interfaz','Usar los contratos de API acordados'],no:['Tocar código de Back end','Cambiar el contrato de API por su cuenta','Publicar']},
+{si:['Construir endpoints, datos y lógica','Cambiar la base de datos, con un solo agente a la vez'],no:['Tocar la interfaz','Romper el contrato de API acordado','Publicar']},
+{si:['Ejecutar todas las pruebas','Devolver fallas a Front end y Back end','Frenar la entrega si quedan fallas'],no:['Corregir el código él mismo','Dar visto bueno sin haber probado']},
+{si:['Auditar código y dependencias','Devolver vulnerabilidades a Back end','Frenar la publicación si hay un riesgo alto','Vetar una herramienta aprobada por Sextante si encuentra riesgo'],no:['Corregir el código él mismo','Usar datos reales de usuarios sin permiso']},
+{si:['Unir el PR de la tarea a main, después de QA, Seguridad y Docs','Publicar versiones aprobadas por QA y Seguridad','Monitorear lo publicado','Volver a la versión anterior si algo falla'],no:['Publicar sin los dos vistos buenos','Cambiar código']},
+{si:['Leer todo lo construido','Escribir documentación técnica y guía de uso'],no:['Cambiar código o decisiones técnicas','Publicar la documentación sin DevOps']},
+{si:['Proponer y comparar herramientas, librerías y servicios','Probar herramientas en un entorno aislado','Aprobar o rechazar las herramientas nuevas que pidan los equipos'],no:['Instalar herramientas en el proyecto real','Aprobar una herramienta que Seguridad haya vetado','Darse permisos a sí mismo fuera de la lista']}];
+const pol=(o,ti)=>`<div class="pol"><div class="si"><h3>${ti?ti+' puede':'Puede'}</h3><ul>${o.si.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="no"><h3>${ti?ti+' no puede':'No puede'}</h3><ul>${o.no.map(x=>`<li>${x}</li>`).join('')}</ul></div></div>`;
+let SZ=1,PSZ=1;const SZN=['corrección','función nueva','proyecto completo'],SZA=['una corrección','una función nueva','un proyecto completo'],rng=q=>q[0]==q[2]?'siempre '+q[2]:q[0]+' a '+q[2];
+
+/* [origen, destino, qué pasa, tipo (b = ida y vuelta, r = falla), ruta] */
+const E=[
+[0,1,'hallazgos de mercado','',0,-54],
+[1,2,'requisitos y alcance'],
+[1,3,'requisitos técnicos'],
+[2,3,'viabilidad de las pantallas','b'],
+[2,4,'pantallas y componentes'],
+[3,4,'contratos de API','',[400,500]],
+[3,5,'módulos y contratos'],
+[4,5,'contrato de API acordado','b'],
+[4,6,'interfaz para probar','',26],
+[5,6,'servicios para probar','',26],
+[6,7,'versión estable para auditar'],
+[6,8,'visto bueno de calidad'],
+[7,8,'aprobación de seguridad'],
+[9,8,'documentación lista'],
+[6,9,'versión estable para documentar'],
+[3,9,'decisiones técnicas por documentar','','lane'],
+[6,4,'fallas encontradas','r',26],
+[6,5,'fallas encontradas','r',26],
+[7,5,'vulnerabilidades por corregir','r'],
+[1,10,'necesidades de la tarea','',0,-54],
+[10,3,'herramientas y stack compatibles','b']];
+
+/* Geometría del lienzo */
+const CW=820,CH=1480,TW=196,TH=84,PR=46,RR=70,R=[400,600],EF={low:1,medium:2,high:3};
+P[0].xy=[400,405];P[1].xy=[400,760];P[2].xy=[520,1070];
+P[0].box=[40,64,720,356];P[1].box=[40,760,720,240];P[2].box=[40,1070,720,370];
+[[150,130],[400,130],[175,320],[625,320],[165,880],[635,880],[175,1180],[625,1180],[175,1370],[625,1370],[650,130]].forEach((xy,i)=>all[i].xy=xy);
+const DLG=[['r','p0'],['r','p1'],['r','p2',-210]];P.forEach((p,i)=>p.t.forEach(t=>DLG.push(['p'+i,'t'+t.i])));
+
+const $=s=>document.querySelector(s),NS='http://www.w3.org/2000/svg',red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const f=n=>Math.round(n*10)/10;
+function S(k){if(k=='r')return{c:R,r:RR};if(k=='b')return{c:[640,600],w:176,h:64};if(k[0]=='p')return{c:P[+k.slice(1)].xy,r:PR};const t=all[+k.slice(1)];return{c:t.xy,w:TW,h:TH}}
+function edgePt(s,q,g){const c=s.c,dx=q[0]-c[0],dy=q[1]-c[1];if(s.r){const d=Math.hypot(dx,dy)||1;return[c[0]+dx/d*(s.r+g),c[1]+dy/d*(s.r+g)]}const t=Math.min((s.w/2+g)/Math.abs(dx||1e-6),(s.h/2+g)/Math.abs(dy||1e-6));return[c[0]+dx*t,c[1]+dy*t]}
+function geo(a,b,route){const A=S(a),B=S(b);
+if(route=='lane'){const lx=800,p=[A.c[0]+TW/2+5,A.c[1]],q=[B.c[0]+TW/2+9,B.c[1]];return{d:`M${p[0]} ${p[1]}C${lx} ${p[1]} ${lx} ${q[1]} ${q[0]} ${q[1]}`,lp:[lx-14,1036],anc:'end'}}
+const M=[(A.c[0]+B.c[0])/2,(A.c[1]+B.c[1])/2];let C;
+if(Array.isArray(route))C=[2*route[0]-M[0],2*route[1]-M[1]];
+else{const dx=B.c[0]-A.c[0],dy=B.c[1]-A.c[1],L=Math.hypot(dx,dy)||1,bd=route||0;C=[M[0]-dy/L*bd,M[1]+dx/L*bd]}
+const p=edgePt(A,C,5),q=edgePt(B,C,9);
+return{d:`M${f(p[0])} ${f(p[1])}Q${f(C[0])} ${f(C[1])} ${f(q[0])} ${f(q[1])}`,lp:[.25*p[0]+.5*C[0]+.25*q[0],.25*p[1]+.5*C[1]+.25*q[1]],anc:'middle'}}
+const meter=(x,y,n,w)=>[0,1,2].map(k=>`<rect class="m" x="${x+k*(w+4)}" y="${y}" width="${w}" height="5" rx="2.5" opacity="${k<n?1:.25}"/>`).join('');
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+/* Construcción del mapa */
+function build(){
+let g='';for(let x=-1200;x<=CW+1200;x+=80)g+=`<line x1="${x}" y1="-1200" x2="${x}" y2="${CH+1200}"/>`;for(let y=-1200;y<=CH+1200;y+=80)g+=`<line x1="-1200" y1="${y}" x2="${CW+1200}" y2="${y}"/>`;$('#grid').innerHTML=g;
+$('#terrs').innerHTML=P.map((p,i)=>{const[x,y,w,h]=p.box;return`<g class="terr c${i}" style="--d:${120+i*140}ms"><rect class="t-fill" x="${x}" y="${y}" width="${w}" height="${h}" rx="40"/><rect class="t-line" x="${x+12}" y="${y+12}" width="${w-24}" height="${h-24}" rx="30"/></g>`}).join('');
+let ed='',lb='';
+DLG.forEach(([a,b,rt],x)=>{const ph=b[0]=='p'?+b.slice(1):all[+b.slice(1)].pi,G=geo(a,b,rt);ed+=`<path id="d${x}" class="edge d c${ph}" data-id="d${x}" d="${G.d}" style="--d:${a=='r'?260:620}ms"/>`});
+E.forEach((e,x)=>{const ty=e[3]=='r'?'r':'i',G=geo('t'+e[0],'t'+e[1],e[4]),mk=ty=='r'?'mr':'ma';e.G=G;
+ed+=`<path id="e${x}" class="edge ${ty}" data-id="e${x}" d="${G.d}" marker-end="url(#${mk})"${e[3]=='b'?` marker-start="url(#${mk})"`:''} style="--d:${1050+x*30}ms"/>`;
+lb+=`<text class="el ${ty}" data-id="e${x}" text-anchor="${G.anc}" x="${f(G.lp[0])}" y="${f(G.lp[1]+5+(e[5]||0))}">${e[2]}</text>`});
+GIT.forEach((e,x)=>{const G=geo(e[0],e[1],e[4]);e.G=G;ed+=`<path id="g${x}" class="edge g" data-id="g${x}" d="${G.d}" marker-end="url(#mg)"/>`;lb+=`<text class="el g${e[6]?' key':''}" data-id="g${x}" text-anchor="${G.anc}" x="${f(G.lp[0])}" y="${f(G.lp[1]+5+(e[5]||0))}">${e[2]}</text>`});
+P.forEach((p,i)=>lb+=`<text class="tl c${i}" style="--d:${200+i*140}ms" x="${p.box[0]+14}" y="${p.box[1]-12}">${p.n}</text>`);
+$('#edges').innerHTML=ed;$('#labels').innerHTML=lb;
+let nd='';const[rx,ry]=R;let star='';for(let k=0;k<16;k++){const a=(k*22.5-90)*Math.PI/180,r=k%4==0?RR:k%2==0?50:14;star+=(k?'L':'M')+f(rx+r*Math.cos(a))+' '+f(ry+r*Math.sin(a))}
+nd+=`<g class="node root" data-k="r" tabindex="0" role="button" aria-label="xi-0, el cerebro" style="--d:0ms"><circle class="pulse" cx="${rx}" cy="${ry}" r="40"/><circle class="pulse b" cx="${rx}" cy="${ry}" r="40"/><circle class="ring" cx="${rx}" cy="${ry}" r="62"/><path class="star" d="${star}Z"/><circle class="core" cx="${rx}" cy="${ry}" r="34"/><text class="rt" text-anchor="middle" x="${rx}" y="${ry+7}">xi-0</text></g>`;
+nd+=`<g class="gnode g"><rect x="552" y="568" width="176" height="64" rx="32"/><text class="gn" text-anchor="middle" x="640" y="596">rama de la tarea</text><text class="gs" text-anchor="middle" x="640" y="617">un solo PR a main</text></g>`;
+P.forEach((p,i)=>{const[x,y]=p.xy;nd+=`<g class="node phase-n c${i}" data-k="p" data-i="${i}" tabindex="0" role="button" aria-label="${p.n}, líder ${p.l}" style="--d:${380+i*120}ms"><circle class="disc" cx="${x}" cy="${y}" r="${PR}"/><text class="pn" text-anchor="middle" x="${x}" y="${y+3}">${p.l}</text>${meter(x-23,y+13,EF[p.e],12)}</g>`});
+all.forEach(t=>{const[cx,cy]=t.xy,x=cx-TW/2,y=cy-TH/2;const dots=`<text class="mx" text-anchor="end" x="${x+TW-14}" y="${y+72}">hasta ${t.max}</text>`;
+nd+=`<g class="node team c${t.pi}" data-k="t" data-i="${t.i}" tabindex="0" role="button" aria-label="${t.n}, líder ${t.l}${t.n2?', propuesto':''}" style="--d:${720+t.i*60}ms"><rect class="cd" x="${x}" y="${y}" width="${TW}" height="${TH}" rx="14"/><rect class="bar" x="${x+10}" y="${y+14}" width="4" height="${TH-28}" rx="2"/><text class="tn" x="${x+24}" y="${y+33}">${t.n}</text><text class="ts" x="${x+24}" y="${y+55}">líder ${t.l} (${t.e})</text><text class="tg" x="${x+24}" y="${y+55}">${OWN[t.i]}</text>${meter(x+24,y+65,EF[t.e],13)}${dots}<g class="stp"></g></g>`});
+$('#nodes').innerHTML=nd;
+if(!red){let pt='';const part=(id,cls,r,dur,beg,rev)=>`<circle class="pt ${cls}" data-id="${id}" r="${r}"><animateMotion dur="${dur}s" begin="-${beg}s" repeatCount="indefinite"${rev?' keyPoints="1;0" keyTimes="0;1" calcMode="linear"':''}><mpath href="#${id}"/></animateMotion></circle>`;
+document.querySelectorAll('#edges path').forEach((p,x)=>{const id=p.id,L=p.getTotalLength(),cls=p.getAttribute('class').replace('edge ','');
+if(id[0]=='d'||id[0]=='g'){const du=f(L/55);pt+=part(id,cls,3,du,f((x*.37)%du))}
+else{const e=E[+id.slice(1)],du=f(Math.max(2.2,L/95));[0,.5].forEach(o=>pt+=part(id,cls,4.5,du,f(du*o+x*.3)));if(e[3]=='b')[.25,.75].forEach(o=>pt+=part(id,cls,4.5,du,f(du*o),1))}});
+$('#parts').innerHTML=pt}}
+
+/* Cámara: arrastrar, pellizcar, rueda */
+const svg=$('#map'),cam=$('#cam');let V={x:0,y:0,k:.4},anim=0,view=null;
+const apply=()=>cam.setAttribute('transform',`translate(${f(V.x)} ${f(V.y)}) scale(${V.k.toFixed(4)})`);
+const box=()=>svg.getBoundingClientRect();
+function target(b,pad,kmax){const r=box(),pd=pad??28,ch=$('#chip').classList.contains('on')?66:0;const tp=50;let k=Math.min((r.width-2*pd)/b.w,(r.height-2*pd-ch-tp)/b.h);k=Math.min(k,kmax||1.5);return{k,x:r.width/2-(b.x+b.w/2)*k,y:tp+(r.height-ch-tp)/2-(b.y+b.h/2)*k}}
+function fly(t){cancelAnimationFrame(anim);if(red){V=t;apply();return}const s={...V},t0=performance.now(),D=700;const step=n=>{let p=Math.min(1,(n-t0)/D);p=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;V={x:s.x+(t.x-s.x)*p,y:s.y+(t.y-s.y)*p,k:s.k+(t.k-s.k)*p};apply();if(p<1)anim=requestAnimationFrame(step)};anim=requestAnimationFrame(step)}
+function zoomAt(s,mx,my){const k=Math.max(.15,Math.min(3,V.k*s));s=k/V.k;V.x=mx-(mx-V.x)*s;V.y=my-(my-V.y)*s;V.k=k;apply()}
+const pts=new Map();let moved=0;
+const hideHint=()=>$('#hint').classList.add('off');
+svg.addEventListener('pointerdown',e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size==1)moved=0;cancelAnimationFrame(anim);svg.classList.add('drag')});
+addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const o=pts.get(e.pointerId),n=[e.clientX,e.clientY];
+if(pts.size==1){V.x+=n[0]-o[0];V.y+=n[1]-o[1];moved+=Math.abs(n[0]-o[0])+Math.abs(n[1]-o[1]);pts.set(e.pointerId,n);apply()}
+else{const ot=[...pts.entries()].find(([id])=>id!=e.pointerId)[1],d0=Math.hypot(o[0]-ot[0],o[1]-ot[1]),d1=Math.hypot(n[0]-ot[0],n[1]-ot[1]),r=box(),m0=[(o[0]+ot[0])/2-r.left,(o[1]+ot[1])/2-r.top],m1=[(n[0]+ot[0])/2-r.left,(n[1]+ot[1])/2-r.top];pts.set(e.pointerId,n);V.x+=m1[0]-m0[0];V.y+=m1[1]-m0[1];if(d0>0)zoomAt(d1/d0,m1[0],m1[1]);moved+=20;apply()}
+if(moved>8)hideHint()});
+const up=e=>{pts.delete(e.pointerId);if(!pts.size)svg.classList.remove('drag')};addEventListener('pointerup',up);addEventListener('pointercancel',up);
+svg.addEventListener('wheel',e=>{e.preventDefault();cancelAnimationFrame(anim);const r=box();zoomAt(Math.exp(-e.deltaY*.0018),e.clientX-r.left,e.clientY-r.top);hideHint()},{passive:false});
+const zc=s=>{const r=box();cancelAnimationFrame(anim);zoomAt(s,r.width/2,r.height/2);hideHint()};
+$('#zin').onclick=()=>zc(1.35);$('#zout').onclick=()=>zc(1/1.35);$('#zfit').onclick=()=>{select(null)};
+
+/* Selección */
+let sel=null;
+function sets(){const N=new Set(),Es=new Set();if(!sel){if(!TOOL)return null;all.forEach(t=>{if(t.tt.includes(TOOL))N.add('t'+t.i)});return{N,Es}}
+if(sel.k=='r'){N.add('r');P.forEach((p,i)=>N.add('p'+i));Es.add('d0');Es.add('d1');Es.add('d2')}
+else if(sel.k=='p'){const i=sel.i;N.add('r').add('p'+i);Es.add('d'+i);DLG.forEach((d,x)=>{if(d[0]=='p'+i){Es.add('d'+x);N.add(d[1])}});E.forEach((e,x)=>{if(all[e[0]].pi==i&&all[e[1]].pi==i)Es.add('e'+x)})}
+else{const i=sel.i,t=all[i];N.add('t'+i).add('p'+t.pi);DLG.forEach((d,x)=>{if(d[1]=='t'+i)Es.add('d'+x)});E.forEach((e,x)=>{if(e[0]==i||e[1]==i){Es.add('e'+x);N.add('t'+e[0]).add('t'+e[1])}})}
+const sk=sel.k=='r'?'r':(sel.k=='w'?'t':sel.k)+sel.i;GIT.forEach((e,x)=>{if(e[0]==sk||e[1]==sk){Es.add('g'+x);N.add(e[0]).add(e[1])}});
+return{N,Es}}
+const isOff=k=>k=='r'||k=='b'?false:k[0]=='p'?!P[+k.slice(1)].t.some(act):!act(all[+k.slice(1)]);
+function applyOff(){all.forEach(t=>{const g=document.querySelector(`#nodes .team[data-i="${t.i}"]`),v=ST[SZ][t.i],n=STEP[SZ][t.i],[cx,cy]=t.xy,x=cx-TW/2,y=cy-TH/2;g.classList.toggle('fix',v=='f');g.classList.toggle('neg',v=='x');
+g.querySelector('.stp').innerHTML=v!='n'&&n?`<circle class="${v=='f'?'sf':'sx'}" cx="${x+4}" cy="${y+4}" r="15"/><text class="${v=='f'?'tf':'tx'}" text-anchor="middle" x="${x+4}" y="${y+9.5}">${n}</text>`:''});
+document.querySelectorAll('#nodes .node').forEach(g=>g.classList.toggle('off',isOff(key(g))));
+document.querySelectorAll('.edge,.pt,.el').forEach(el=>{const id=el.dataset.id,x=+id.slice(1),o=id[0]=='d'?isOff(DLG[x][1]):id[0]=='g'?isOff(GIT[x][0])||isOff(GIT[x][1]):isOff('t'+E[x][0])||isOff('t'+E[x][1]);el.classList.toggle('off',o)})}
+function setSize(n){if(n==SZ)return;PSZ=SZ;SZ=n;document.querySelectorAll('.szb').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.sz==SZ));applyOff();agents(true);detail();hideHint()}
+const key=g=>g.dataset.k=='r'?'r':g.dataset.k+g.dataset.i;
+function paint(){const h=sets();svg.classList.toggle('focus',!!h);
+document.querySelectorAll('#nodes .node').forEach(g=>{const k=key(g);g.classList.toggle('hl',!!h&&h.N.has(k));g.classList.toggle('sel',!!sel&&(sel.k=='r'?k=='r':k==(sel.k=='w'?'t':sel.k)+sel.i))});
+document.querySelectorAll('.edge,.pt').forEach(el=>el.classList.toggle('hl',!!h&&h.Es.has(el.dataset.id)));
+const placed=[];document.querySelectorAll('.el').forEach(el=>{const on=!!h&&h.Es.has(el.dataset.id);el.classList.toggle('hl',on);
+const e=(el.dataset.id[0]=='g'?GIT:E)[+el.dataset.id.slice(1)];let x=e.G.lp[0],y=e.G.lp[1]+5+(e[5]||0);if(on){const w=e[2].length*7.4,x0=e.G.anc=='end'?x-w:x-w/2;let tries=0;while(placed.some(b=>x0<b[0]+b[2]&&x0+w>b[0]&&Math.abs(y-b[1])<19)&&tries++<6)y+=20;placed.push([x0,y,w])}el.setAttribute('y',f(y))})}
+function agents(still){const o=$('#over');o.innerHTML='';if(!sel||(sel.k!='t'&&sel.k!='w'))return null;
+const t=all[sel.i],n=t.a.length,PW=300,RH=48,top=64,ph=top+n*RH+6,[cx,cy]=t.xy,x=Math.max(16,Math.min(CW-16-PW,cx-PW/2)),below=cy+TH/2+ph+16<CH,y=below?cy+TH/2+8:cy-TH/2-8-ph,tot=act(t)?t.q.reduce((m,q)=>m+q[SZ],0):0;
+let s=`<g class="ap c${t.pi}${below?'':' up'}${still?' still':''}"><rect class="bg" x="${x}" y="${y}" width="${PW}" height="${ph}" rx="14"/><text class="ah" x="${x+16}" y="${y+26}">${t.l} decide cuántos lanzar, hasta ${t.max}</text><text class="tot" x="${x+16}" y="${y+51}">${act(t)?`En ${SZA[SZ]}: lanza ${tot} agente${tot==1?'':'s'}`:`En ${SZA[SZ]} no entra`}</text>`;
+
+t.a.forEach((a,j)=>{const ry=y+top+j*RH,q=t.q[j],c=act(t)?q[SZ]:0,pc=ST[PSZ][t.i]!='n'?q[PSZ]:0,on=sel.k=='w'&&sel.j==j,lab=a.length>27?a.slice(0,26)+'…':a;let dt='';
+for(let d=0;d<q[2];d++)dt+=`<circle class="dot ${d<c?'on':'off'}${still&&d<c&&d>=pc?' nw':''}" style="--j:${d}" cx="${x+PW-22-(q[2]-1-d)*17}" cy="${ry+21}" r="5.5"/>`;
+s+=`<g class="ag${on?' sel':''}${c?'':' zero'}" data-k="w" data-i="${t.i}" data-j="${j}" tabindex="0" role="button" aria-label="${esc(a)}, ${rng(q)}, en esta tarea ${c}" style="--j:${j}"><rect class="row" x="${x+6}" y="${ry}" width="${PW-12}" height="${RH-4}" rx="8"/><text x="${x+16}" y="${ry+19}">${esc(lab)}</text><text class="s2" x="${x+16}" y="${ry+37}">${rng(q)}${c?'':', esta vez no se lanza'}</text>${dt}</g>`});
+o.innerHTML=s+'</g>';return{x,y,w:PW,h:ph}}
+function union(bs){const x0=Math.min(...bs.map(b=>b.x)),y0=Math.min(...bs.map(b=>b.y)),x1=Math.max(...bs.map(b=>b.x+b.w)),y1=Math.max(...bs.map(b=>b.y+b.h));return{x:x0,y:y0,w:x1-x0,h:y1-y0}}
+const nbox=k=>{const s=S(k);return s.r?{x:s.c[0]-s.r,y:s.c[1]-s.r,w:2*s.r,h:2*s.r}:{x:s.c[0]-s.w/2,y:s.c[1]-s.h/2,w:s.w,h:s.h}};
+function frame(ap){if(!sel)return target({x:20,y:20,w:CW-40,h:CH-30},16);
+if(sel.k=='r')return target(union([nbox('r'),...P.map((p,i)=>nbox('p'+i))]),40,1.2);
+if(sel.k=='p'){const[x,y,w,h]=P[sel.i].box;return target({x,y:y-48,w,h:h+48},14,1.3)}
+const own=union([nbox('t'+sel.i),ap]),wide=union([own,...[...sets().N].map(nbox)]),tw=target(wide,24,1.3);if(tw.k>=.62)return tw;const r=box(),k=.66,ch=$('#chip').classList.contains('on')?66:0,c=[own.x+own.w/2,own.y+own.h/2];return{k,x:r.width/2-c[0]*k,y:50+(r.height-ch-50)/2-c[1]*k}}
+function select(s,keepCam){sel=s;if(s){TOOL='';$('#tool').value=''}paint();const ap=agents();detail();chip();if(!keepCam)fly(frame(ap))}
+function chip(){const c=$('#chip');if(!sel){c.classList.remove('on');c.setAttribute('aria-hidden','true');return}
+const t=sel.k=='r'?'xi-0, el cerebro':sel.k=='p'?P[sel.i].n+', líder '+P[sel.i].l:sel.k=='t'?all[sel.i].n+', líder '+all[sel.i].l:all[sel.i].a[sel.j];
+hideHint();$('#chipt').textContent=t;c.style.setProperty('--col',sel.k=='r'?'var(--ink)':`var(--c${sel.k=='p'?sel.i:all[sel.i].pi})`);c.classList.add('on');c.setAttribute('aria-hidden','false');c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump')}
+const sh=on=>{const e=$('#sheet');if(on){$('#shbody').innerHTML=$('#detail').innerHTML;$('#shbody').scrollTop=0}e.classList.toggle('on',on);e.setAttribute('aria-hidden',!on);(on?$('#shx'):$('#chipb')).focus({preventScroll:true})};
+$('#chipb').onclick=()=>sh(true);$('#shx').onclick=()=>sh(false);addEventListener('keydown',e=>{if(e.key=='Escape'&&$('#sheet').classList.contains('on'))sh(false)});
+function hit(e){const g=e.target.closest('.node,.ag');if(!g)return null;return{k:g.dataset.k,i:+g.dataset.i||0,j:g.dataset.j!=null?+g.dataset.j:null}}
+const setSz=z=>{PSZ=SZ;SZ=+z.dataset.sz;agents(true);detail();const n=document.querySelector(`#over .sz[data-sz="${SZ}"]`);n&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.sz')&&n.focus({preventScroll:true})};
+svg.addEventListener('click',e=>{if(moved>8)return;hideHint();const z=e.target.closest('.sz');if(z){setSz(z);return}const h=hit(e);if(!h){if(sel)select(null);return}
+if(h.k=='w'){select(h,true);return}
+if(sel&&sel.k==h.k&&sel.i==h.i&&h.k!='r'&&h.k!='w'){fly(frame(document.querySelector('#over .ap')?{...nbox('t'+h.i)}:nbox('t'+h.i)));return}
+select(h)});
+svg.addEventListener('keydown',e=>{if(e.key!='Enter'&&e.key!=' ')return;const z=e.target.closest&&e.target.closest('.sz');if(z){e.preventDefault();setSz(z);return}const h=hit(e);if(!h)return;e.preventDefault();select(h,h.k=='w');const f2=h.k=='w'?document.querySelector(`#over .ag[data-j="${h.j}"]`):document.querySelector('#nodes .node.sel');f2&&f2.focus({preventScroll:true})});
+
+/* Detalle */
+function comm(i){const a=[],b=[];E.forEach(e=>{const bi=e[3]=='b',c=e[3]=='r'?'cr':'ci';if(e[1]==i||bi&&e[0]==i)a.push(`<span class="${c}">${all[e[1]==i?e[0]:e[1]].n}</span>: ${e[2]}`);if(e[0]==i||bi&&e[1]==i)b.push(`<span class="${c}">${all[e[0]==i?e[1]:e[0]].n}</span>: ${e[2]}`)});
+return`<dt>Recibe de</dt><dd>${a.join('<br>')||'solo de su líder de fase'}</dd><dt>Envía a</dt><dd>${b.join('<br>')||'solo a su líder de fase'}</dd>`}
+const stTxt=(t,k)=>{const v=ST[k][t.i],n=STEP[k][t.i];return v=='f'?`no negociable, paso ${n}`:v=='x'?`xi-0 decide, entra ${t.cond}${n?` (paso ${n})`:''}`:'no entra'};
+function detail(){const s=sel,cr=a=>`<div class="crumbs">${a.map(x=>`<span>${x}</span>`).join('')}</div>`,lst=a=>`<ul class="chips">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;let h,c='var(--ink)';
+const nA=all.reduce((n,t)=>n+t.a.length,0);
+if(!s)h=`<h2>Toda la organización</h2><p>xi-0 coordina ${P.length} fases, ${all.length} equipos y ${nA} agentes ligeros. La información baja de Planeación a Construcción y de ahí a Calidad y entrega; las fallas regresan hacia Construcción.</p><p class="sub">Ruta en ${SZA[SZ]} (en negrita lo no negociable)</p>${route(SZ)}<p class="sub" style="margin:0">Toca un nodo del mapa para ver su detalle aquí.</p>`;
+else if(s.k=='r')h=cr(['xi-0'])+`<h2>xi-0, el cerebro</h2><p>Entiende la tarea, la divide por fases, fija el esfuerzo de cada líder e integra el resultado. Es el único que habla con el usuario.</p>${pol(L.r)}<details class="lvl"><summary>No negociables que tampoco puede saltarse</summary><ol class="nn">${NN.map(x=>`<li>${x}</li>`).join('')}</ol></details><dl><dt>Herramientas</dt><dd>Leer el proyecto y lanzar líderes de fase</dd><dt>Delega en</dt><dd>${P.map(p=>p.l+' ('+p.n+')').join(', ')}</dd><dt>Esfuerzo</dt><dd>high</dd></dl>`;
+else if(s.k=='p'){const p=P[s.i];c=`var(--c${s.i})`;h=cr(['xi-0',p.l])+`<h2>${p.n}, líder ${p.l}</h2><p>${p.d}</p>${pol(L.p)}<p class="sub">Equipos a su cargo</p>${lst(p.t.map(t=>t.n+' ('+t.l+')'))}<dl><dt>Ramas</dt><dd>${PGIT[s.i]}</dd><dt>Herramientas</dt><dd>Leer el proyecto y usar git para unir las ramas de sus equipos${s.i==1?'; además abre el PR':''}</dd><dt>Reporta a</dt><dd>xi-0</dd><dt>Esfuerzo</dt><dd>${p.e}</dd></dl>`}
+else{const t=all[s.i];c=`var(--c${t.pi})`;
+if(s.k=='w'){const w=t.a[s.j];h=cr(['xi-0',t.p.l,t.l])+`<h2>${w}</h2><p>Agente ligero del equipo ${t.n}. Lo lanza ${t.l}, trabaja una tarea acotada y termina al entregarla.</p>${pol(L.w)}<dl><dt>Reporta a</dt><dd>${t.l}, líder de ${t.n}</dd><dt>Herramientas</dt><dd>Las mismas que su líder: ${t.tt.map(k=>TN[k].toLowerCase()).join(', ')}</dd><dt>Cuántos lanza</dt><dd>${rng(t.q[s.j])} según la tarea; en ${SZA[SZ]}, ${act(t)?t.q[s.j][SZ]:0}</dd><dt>Esfuerzo</dt><dd>low</dd></dl>`}
+else h=cr(['xi-0',t.p.l,t.l])+`<h2>${t.n}, líder ${t.l}${t.n2?' (propuesto)':''}</h2><p>${t.r}</p>${pol(TP[s.i])}<details class="lvl"><summary>Además, lo que aplica a todo líder de equipo</summary>${pol(L.t)}</details><p class="sub">Herramientas que puede usar</p><ul class="tools">${Object.keys(TN).map(k=>t.tt.includes(k)?`<li class="y">${TN[k]}${TNOTE[s.i+k]?` <small>(${TNOTE[s.i+k]})</small>`:''}</li>`:`<li class="n">${TN[k]}</li>`).join('')}</ul><p class="sub">Cómo reparte el trabajo</p><p>${t.rp}</p><p class="sub">Agentes ligeros que puede lanzar (máximo ${t.max}). Columnas: cuántos en una corrección, una función nueva y un proyecto completo.</p><table class="roles"><thead><tr><th>Rol</th><th>Corr.</th><th>Func.</th><th>Proy.</th></tr></thead><tbody>${t.a.map((a,j)=>`<tr><td>${a}</td>${t.q[j].map((c,k)=>`<td${k==SZ?' class="on"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table><dl><dt>Reporta a</dt><dd>${t.p.l}, líder de ${t.p.n}</dd><dt>Cuándo entra</dt><dd>${[0,1,2].map(k=>`<span${k==SZ?' style="font-weight:700"':''}>${SZN[k][0].toUpperCase()+SZN[k].slice(1)}: ${stTxt(t,k)}</span>`).join('<br>')}</dd><dt>Dueño de</dt><dd>${OWN[s.i]}</dd><dt>Rama</dt><dd>La suya propia; la une ${t.p.l} a la rama de la tarea${s.i==8?'. Además es el único que une el PR a main':''}</dd><dt>Entrega</dt><dd>${t.o}</dd><dt>Esfuerzo del líder</dt><dd>${t.e}</dd>${comm(s.i)}</dl>`}
+if(!s&&TOOL){const q=all.filter(t=>t.tt.includes(TOOL));h=`<h2>Quién puede: ${TN[TOOL].toLowerCase()}</h2><p>${q.map(t=>t.n+(TNOTE[t.i+TOOL]?' ('+TNOTE[t.i+TOOL]+')':'')).join(', ')}.</p><p class="sub" style="margin:0">Los demás equipos tienen esta herramienta bloqueada por el mod.</p>`}
+$('#detail').innerHTML=`<div class="dcard" style="--col:${c}">${h}</div>`}
+
+/* Explicación */
+$('#phases').innerHTML=P.map((p,i)=>`<div class="phase c${i}"><h2>${p.n}</h2><p>Líder ${p.l}. ${p.d}</p><div class="teams">${p.t.map(t=>`<button class="tb${t.n2?' prop':''}" data-i="${t.i}"><b>${t.n}</b><span>líder ${t.l}</span></button>`).join('')}</div></div>`).join('');
+const EX=['Arreglar un error o cambiar un texto','Agregar algo a lo que ya existe, como el inicio de sesión','Una aplicación nueva desde cero'];
+const route=k=>{const mx=Math.max(...STEP[k]);let o='';for(let n=1;n<=mx;n++){const ts=all.filter(t=>STEP[k][t.i]==n&&ST[k][t.i]!='n');if(!ts.length)continue;o+=`<li>${ts.map(t=>ST[k][t.i]=='f'?`<b>${t.n}</b>`:`${t.n} <small>(opcional, ${t.cond})</small>`).join(ts.length>1?' + ':'')}</li>`}return`<ol class="ruta">${o}</ol>`};
+$('#imp').innerHTML=['xi-0 es el líder del agent team: la sesión principal.','Los líderes de fase y los de equipo son compañeros del equipo. La plataforma solo deja lanzar compañeros al líder, así que xi-0 lanza a los de equipo cuando su líder de fase se lo pide.','Los líderes de fase no lanzan, pero sí dirigen su sección: asignan tareas a sus equipos, revisan lo que entregan y lo pasan a la siguiente fase.','Los agentes ligeros son subagentes de cada líder de equipo y corren en primer plano, en Sonnet con esfuerzo bajo. Las corridas largas van en segundo plano y nadie espera más de 4 minutos dentro de una llamada.','Los mensajes viajan por el buzón de cada agente. La ruta se vuelve la lista de tareas compartida, con dependencias entre pasos.','Las herramientas de cada equipo son la lista tools de su archivo de agente.','Solo se lanzan los compañeros del paso activo y se cierran al terminar, para no gastar de más.','Al reanudar una sesión los compañeros no vuelven solos, por eso estado.md es obligatorio.'].map(x=>`<li>${x}</li>`).join('');
+$('#rg').innerHTML=RG.map(x=>`<li>${x}</li>`).join('');$('#sh').innerHTML=SH.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('');
+const LV=[{at:0,n:'Normal',c:'--c2',d:['Todo trabaja normal.','xi-0 avanza la ruta y los líderes lanzan agentes según la tarea.']},
+{at:70,n:'Ahorro',c:'--c0',d:['No se lanzan agentes ligeros nuevos, salvo para cerrar algo ya empezado.','Los líderes priorizan terminar lo que está en curso.','xi-0 no abre pasos nuevos de la ruta.']},
+{at:85,n:'Guardado',c:'--info',d:['Cada agente ligero hace commit de lo que lleva, aunque esté a medias, marcado como wip.','Cada líder escribe su parte del punto de guardado.','Los agentes que terminan ya no se reemplazan.']},
+{at:95,n:'Pausa',c:'--fail',d:['xi-0 completa estado.md con todo lo pendiente.','Se cierran todos los agentes; no queda nada sin commit.','La sesión se detiene limpia, sin interrupciones a medias.']}];
+const RES=['Cuando el límite se reinicia, xi-0 lee estado.md desde la rama de la tarea.','Relanza solo a los líderes con trabajo pendiente, en el paso de la ruta donde iban.','Cada líder convierte sus commits wip en commits limpios antes de seguir.','El panel vuelve a Normal y la ruta continúa.'];
+$('#llv').innerHTML=LV.map((l,k)=>`<div class="plv" style="border-left:5px solid var(${l.c})"><h3>${l.n} <small style="font:15px 'Alegreya Sans',sans-serif;color:var(--mut)">${k?'desde '+l.at+'%':'menos de 70%'}</small></h3><ul class="nn" style="padding-bottom:12px">${l.d.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('');
+$('#lres').innerHTML=RES.map(x=>`<li>${x}</li>`).join('');
+$('#lstate-md').textContent=`# Estado de la tarea 123 (función nueva)
+Pausado al 95% del límite
+Paso actual: 4 de 7, Construcción
+Rama: tarea/123, último commit a1b2c3d
+
+## Equipos
+- Producto: hecho
+- Arquitectura: hecho
+- Back end: en curso, 2 de 3 endpoints (wip en e4f5a6b)
+  Siguiente: endpoint de sesión
+- Front end: en curso, login sin conectar (wip en 9c8d7e6)
+  Siguiente: conectar con la API
+- QA, Seguridad, Docs, DevOps: pendiente
+
+## Al reanudar
+1. Back end termina el endpoint de sesión
+2. Front end conecta el login
+3. Seguir con QA`;
+function lim(v){const k=v>=95?3:v>=85?2:v>=70?1:0,l=LV[k];$('#lpct').textContent=v+'%';$('#lsub').textContent=k<3?`Faltan ${[70,85,95][k]-v} puntos para ${LV[k+1].n.toLowerCase()}`:'Todo guardado, listo para retomar';
+const el=$('#lim');el.style.setProperty('--lc',`var(${l.c})`);$('#lstate').textContent=l.n;$('#lfill').style.width=v+'%';$('#ldo').innerHTML=l.d.map(x=>`<li>${x}</li>`).join('');
+const st=['trabajando','terminando lo empezado','guardando','en pausa'][k],ls=['Brújula','Plano','Prisma','Forja','Argos'];$('#lteams').innerHTML=ls.map((n,j)=>`<li>${n}: ${k==1&&j<2?'listo':st}</li>`).join('')}
+$('#lrange').oninput=e=>lim(+e.target.value);lim(40);
+$('#nn').innerHTML=NN.map(x=>`<li>${x}</li>`).join('');$('#ng').innerHTML=NG.map(x=>`<li>${x}</li>`).join('');
+$('#rutas').innerHTML=EX.map((x,k)=>`<div class="plv"><h3>${SZN[k][0].toUpperCase()+SZN[k].slice(1)}</h3><p class="sub">Por ejemplo: ${x}</p>${route(k)}</div>`).join('');
+$('#tmat').innerHTML=`<table class="roles"><thead><tr><th>Equipo</th>${Object.values(TN).map(v=>`<th>${v}</th>`).join('')}</tr></thead><tbody>${all.map(t=>`<tr><td>${t.n}</td>${Object.keys(TN).map(k=>`<td>${t.tt.includes(k)?'<span class="ok">✓</span>':'<span class="nx">–</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+$('#pols').innerHTML=['r','p','t','w'].map(k=>`<div class="plv"><h3>${L[k].n}</h3>${pol(L[k])}</div>`).join('');
+$('#phases').addEventListener('click',e=>{const b=e.target.closest('.tb');if(b){tab('map');select({k:'t',i:+b.dataset.i})}});
+function tab(n){['map','exp','lim'].forEach(x=>{$('#tab-'+x).hidden=x!=n;$(`[data-tab="${x}"]`).setAttribute('aria-selected',x==n)});if(n=='map'){V=frame(document.querySelector('#over .ap')&&agents());apply()}}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)tab(b.dataset.tab)});
+document.querySelectorAll('.flt').forEach(b=>b.onclick=()=>{const on=b.getAttribute('aria-pressed')!='true';b.setAttribute('aria-pressed',on);svg.classList.toggle('no-'+b.dataset.l,!on)});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{V=frame(sel&&(sel.k=='t'||sel.k=='w')?agents():null);apply()},120)});
+
+build();applyOff();detail();
+document.querySelectorAll('.szb').forEach(b=>b.onclick=()=>setSize(+b.dataset.sz));
+$('#tool').insertAdjacentHTML('beforeend',Object.entries(TN).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
+document.querySelectorAll('.mdb').forEach(b=>b.onclick=()=>{const g=b.dataset.m=='git';document.querySelectorAll('.mdb').forEach(x=>x.setAttribute('aria-pressed',x==b));svg.classList.toggle('git',g);$('#filters').classList.toggle('git',g);$('#gnote').hidden=!g;paint()});
+$('#tool').onchange=e=>{TOOL=e.target.value;select(null)};
+V=target({x:20,y:20,w:CW-40,h:CH-30},16);
+if(!red){const t=V;V={x:t.x,y:t.y+30,k:t.k*.92};apply();fly(t)}else apply();
+setTimeout(()=>svg.classList.remove('boot'),red?0:2600);setTimeout(hideHint,7000);
+</script>
+</body>
+</html>

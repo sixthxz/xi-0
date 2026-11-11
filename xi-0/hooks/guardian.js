@@ -1,0 +1,453 @@
+#!/usr/bin/env node
+// Guardián de xi-0: un solo script para todos los hooks de la sección 11.
+// Lee el evento por stdin y decide según quién llama (agent_type) y la config del proyecto.
+// Sin config del proyecto no hace nada. Sin .claude/xi-0/activa.json solo aplica la regla de remotos.
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
+
+const BASE = path.join(os.homedir(), '.claude', 'xi-0');
+const EQ = JSON.parse(fs.readFileSync(path.join(BASE, 'equipos.json'), 'utf8'));
+const LIDERES_FASE = Object.keys(EQ.fases);
+const EQUIPOS = Object.keys(EQ.equipos);
+const TODOS_LIDERES = [...LIDERES_FASE, ...EQUIPOS];
+
+// ---------- utilidades ----------
+// En Windows acepta también rutas estilo Git Bash (/d/carpeta → D:/carpeta).
+const win = (p) => (process.platform === 'win32' ? String(p).replace(/^\/([a-zA-Z])(\/|$)/, (_, l) => `${l.toUpperCase()}:/`) : String(p));
+const norm = (p) => path.resolve(win(p)).replace(/\\/g, '/').replace(/\/+$/, '');
+const leer = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+
+function negar(motivo) {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: `[xi-0] ${motivo}` },
+  }));
+  registrar({ decision: 'deny', motivo });
+  process.exit(0);
+}
+function frenar(motivo) { // TaskCreated / TaskCompleted / SubagentStop: exit 2 con stderr
+  process.stderr.write(`[xi-0] ${motivo}\n`);
+  registrar({ decision: 'block', motivo });
+  process.exit(2);
+}
+function pasar() { process.exit(0); }
+
+let ctx = { raiz: null, evento: null, quien: null };
+function registrar(extra) {
+  if (!ctx.raiz) return;
+  try {
+    fs.appendFileSync(path.join(ctx.raiz, '.claude', 'xi-0', 'registro.jsonl'),
+      JSON.stringify({ t: new Date().toISOString(), evento: ctx.evento, quien: ctx.quien, herramienta: ctx.herramienta, ...extra, sesion: ctx.sesion }) + '\n');
+  } catch { /* el registro nunca debe romper el hook */ }
+}
+
+function globARegex(g) {
+  let r = '';
+  for (let i = 0; i < g.length; i++) {
+    const c = g[i];
+    if (c === '*') {
+      if (g[i + 1] === '*') { // **/ o ** al final
+        i++;
+        if (g[i + 1] === '/') { i++; r += '(?:.*/)?'; } else r += '.*';
+      } else r += '[^/]*';
+    } else if (c === '?') r += '[^/]';
+    else if (c === '{') { const fin = g.indexOf('}', i); r += '(?:' + g.slice(i + 1, fin).split(',').map(escapar).join('|') + ')'; i = fin; }
+    else r += escapar(c);
+  }
+  return new RegExp('^' + r + '$', 'i');
+}
+function escapar(s) { return s.replace(/[.+^$()|[\]\\]/g, '\\$&'); }
+const coincide = (rel, globs) => (globs || []).some((g) => globARegex(g).test(rel));
+
+// Raíz del repo principal (aunque estemos en un worktree).
+function raizPrincipal(cwd) {
+  try {
+    const comun = execFileSync('git', ['-C', win(cwd), 'rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return norm(path.dirname(comun));
+  } catch { return null; }
+}
+// Raíz del worktree que contiene un archivo (sube hasta encontrar .git, archivo o carpeta).
+function raizWorktree(archivo) {
+  let d = path.dirname(path.resolve(win(archivo)));
+  while (true) {
+    if (fs.existsSync(path.join(d, '.git'))) return norm(d);
+    const padre = path.dirname(d);
+    if (padre === d) return null;
+    d = padre;
+  }
+}
+
+function nivelLimite(raiz) {
+  const l = leer(path.join(raiz, '.claude', 'limite.json'));
+  if (!l) return { nivel: 'normal', pct: null };
+  const ahora = Date.now() / 1000;
+  const cinco = l.five_hour && l.five_hour.resets_at > ahora ? l.five_hour.used_percentage : 0;
+  const siete = l.seven_day && l.seven_day.resets_at > ahora ? l.seven_day.used_percentage : 0;
+  const pct = Math.max(cinco || 0, siete >= EQ.limite.pausa ? siete : 0);
+  const n = pct >= EQ.limite.pausa ? 'pausa' : pct >= EQ.limite.guardado ? 'guardado' : pct >= EQ.limite.ahorro ? 'ahorro' : 'normal';
+  return { nivel: n, pct };
+}
+
+// Quién llama: xi-0 (sesión principal), un líder, un ligero (<equipo>-ligero) o desconocido.
+function identificar(agentType) {
+  if (!agentType) return { rol: 'xi-0', equipo: 'xi-0' };
+  if (LIDERES_FASE.includes(agentType)) return { rol: 'fase', equipo: agentType };
+  if (EQUIPOS.includes(agentType)) return { rol: 'equipo', equipo: agentType };
+  const m = /^(.+)-ligero$/.exec(agentType);
+  if (m && EQUIPOS.includes(m[1])) return { rol: 'ligero', equipo: m[1] };
+  return { rol: 'desconocido', equipo: agentType };
+}
+
+// ---------- reglas ----------
+function reglaRemotos(cfg, quien, comando) {
+  const r = cfg.remoto || {};
+  const segs = segmentos(comando);
+  for (const s of segs) {
+    if (/^git\s+push\b/.test(s)) {
+      if (!r.push) negar('git push está desactivado en este proyecto (remoto.push=false). El trabajo se queda en ramas locales.');
+      const remotoPermitido = r.remote_permitido;
+      if (!remotoPermitido || !new RegExp(`\\s${escapar(remotoPermitido)}(\\s|$)`).test(s))
+        negar(`Solo se permite push al remoto "${remotoPermitido}". Nunca al repo original.`);
+      if (!['yunque', 'xi-0'].includes(quien.equipo)) negar('Solo Yunque sube la rama de la tarea (y abre su único PR).');
+      if (/(\s|:)(main|master)(\s|$)/.test(s)) negar('Nunca push a main/master: se sube la rama tarea/<id> y se abre un PR.');
+      if (/\s(-f|--force|--force-with-lease)(\s|=|$)|\s\+\S/.test(s)) negar('Nada de push forzado.');
+    }
+    if (/^gh\s+pr\s+create\b/.test(s)) {
+      if (!r.pr) negar('No se abren PRs reales en este proyecto (remoto.pr=false). Yunque deja el PR en .xi-0/PR.md.');
+      if (quien.equipo !== 'yunque') negar('Solo Yunque abre el PR de la tarea.');
+      if (!r.repo_pr || !s.includes(r.repo_pr)) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
+    }
+    if (/^gh\s+pr\s+merge\b/.test(s)) {
+      if (!r.merge) negar('El merge está desactivado (remoto.merge=false). El usuario une el PR.');
+      if (quien.equipo !== 'faro') negar('Solo DevOps (Faro) une a main.');
+    }
+  }
+}
+
+// Quita cuerpos de heredoc y el contenido entre comillas para no confundir texto con comandos.
+function limpiar(comando) {
+  return comando
+    .replace(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(\n|$)/g, '<<HEREDOC\n')
+    .replace(/'[^']*'/g, "''")
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+}
+
+// Parte un comando en piezas simples: separa && || ; | y saltos de línea, quita cd y variables iniciales.
+// Un comando que mete otro dentro (bash -c, sh -c, eval, powershell -c) se revisa también por dentro.
+function segmentos(comando) {
+  const internos = [];
+  for (const m of comando.matchAll(/\b(?:bash|sh|eval|powershell|pwsh)(?:\s+-\w+)*\s+(['"])([\s\S]*?)\1/g)) internos.push(...segmentos(m[2]));
+  return limpiar(comando).split(/&&|\|\||;|\||\n/).map((s) => s.trim())
+    .map((s) => s.replace(/^(\w+=("[^"]*"|'[^']*'|\S+)\s+)+/, ''))
+    .map((s) => s.replace(/^(GIT_CONFIG_\w+=\S+\s+)+/, ''))
+    .map((s) => s.replace(/^((time(\s+-p)?|nohup|timeout\s+\d+[smh]?)\s+)+/, '')) // envoltorios: se revisa lo que envuelven
+    .filter((s) => s && !/^cd\s/.test(s) && !/^(echo|true|exit)\b/.test(s))
+    .concat(internos);
+}
+
+// La caché de compañeros y ligeros vence a los 5 min: una llamada que espera más hace que el turno
+// siguiente vuelva a escribir todo el contexto (en una tarea real medida, el 25% del costo).
+// Se mira el comando crudo, porque las esperas suelen ir entre comillas (python -c "...time.sleep(299)").
+const ESPERA_MAX_S = 240;
+function reglaEsperas(quien, ti) {
+  if (quien.rol === 'xi-0' || ti.run_in_background) return;
+  const cmd = String(ti.command || '');
+  const seg = [];
+  // sleep como comando (inicio, tras ; & | ( o do/then), no dentro de un texto como un mensaje de commit
+  for (const m of cmd.matchAll(/(?:^|[;&|(\n]|\bdo|\bthen)\s*sleep\s+(\d+(?:\.\d+)?)([smh]?)\b/g)) seg.push(+m[1] * ({ m: 60, h: 3600 }[m[2]] || 1));
+  for (const m of cmd.matchAll(/\btime\.sleep\(\s*(\d+(?:\.\d+)?)/g)) seg.push(+m[1]);
+  for (const m of cmd.matchAll(/Start-Sleep\s+(?:-s(?:econds)?\s+)?(\d+)/gi)) seg.push(+m[1]);
+  for (const m of cmd.matchAll(/Start-Sleep\s+-m(?:illiseconds)?\s+(\d+)/gi)) seg.push(+m[1] / 1000);
+  for (const m of cmd.matchAll(/\btimeout\s+\/t\s+(\d+)/gi)) seg.push(+m[1]);
+  if (!seg.length && !/Wait-Process|\btail\s+-f\b|Get-Content\b[^|;]*-Wait/i.test(cmd)) return;
+  const tope = Number(ti.timeout) || 120000;
+  if (Math.max(0, ...seg) > ESPERA_MAX_S || tope > (ESPERA_MAX_S + 30) * 1000) {
+    negar(`Ninguna llamada espera más de ${ESPERA_MAX_S / 60} min (sleep largo, o espera con timeout de ${Math.round(tope / 1000)} s): tu caché vence a los 5 min y el turno siguiente volvería a escribir todo tu contexto. Para esperar una corrida: "sleep 230" con timeout 250000 y una comprobación corta, repetido; o devuelve a tu líder el archivo de salida y que él lance un ligero nuevo que la espere.`);
+  }
+}
+
+function reglaComandos(cfg, quien, comando, raizTarea) {
+  if (quien.rol === 'xi-0') return; // el líder solo prepara ramas y worktrees; lo vigila su SKILL.md
+  const clave = quien.rol === 'fase' ? quien.equipo : quien.equipo;
+  const permitidos = (cfg.comandos || {})[clave] || (cfg.comandos || {})._desconocido || [];
+  for (const s of segmentos(comando)) {
+    // Cada permitido es un prefijo ("npm ci") o una regex con "re:" ("re:^node\\s+\\S*recorrido\\.js\\b").
+    const vale = (p) => (p.startsWith('re:') ? new RegExp(p.slice(3)).test(s) : s === p || s.startsWith(p + ' '));
+    const corta = /^sleep\s+(\d+(?:\.\d+)?)s?$/.exec(s); // esperar poco siempre vale (ver reglaEsperas)
+    if (!(corta && +corta[1] <= ESPERA_MAX_S) && !permitidos.some(vale)) {
+      negar(`${clave} no puede ejecutar "${s.slice(0, 80)}". Permitidos: ${permitidos.join(', ') || 'ninguno'}. Si de verdad lo necesitas, pídelo a Sextante por tu líder de fase.`);
+    }
+    reglaDependencias(cfg, clave, s, raizTarea);
+  }
+}
+
+function reglaDependencias(cfg, clave, s, raizTarea) {
+  let paquetes = [];
+  let m;
+  if ((m = /^npm\s+(?:install|i|add)\s+(.+)$/.exec(s))) paquetes = m[1].split(/\s+/).filter((x) => x && !x.startsWith('-'));
+  else if ((m = /^npx\s+ng\s+add\s+(\S+)/.exec(s))) paquetes = [m[1]];
+  else if ((m = /^dotnet\s+add\s+.*package\s+(\S+)/.exec(s))) paquetes = [m[1]];
+  if (!paquetes.length) return;
+  const aprobadas = new Set((cfg.dependencias_aprobadas || []).map((x) => x.toLowerCase()));
+  const permisos = raizTarea ? leer(path.join(raizTarea, '.xi-0', 'permisos.json')) : null;
+  for (const x of (permisos && permisos.dependencias_aprobadas) || []) aprobadas.add(String(x).toLowerCase());
+  for (const p of paquetes) {
+    const nombre = p.replace(/(?!^)@.*$/, '').toLowerCase();
+    if (!aprobadas.has(nombre)) negar(`La dependencia "${nombre}" no está aprobada. Sextante debe añadirla a .xi-0/permisos.json (y Égida no debe haberla vetado).`);
+  }
+}
+
+function reglaCarpetas(cfg, quien, archivo, raiz) {
+  const abs = norm(archivo);
+  const home = norm(path.join(os.homedir(), '.claude'));
+  const tmp = norm(os.tmpdir());
+  if (abs.startsWith(home + '/') || abs.startsWith(tmp + '/')) return; // memoria, planes, scratchpad
+  const wt = raizWorktree(abs);
+  if (!wt || raizPrincipal(wt) !== raiz) negar(`${quien.equipo} no puede escribir fuera del repo y sus worktrees: ${abs}`);
+  const rel = abs.slice(wt.length + 1);
+  const reglas = (cfg.carpetas || {})[quien.equipo] || { incluye: [] };
+  const incluye = Array.isArray(reglas) ? reglas : reglas.incluye;
+  const excluye = Array.isArray(reglas) ? [] : reglas.excluye || [];
+  if (!coincide(rel, incluye) || coincide(rel, excluye)) {
+    negar(`${quien.equipo} no es dueño de "${rel}". Sus carpetas: ${incluye.join(', ') || 'ninguna'}${excluye.length ? ` (sin ${excluye.join(', ')})` : ''}. Pide el cambio al dueño por tu líder de fase.`);
+  }
+}
+
+function reglaAgent(cfg, quien, entrada, raiz, limite) {
+  const tipo = entrada.tool_input.subagent_type || '';
+  const nombre = entrada.tool_input.name || '';
+  if (limite.nivel === 'pausa') negar(`Límite en ${limite.pct}% (Pausa): no se lanza nadie. xi-0 completa estado.md y cierra.`);
+  if (quien.rol === 'xi-0') {
+    if (!TODOS_LIDERES.includes(tipo)) negar(`xi-0 solo lanza líderes (${TODOS_LIDERES.join(', ')}), no "${tipo || 'sin tipo'}". El trabajo lo hacen los equipos.`);
+    if (nombre !== tipo) negar(`Lanza al compañero con name="${tipo}" (igual que su tipo) para que los mensajes sigan las líneas del mapa.`);
+    registrar({ decision: 'lanza', tipo, nivel: limite.nivel, pct: limite.pct });
+    return;
+  }
+  if (quien.rol !== 'equipo') negar(`${quien.equipo} no puede lanzar agentes.`);
+  if (tipo !== `${quien.equipo}-ligero`) negar(`${quien.equipo} solo lanza agentes ligeros "${quien.equipo}-ligero" (con el rol en el prompt).`);
+  if (limite.nivel !== 'normal') negar(`Límite en ${limite.pct}% (${limite.nivel}): no se lanzan agentes ligeros nuevos. Termina lo que está en curso.`);
+  const max = EQ.equipos[quien.equipo].max;
+  const estado = cargarActivos(raiz);
+  const activos = estado[tipo] || [];
+  if (activos.length >= max) negar(`${quien.equipo} ya tiene ${activos.length} agentes activos (máximo ${max}).`);
+  activos.push({ id: entrada.tool_use_id, t: Date.now() });
+  estado[tipo] = activos;
+  guardarActivos(raiz, estado);
+  registrar({ decision: 'lanza', tipo, activos: activos.length, max });
+}
+
+const archivoActivos = (raiz) => path.join(raiz, '.claude', 'xi-0', 'activos.json');
+function cargarActivos(raiz) {
+  const e = leer(archivoActivos(raiz)) || {};
+  const corte = Date.now() - 60 * 60 * 1000; // reservas viejas (llamadas que fallaron) caducan en 1 h
+  for (const k of Object.keys(e)) e[k] = e[k].filter((x) => x.t > corte);
+  return e;
+}
+function guardarActivos(raiz, e) { fs.writeFileSync(archivoActivos(raiz), JSON.stringify(e, null, 1)); }
+
+function reglaMensaje(quien, entrada, v2) {
+  const ti = entrada.tool_input || {};
+  const para = String(ti.to || ti.recipient || '').toLowerCase();
+  const msg = ti.message !== undefined ? ti.message : ti.content;
+  if (typeof msg !== 'string') return; // mensajes de protocolo (apagado, aprobación de plan) siempre pasan
+  const palabras = msg.trim().split(/\s+/).length;
+  const esLider = EQ.nombres_del_lider.includes(para);
+  const destino = esLider ? 'xi-0' : para;
+
+  if (quien.rol === 'xi-0') {
+    if (!LIDERES_FASE.includes(destino) && !EQUIPOS.includes(destino)) return;
+    if (EQUIPOS.includes(destino) && !/^\s*(cierra|apaga|shutdown|para)\b/i.test(msg))
+      negar(`xi-0 no da órdenes a ${destino} saltándose a su líder de fase (${EQ.equipos[destino].fase}).`);
+    return;
+  }
+  if (quien.rol === 'fase') {
+    const permitidos = ['xi-0', ...LIDERES_FASE, ...EQ.fases[quien.equipo].equipos];
+    if (!permitidos.includes(destino)) negar(`${quien.equipo} no tiene línea con ${destino}. Solo con xi-0, los otros líderes de fase y sus equipos.`);
+    if (destino === 'xi-0' && palabras > EQ.palabras_max.fase) negar(`Resumen de fase demasiado largo (${palabras} palabras, máximo ${EQ.palabras_max.fase}). Seis líneas: estado, entregables, bloqueos, riesgos, decisiones para xi-0 y evidencia. El detalle va en archivos.`);
+    if (v2 && destino === 'xi-0' && campo(msg, 'estado') !== null && !campo(msg, 'evidencia')) negar('Resumen de fase sin la línea "evidencia:" (la de tu fase: dónde está y qué huecos quedan, o "sin huecos").');
+    return;
+  }
+  if (quien.rol === 'equipo') {
+    const fase = EQ.equipos[quien.equipo].fase;
+    const conLinea = EQ.lineas.some(([a, b]) => (a === quien.equipo && b === destino) || (b === quien.equipo && a === destino));
+    if (destino !== fase && !conLinea) negar(`${quien.equipo} no tiene línea con ${destino}. Pásalo por ${fase}.`);
+    if (palabras > EQ.palabras_max.equipo) negar(`Ficha demasiado larga (${palabras} palabras, máximo ${EQ.palabras_max.equipo}). El mensaje solo apunta: entrega, dónde, decisiones, pendiente, necesitas.`);
+    return;
+  }
+  negar(`${quien.equipo} no envía mensajes; entrega su resultado a su líder al terminar.`);
+}
+
+function reglaTareaCompletada(cfg, quien, raiz, activa, raizTarea, entrada) {
+  if (!raizTarea) return;
+  const v2 = reglasEvidencia(activa);
+  const fallas = leerFallas(raizTarea);
+  const abiertas = fallas.filter((x) => /^abiert/i.test(x.estado || ''));
+  const titulo = `${entrada.task_title || ''} ${entrada.task_description || ''}`.toLowerCase();
+  const esCierre = /qa|calidad|entrega|cierre|final|devops|publica/.test(titulo) || ['argos', 'meridiano', 'faro', 'xi-0'].includes(quien.equipo);
+  const escalar = abiertas.filter((a) => a.vuelta >= EQ.vueltas_max);
+  if (escalar.length) frenar(`Fallas en su vuelta ${EQ.vueltas_max} sin resolver (${escalar.map((a) => a.f).join(', ')}): se escalan a xi-0 antes de cerrar nada.`);
+  if (esCierre && abiertas.length) frenar(`No se cierra con fallas abiertas: ${abiertas.map((a) => a.f).join(', ')}.`);
+  if (quien.equipo !== 'argos') return;
+
+  const qa = path.join(raizTarea, '.xi-0', 'qa');
+  const resultado = leerTexto(path.join(qa, 'resultado.md'));
+  const lineas = [['pruebas', 'pruebas: <comandos y resultado>'], ['revisi[oó]n', 'revision: <aprobado | N hallazgos>'], ['visual', 'visual: <aprobado | no aplica | N hallazgos>']];
+  if (v2) lineas.push(['validez', 'validez: <aprobado (n/n criterios) | N huecos o hallazgos>']);
+  const faltan = lineas.filter(([re]) => !campos(resultado, re).some(Boolean)).map(([, linea]) => `"${linea}"`);
+  if (faltan.length) frenar(`QA no completa sin probar, revisar, mirar${v2 ? ' y validar' : ''}: a .xi-0/qa/resultado.md le faltan ${faltan.join(' · ')}.`);
+  if (!v2) return;
+
+  const validez = leerTexto(path.join(qa, 'validez.md'));
+  if (!validez.trim()) frenar('QA no completa sin .xi-0/qa/validez.md: cada criterio CT-n / CA-n con la prueba que lo demuestra (formato en "Reporte de validez" de tu archivo de agente).');
+  const sinPrueba = criterios(raizTarea).filter((id) => !new RegExp(`\\b${id}\\b`).test(validez));
+  if (sinPrueba.length) frenar(`.xi-0/qa/validez.md no dice qué prueba demuestra ${sinPrueba.join(', ')} (o por qué es un hueco y qué evidencia lo cubre).`);
+  const sinClase = fallas.filter((x) => /^qa-/i.test(x.f)).map((x) => [x.f, faltanEnFallaQA(x.txt)]).filter(([, falta]) => falta.length);
+  if (sinClase.length) frenar(`Fallas de QA sin clasificar: ${sinClase.map(([f, falta]) => `${f} (falta ${falta.join(', ')})`).join('; ')}.`);
+  const anotadas = seccion(validez, /^#{1,6}[ \t]*pruebas existentes/im);
+  const sinJustificar = pruebasExistentesCambiadas(cfg, raiz, activa).filter((p) => !anotadas.includes(p) && !anotadas.includes(path.posix.basename(p)));
+  if (sinJustificar.length) frenar(`Cambiaron o se borraron pruebas que ya existían en ${cfg.rama_base || 'main'} y no están en "Pruebas existentes que cambiaron" de .xi-0/qa/validez.md: ${sinJustificar.join(', ')}. Anota qué cambió y el requisito o contrato que excedía, o revierte el cambio.`);
+}
+
+// ---------- evidencia (tareas con "reglas": 2 en activa.json) ----------
+// Las tareas abiertas antes de las reglas de evidencia siguen con las anteriores.
+const reglasEvidencia = (activa) => Number((activa || {}).reglas) >= 2;
+const leerTexto = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } };
+
+// Lee "campo: valor" aunque venga como "- campo: valor" o "**Campo:** valor" (así escriben algunos agentes).
+function campos(txt, nombre) {
+  const re = new RegExp(`^[ \\t>*-]*(?:${nombre})\\**[ \\t]*:[ \\t*]*(.*)$`, 'gim');
+  return [...String(txt || '').matchAll(re)].map((m) => m[1].replace(/^[`*_\s]+|[`*_\s]+$/g, ''));
+}
+function campo(txt, nombre) { // si se repite, manda el último (el más reciente)
+  const v = campos(txt, nombre);
+  return v.length ? v[v.length - 1] : null;
+}
+
+function leerFallas(raizTarea) {
+  const dir = path.join(raizTarea, '.xi-0', 'fallas');
+  let nombres = [];
+  try { nombres = fs.readdirSync(dir).filter((x) => x.endsWith('.md')); } catch { return []; }
+  return nombres.map((f) => {
+    const txt = leerTexto(path.join(dir, f));
+    return { f, txt, estado: campo(txt, 'estado'), vuelta: Number(((campo(txt, 'vuelta') || '').match(/\d+/) || ['1'])[0]) };
+  });
+}
+
+function faltanEnFallaQA(txt) {
+  const falta = [];
+  if (!campo(txt, 'estado')) falta.push('estado');
+  if (!/^(implementaci[oó]n|prueba|requisito|cobertura)\b/i.test(campo(txt, 'clase') || '')) falta.push('clase (implementación | prueba | requisito | cobertura)');
+  if (!campo(txt, 'requisito')) falta.push('requisito');
+  if (!/\d/.test(campo(txt, 'vuelta') || '')) falta.push('vuelta');
+  return falta;
+}
+
+function reglaFallaQA(archivo, contenido) {
+  if (!/\/\.xi-0\/fallas\/qa-[^/]*\.md$/i.test(norm(archivo))) return;
+  const falta = faltanEnFallaQA(contenido || '');
+  if (falta.length) negar(`A la falla ${path.basename(String(archivo))} le falta ${falta.join(', ')}. Clasifícala antes de devolverla (formato en "Cuando algo falla" de tu archivo de agente).`);
+}
+
+function listarMd(dir) {
+  let items = [];
+  try { items = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
+  return items.flatMap((it) => {
+    const p = path.join(dir, it.name);
+    if (it.isDirectory()) return listarMd(p);
+    return it.name.endsWith('.md') ? [p] : [];
+  });
+}
+
+// Ids de criterio: CT-n en tarea.md (xi-0) y CA-n en los requisitos (Brújula).
+function criterios(raizTarea) {
+  const textos = [leerTexto(path.join(raizTarea, '.xi-0', 'tarea.md')), ...listarMd(path.join(raizTarea, '.xi-0', 'plan', 'requisitos')).map(leerTexto)];
+  const ids = new Set();
+  for (const t of textos) for (const m of t.matchAll(/\bC[AT]-\d+\b/g)) ids.add(m[0]);
+  return [...ids].sort();
+}
+
+// Texto de una sección markdown, desde su encabezado hasta el siguiente de nivel 1 o 2.
+function seccion(txt, encabezado) {
+  const m = encabezado.exec(txt);
+  if (!m) return '';
+  const resto = txt.slice(m.index + m[0].length);
+  const fin = resto.search(/^#{1,2}\s/m);
+  return fin === -1 ? resto : resto.slice(0, fin);
+}
+
+// Archivos de prueba (carpetas de Argos) que ya existían en la rama base y que la tarea cambió o borró.
+function pruebasExistentesCambiadas(cfg, raiz, activa) {
+  if (!activa || !activa.rama) return [];
+  const base = cfg.rama_base || 'main';
+  const reglas = (cfg.carpetas || {}).argos || [];
+  const incluye = Array.isArray(reglas) ? reglas : reglas.incluye || [];
+  const cambiadas = new Set();
+  for (const rama of [`${activa.rama}-argos`, `${activa.rama}/argos`, activa.rama]) {
+    let salida;
+    try {
+      salida = execFileSync('git', ['-c', 'core.quotepath=false', '-C', raiz, 'diff', '--name-status', '--diff-filter=MDRT', `${base}...${rama}`, '--'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch { continue; } // la rama no existe o git falló: esta regla no bloquea por eso
+    for (const linea of salida.split('\n')) {
+      const archivo = linea.split('\t')[1]; // en un renombre es la ruta vieja
+      if (archivo && !archivo.startsWith('.xi-0/') && coincide(archivo, incluye)) cambiadas.add(archivo);
+    }
+  }
+  return [...cambiadas];
+}
+
+// ---------- entrada ----------
+let crudo = '';
+process.stdin.on('data', (d) => (crudo += d));
+process.stdin.on('end', () => {
+  let e;
+  try { e = JSON.parse(crudo); } catch { pasar(); }
+  const raiz = raizPrincipal(e.cwd || process.cwd());
+  if (!raiz) pasar();
+  const cfg = leer(path.join(raiz, '.claude', 'xi-0', 'config.json'));
+  if (!cfg) pasar();
+  const quien = identificar(e.agent_type);
+  ctx = { raiz, evento: e.hook_event_name, quien: e.agent_type || 'xi-0', herramienta: e.tool_name, sesion: e.session_id };
+  const activa = leer(path.join(raiz, '.claude', 'xi-0', 'activa.json'));
+  const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
+
+  // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '');
+  if (!activa) pasar();
+
+  const limite = nivelLimite(raiz);
+  const v2 = reglasEvidencia(activa);
+  switch (e.hook_event_name) {
+    case 'PreToolUse':
+      if (e.tool_name === 'Bash') {
+        reglaEsperas(quien, e.tool_input || {});
+        reglaComandos(cfg, quien, e.tool_input.command || '', raizTarea);
+      }
+      else if (['Write', 'Edit', 'NotebookEdit'].includes(e.tool_name)) {
+        if (quien.rol === 'desconocido') negar(`"${quien.equipo}" no pertenece al equipo xi-0 y no puede escribir mientras hay una tarea activa.`);
+        const archivo = e.tool_input.file_path || e.tool_input.notebook_path;
+        reglaCarpetas(cfg, quien, archivo, raiz);
+        if (v2 && e.tool_name === 'Write') reglaFallaQA(archivo, e.tool_input.content);
+      }
+      else if (e.tool_name === 'Agent') reglaAgent(cfg, quien, e, raiz, limite);
+      else if (e.tool_name === 'SendMessage') reglaMensaje(quien, e, v2);
+      break;
+    case 'SubagentStop': {
+      const tipo = e.agent_type || '';
+      registrar({ decision: 'termina', tipo });
+      if (/-ligero$/.test(tipo)) {
+        const est = cargarActivos(raiz);
+        if (est[tipo] && est[tipo].length) { est[tipo].shift(); guardarActivos(raiz, est); }
+      }
+      break;
+    }
+    case 'TaskCreated':
+      if (limite.nivel !== 'normal') frenar(`Límite en ${limite.pct}% (${limite.nivel}): no se abren tareas nuevas. Actualiza una existente si es para cerrar algo en curso.`);
+      break;
+    case 'TaskCompleted':
+      reglaTareaCompletada(cfg, quien, raiz, activa, raizTarea, e);
+      break;
+  }
+  pasar();
+});

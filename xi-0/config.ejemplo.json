@@ -1,0 +1,278 @@
+{
+  "_nota": "Plantilla con un proyecto de ejemplo (api en .NET, spa en Angular). Cópiala a <repo>/.claude/xi-0/config.json y ajusta carpetas, comandos, verificacion y no_leer a tu repo.",
+  "proyecto": "<nombre>",
+  "worktrees": "../<nombre>.worktrees",
+  "rama_base": "main",
+  "remoto": {
+    "_nota": "Así nada sale de esta máquina. Para subir la rama y abrir el PR: push=true, remote_permitido=<nombre del remoto>, pr=true, repo_pr=<usuario>/<repo>.",
+    "push": false,
+    "remote_permitido": null,
+    "pr": false,
+    "repo_pr": null,
+    "merge": false
+  },
+  "verificacion": {
+    "api": [
+      "dotnet tool restore",
+      "dotnet csharpier check .",
+      "dotnet build MiApp.sln --configuration Release",
+      "dotnet test MiApp.sln --configuration Release"
+    ],
+    "spa": [
+      "npm ci",
+      "npm run test:scripts",
+      "npx ng test --watch=false",
+      "npm run build"
+    ]
+  },
+  "no_leer": [
+    "spa/src/data/**"
+  ],
+  "carpetas": {
+    "xi-0": [
+      ".xi-0/estado.md",
+      ".xi-0/tarea.md",
+      ".xi-0/metricas.md",
+      ".claude/xi-0/activa.json"
+    ],
+    "norte": [],
+    "yunque": [
+      ".xi-0/PR.md"
+    ],
+    "meridiano": [],
+    "atlas": [
+      ".xi-0/plan/investigacion/**"
+    ],
+    "brujula": [
+      ".xi-0/plan/requisitos/**"
+    ],
+    "lumen": [
+      ".xi-0/plan/diseno/**"
+    ],
+    "plano": [
+      ".xi-0/plan/arq/**",
+      ".xi-0/contratos/**"
+    ],
+    "sextante": [
+      ".xi-0/plan/herramientas/**",
+      ".xi-0/permisos.json"
+    ],
+    "prisma": {
+      "incluye": [
+        "spa/src/app/**",
+        "spa/src/scss/**",
+        "spa/src/assets/**",
+        "spa/src/utils/**",
+        "spa/src/*.ts",
+        "spa/src/*.html",
+        "spa/angular.json",
+        "spa/tsconfig*.json",
+        "spa/package.json",
+        "spa/package-lock.json"
+      ],
+      "excluye": [
+        "**/*.spec.ts"
+      ]
+    },
+    "forja": {
+      "incluye": [
+        "api/**",
+        "spa/scripts/**",
+        "spa/src/data/**"
+      ],
+      "excluye": [
+        "api/tests/**",
+        "api/Run-*",
+        "api/global.json",
+        "api/dotnet-tools.json",
+        "api/README.md",
+        "spa/scripts/*.test.js"
+      ]
+    },
+    "argos": [
+      "api/tests/**",
+      "**/*.spec.ts",
+      "spa/scripts/*.test.js",
+      ".xi-0/qa/**",
+      ".xi-0/fallas/qa-*"
+    ],
+    "egida": [
+      ".xi-0/seguridad/**",
+      ".xi-0/fallas/seg-*"
+    ],
+    "faro": [
+      ".github/**",
+      "api/Run-*",
+      "api/global.json",
+      "api/dotnet-tools.json",
+      ".gitignore",
+      ".gitattributes",
+      ".xi-0/despliegue/**"
+    ],
+    "codice": [
+      "README.md",
+      "api/README.md",
+      "spa/README.md",
+      ".xi-0/docs/**"
+    ]
+  },
+  "comandos": {
+    "norte": [
+      "git"
+    ],
+    "meridiano": [
+      "git"
+    ],
+    "yunque": [
+      "git",
+      "gh pr create"
+    ],
+    "sextante": [
+      "git status",
+      "git log",
+      "git diff",
+      "git show",
+      "npm view",
+      "npm ls",
+      "npm outdated",
+      "dotnet list",
+      "dotnet package search",
+      "ls",
+      "cat",
+      "grep",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "prisma": [
+      "git",
+      "npm",
+      "npx",
+      "node",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "mkdir",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "forja": [
+      "git",
+      "dotnet",
+      "npm",
+      "npx",
+      "node",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "mkdir",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "argos": [
+      "git",
+      "npm ci",
+      "npm install",
+      "npm test",
+      "npm run test",
+      "npm run test:unit",
+      "npm run test:scripts",
+      "npm run build",
+      "npx ng test",
+      "node --test",
+      "dotnet restore",
+      "dotnet tool restore",
+      "dotnet build",
+      "dotnet test",
+      "dotnet csharpier check",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "mkdir",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "egida": [
+      "git",
+      "npm audit",
+      "npm ls",
+      "dotnet restore",
+      "dotnet list",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "faro": [
+      "git",
+      "npm ci",
+      "npm run build",
+      "npx ng build",
+      "dotnet restore",
+      "dotnet tool restore",
+      "dotnet build",
+      "dotnet csharpier",
+      "gh run list",
+      "gh run view",
+      "gh workflow view",
+      "ls",
+      "cat",
+      "grep",
+      "find",
+      "mkdir",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ],
+    "_desconocido": [
+      "git status",
+      "git log",
+      "git diff",
+      "git show",
+      "ls",
+      "cat",
+      "grep",
+      "rg",
+      "find",
+      "head",
+      "tail",
+      "wc",
+      "re:^sed\\s+-n\\s+(''|\"\"|\\d+(,\\d+)?p)(\\s+[^\\s-]\\S*)*$",
+      "cut",
+      "date"
+    ]
+  },
+  "dependencias_aprobadas": []
+}
