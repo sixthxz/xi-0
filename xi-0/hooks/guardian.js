@@ -9,7 +9,10 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const BASE = path.join(__dirname, '..'); // la carpeta xi-0 donde está instalado (normalmente ~/.claude/xi-0)
-const EQ = JSON.parse(fs.readFileSync(path.join(BASE, 'equipos.json'), 'utf8'));
+// Si equipos.json no se puede leer, el error se guarda y se trata al recibir el evento (ver fallar).
+let EQ = { fases: {}, equipos: {}, palabras_max: {} };
+let errorCarga = null;
+try { EQ = JSON.parse(fs.readFileSync(path.join(BASE, 'equipos.json'), 'utf8')); } catch (err) { errorCarga = err; }
 const LIDERES_FASE = Object.keys(EQ.fases);
 const EQUIPOS = Object.keys(EQ.equipos);
 const TODOS_LIDERES = [...LIDERES_FASE, ...EQUIPOS];
@@ -108,27 +111,91 @@ function reglaRemotos(cfg, quien, comando, activa) {
   const publica = sinYunque ? 'faro' : 'yunque';
   const Publica = sinYunque ? 'Faro' : 'Yunque';
   const esQuienPublica = quien.equipo === publica && quien.rol !== 'ligero';
-  const segs = segmentos(comando);
-  for (const s of segs) {
-    if (/^git\s+push\b/.test(s)) {
+  const protegidas = new Set(['main', 'master', cfg.rama_base].filter(Boolean));
+  for (const p of piezas(comando)) {
+    const g = subcomandoGit(p);
+    if (g && g.sub === 'push') {
       if (!r.push) negar('git push está desactivado en este proyecto (remoto.push=false). El trabajo se queda en ramas locales.');
-      const remotoPermitido = r.remote_permitido;
-      if (!remotoPermitido || !new RegExp(`\\s${escapar(remotoPermitido)}(\\s|$)`).test(s))
-        negar(`Solo se permite push al remoto "${remotoPermitido}". Nunca al repo original.`);
+      const opciones = g.args.filter((a) => a.startsWith('-'));
+      const [remoto, ...ramas] = g.args.filter((a) => !a.startsWith('-'));
+      if (!r.remote_permitido || remoto !== r.remote_permitido || opciones.some((o) => /^--repo\b/.test(o)))
+        negar(`Solo se permite push al remoto "${r.remote_permitido}", escrito así: git push ${r.remote_permitido || '<remoto>'} tarea/<id>. Nunca al repo original.`);
       if (!esQuienPublica && quien.equipo !== 'xi-0') negar(`Solo ${Publica} sube la rama de la tarea (y abre su único PR).`);
-      if (/(\s|:)(main|master)(\s|$)/.test(s)) negar('Nunca push a main/master: se sube la rama tarea/<id> y se abre un PR.');
-      if (/\s(-f|--force|--force-with-lease)(\s|=|$)|\s\+\S/.test(s)) negar('Nada de push forzado.');
+      const destinos = ramas.map((x) => x.replace(/^\+/, '').split(':').pop().replace(/^refs\/heads\//, ''));
+      if (destinos.some((d) => protegidas.has(d))) negar('Nunca push a main/master: se sube la rama tarea/<id> y se abre un PR.');
+      if (opciones.some((o) => /^--force/.test(o) || /^-[a-zA-Z]*f/.test(o)) || ramas.some((x) => x.startsWith('+'))) negar('Nada de push forzado.');
+      if (!ramas.length || opciones.some((o) => /^--(all|mirror|branches)$/.test(o)))
+        negar(`El push nombra la rama que sube: git push ${r.remote_permitido} tarea/<id>. Sin rama, o con --all o --mirror, podría subir main.`);
     }
-    if (/^gh\s+pr\s+create\b/.test(s)) {
+    const gh = subcomandoGh(p);
+    if (gh === 'create') {
       if (!r.pr) negar('No se abren PRs reales en este proyecto (remoto.pr=false). Yunque deja el PR en .xi-0/PR.md.');
       if (!esQuienPublica) negar(`Solo ${Publica} abre el PR de la tarea.`);
-      if (!r.repo_pr || !s.includes(r.repo_pr)) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
+      if (!r.repo_pr || !p.some((t) => t.includes(r.repo_pr))) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
     }
-    if (/^gh\s+pr\s+merge\b/.test(s)) {
+    if (gh === 'merge') {
       if (!r.merge) negar('El merge está desactivado (remoto.merge=false). El usuario une el PR.');
       if (quien.equipo !== 'faro') negar('Solo DevOps (Faro) une a main.');
     }
   }
+}
+
+// Parte un comando en piezas, y cada pieza en palabras, respetando comillas como lo hace el shell:
+// "git push" entre comillas es una sola palabra (un texto), pero git push fork "main" son cuatro.
+// Separan piezas: ; & | salto de línea, paréntesis, $( ... ) y comillas invertidas, también dentro de comillas dobles.
+// Lo que se le pasa a otro shell (bash -c "...", eval "...") se revisa también por dentro.
+// La usa la regla de remotos, que no puede depender de cómo esté escrito el comando.
+const ES_SHELL = /(^|[\/\\])(bash|sh|zsh|dash|eval|pwsh|powershell|cmd|wsl)(\.exe)?$/i;
+function piezas(comando, nivel = 0) {
+  const texto = String(comando).replace(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(\n|$)/g, '\n');
+  const salida = [];
+  const pila = []; // comillas en las que estábamos al entrar a $( ... ) o a comillas invertidas
+  let pieza = []; let palabra = null; let comilla = null; let invertidas = false;
+  const cierraPalabra = () => { if (palabra !== null) { pieza.push(palabra); palabra = null; } };
+  const cierraPieza = () => { cierraPalabra(); if (pieza.length) salida.push(pieza); pieza = []; };
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comilla === "'") { if (c === "'") comilla = null; else palabra += c; continue; }
+    // Dentro de comillas dobles la barra invertida solo escapa $ ` " \ y el salto de línea ("C:\Program Files\Git\bin\git.exe").
+    if (c === '\\' && i + 1 < texto.length && (comilla !== '"' || '$`"\\\n'.includes(texto[i + 1]))) { i++; if (texto[i] !== '\n') palabra = (palabra || '') + texto[i]; continue; }
+    if (c === '$' && texto[i + 1] === '(') { i++; cierraPieza(); pila.push(comilla); comilla = null; continue; }
+    if (c === '`') {
+      cierraPieza();
+      if (invertidas) { comilla = pila.pop() || null; invertidas = false; } else { pila.push(comilla); comilla = null; invertidas = true; }
+      continue;
+    }
+    if (comilla === '"') { if (c === '"') comilla = null; else palabra = (palabra || '') + c; continue; }
+    if (c === "'" || c === '"') { comilla = c; palabra = palabra || ''; continue; }
+    if (c === ')' && pila.length && !invertidas) { cierraPieza(); comilla = pila.pop() || null; continue; }
+    if (c === '\n' || c === ';' || c === '&' || c === '|' || c === '(' || c === ')') { cierraPieza(); continue; }
+    if (/\s/.test(c)) { cierraPalabra(); continue; }
+    palabra = (palabra || '') + c;
+  }
+  cierraPieza();
+  if (nivel < 3) {
+    for (const p of [...salida]) {
+      if (p.some((t) => ES_SHELL.test(t))) for (const t of p) if (/\s/.test(t)) salida.push(...piezas(t, nivel + 1));
+    }
+  }
+  return salida;
+}
+// El subcomando de git de una pieza, esté donde esté (env git …, xargs git …, git -C . push …).
+function subcomandoGit(p) {
+  const i = p.findIndex((t) => /(^|[\/\\])git(\.exe)?$/i.test(t));
+  if (i < 0) return null;
+  let j = i + 1;
+  while (j < p.length && p[j].startsWith('-')) j += /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)$/.test(p[j]) ? 2 : 1;
+  return { sub: p[j] || '', args: p.slice(j + 1) };
+}
+// 'create' o 'merge' si la pieza es un gh pr create o gh pr merge.
+function subcomandoGh(p) {
+  const i = p.findIndex((t) => /(^|[\/\\])gh(\.exe)?$/i.test(t));
+  if (i < 0) return null;
+  const resto = p.slice(i + 1);
+  const k = resto.indexOf('pr'); // puede llevar opciones antes: gh -R dueño/repo pr create
+  if (k < 0) return null;
+  const sub = resto.slice(k + 1).find((t) => !t.startsWith('-'));
+  return ['create', 'merge'].includes(sub) ? sub : null;
 }
 
 // Quita cuerpos de heredoc y el contenido entre comillas para no confundir texto con comandos.
@@ -433,16 +500,37 @@ function pruebasExistentesCambiadas(cfg, raiz, activa) {
 // ---------- entrada ----------
 let crudo = '';
 process.stdin.on('data', (d) => (crudo += d));
-process.stdin.on('end', () => {
+// Un error del guardián no deja pasar la llamada: en un repo con xi-0 activado, niega y dice qué falló.
+// Antes de saber que el repo tiene config (enConfig) no hace nada, igual que siempre.
+let enConfig = false;
+let eventoActual = '';
+function fallar(err) {
+  if (!enConfig) process.exit(0);
+  const motivo = `El guardián falló y por seguridad no deja pasar la llamada: ${String((err && err.message) || err).slice(0, 200)}. `
+    + 'Revisa .claude/xi-0/config.json del repo (por ejemplo una regex "re:" mal escrita) y la instalación en ~/.claude/xi-0 (node instalar.js). Esto lo arregla una persona, no un agente.';
+  if (eventoActual === 'PreToolUse') negar(motivo);
+  if (eventoActual === 'TaskCreated' || eventoActual === 'TaskCompleted') frenar(motivo);
+  registrar({ decision: 'error', motivo });
+  process.exit(0); // SubagentStop: frenarlo dejaría al agente sin poder terminar
+}
+process.on('uncaughtException', fallar);
+process.stdin.on('end', () => { try { atender(); } catch (err) { fallar(err); } });
+function atender() {
   let e;
   try { e = JSON.parse(crudo); } catch { pasar(); }
   const raiz = raizPrincipal(e.cwd || process.cwd());
   if (!raiz) pasar();
-  const cfg = leer(path.join(raiz, '.claude', 'xi-0', 'config.json'));
-  if (!cfg) pasar();
-  const quien = identificar(e.agent_type);
+  const archivoCfg = path.join(raiz, '.claude', 'xi-0', 'config.json');
+  if (!fs.existsSync(archivoCfg)) pasar();
+  enConfig = true;
+  eventoActual = e.hook_event_name;
   ctx = { raiz, evento: e.hook_event_name, quien: e.agent_type || 'xi-0', herramienta: e.tool_name, sesion: e.session_id };
-  const activa = leer(path.join(raiz, '.claude', 'xi-0', 'activa.json'));
+  if (errorCarga) throw new Error(`no se pudo leer equipos.json (${errorCarga.message})`);
+  const cfg = JSON.parse(fs.readFileSync(archivoCfg, 'utf8').replace(String.fromCharCode(0xFEFF), ''));
+  const quien = identificar(e.agent_type);
+  const archivoActiva = path.join(raiz, '.claude', 'xi-0', 'activa.json');
+  const activa = leer(archivoActiva);
+  if (!activa && fs.existsSync(archivoActiva)) throw new Error('activa.json existe pero no se puede leer');
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
@@ -483,4 +571,4 @@ process.stdin.on('end', () => {
       break;
   }
   pasar();
-});
+}

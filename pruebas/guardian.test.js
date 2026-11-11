@@ -31,7 +31,7 @@ const bash = (command, extra) => ['Bash', { command, ...extra }];
 const agente = (subagent_type, name) => ['Agent', { subagent_type, name: name || '', prompt: 'p' }];
 const PASA = 'pasa';
 
-// [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo, relevo previo]
+// [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo, preparación previa]
 const CASOS = [
   // --- Mensajes: como siempre con reglas 2 ---
   ['xi-0 no ordena a un equipo', 'reglas2', null, msg('prisma', 'haz el cambio'), /saltándose a su líder de fase/],
@@ -79,6 +79,40 @@ const CASOS = [
   ['chica: un constructor no sube', 'chica', 'prisma', bash('git push fork tarea/t1'), /Solo Faro sube/],
   ['chica: xi-0 no abre el PR', 'chica', null, bash('gh pr create -R yo/fork --fill'), /Solo Faro abre/],
   ['mediana sin Yunque: Faro sube', 'medianaMeridiano', 'faro', bash('git push fork tarea/t1'), PASA],
+  // --- Remotos: el push se reconoce esté escrito como esté ---
+  ['push: git -C no lo esconde', 'reglas2', 'yunque', bash('git -C . push fork main'), /Nunca push a main/],
+  ['push: git -c no lo esconde', 'reglas2', 'yunque', bash('git -c a=b push fork tarea/t1 --force'), /push forzado/],
+  ['push: main entre comillas', 'reglas2', 'yunque', bash('git push fork "main"'), /Nunca push a main/],
+  ['push: destino refs/heads/main', 'reglas2', 'yunque', bash('git push fork HEAD:refs/heads/main'), /Nunca push a main/],
+  ['push: tarea hacia main', 'reglas2', 'yunque', bash('git push fork tarea/t1:main'), /Nunca push a main/],
+  ['push: borrar main', 'reglas2', 'yunque', bash('git push fork :main'), /Nunca push a main/],
+  ['push: banderas cortas juntas', 'reglas2', 'yunque', bash('git push -uf fork tarea/t1'), /push forzado/],
+  ['push: forzado con +', 'reglas2', 'yunque', bash('git push fork +tarea/t1'), /push forzado/],
+  ['push: el remoto es el primer argumento', 'reglas2', 'yunque', bash('git push origin fork'), /Solo se permite push al remoto/],
+  ['push: tras un & solo', 'reglas2', 'yunque', bash('ls & git push origin main'), /Solo se permite push al remoto/],
+  ['push: dentro de $( )', 'reglas2', 'yunque', bash('echo $(git push origin main)'), /Solo se permite push al remoto/],
+  ['push: dentro de comillas invertidas', 'reglas2', 'yunque', bash('echo `git push origin main`'), /Solo se permite push al remoto/],
+  ['push: $( ) dentro de comillas dobles', 'reglas2', 'yunque', bash('echo "x $(git push fork main)"'), /Nunca push a main/],
+  ['push: entre paréntesis', 'reglas2', 'yunque', bash('(git push fork main)'), /Nunca push a main/],
+  ['push: con env delante', 'reglas2', 'yunque', bash('env A=1 git push fork main'), /Nunca push a main/],
+  ['push: dentro de bash -c', 'reglas2', 'yunque', bash('bash -c "git push fork main"'), /Nunca push a main/],
+  ['push: git.exe con ruta', 'reglas2', 'yunque', bash('"C:\\Program Files\\Git\\bin\\git.exe" push fork main'), /Nunca push a main/],
+  ['push: sin rama', 'reglas2', 'yunque', bash('git push fork'), /nombra la rama/],
+  ['push: --all', 'reglas2', 'yunque', bash('git push --all fork'), /nombra la rama/],
+  ['push: --repo', 'reglas2', 'yunque', bash('git push --repo=origin fork tarea/t1'), /Solo se permite push al remoto/],
+  ['push: un agente cualquiera con -C', 'reglas2', 'prisma', bash('git -C . push fork tarea/t1'), /Solo Yunque sube/],
+  ['push: remoto entre comillas vale', 'reglas2', 'yunque', bash('git push "fork" tarea/t1'), PASA],
+  ['push: con -u vale', 'reglas2', 'yunque', bash('git push -u fork tarea/t1'), PASA],
+  ['push: una rama que se llama parecido vale', 'reglas2', 'yunque', bash('git push fork tarea/main-menu'), PASA],
+  ['push: hablar de push en un commit no es push', 'reglas2', 'yunque', bash('git commit -m "listo para git push origin main"'), PASA],
+  ['gh: -R antes de pr create', 'medianaYunque', 'faro', bash('gh -R yo/fork pr create --fill'), /Solo Yunque abre/],
+  ['gh: merge con env delante', 'reglas2', 'faro', bash('env gh pr merge 3'), /merge está desactivado/],
+  // --- Si el guardián falla, niega ---
+  ['config con una regex mal escrita', 'reglas2', 'forja', bash('dotnet build'), /El guardián falló/, { config: (c) => { c.comandos.forja = ['re:(']; } }],
+  ['config que no es JSON', 'reglas2', 'forja', bash('ls'), /El guardián falló/, { config: 'roto' }],
+  ['activa.json dañado', 'reglas2', 'forja', bash('ls'), /El guardián falló/, { activaRota: true }],
+  ['equipos.json ilegible', 'reglas2', 'forja', bash('ls'), /El guardián falló.*equipos.json/, { sinEquipos: true }],
+  ['equipos.json ilegible, al escribir', 'reglas2', 'forja', ['Write', { file_path: path.join(repo, 'api', 'x.cs'), content: 'x' }], /El guardián falló/, { sinEquipos: true }],
   // --- Esperas ---
   ['espera corta', 'reglas2', 'forja', bash('sleep 200'), PASA],
   ['espera larga', 'reglas2', 'forja', bash('sleep 300'), /Ninguna llamada espera más de 4 min/],
@@ -102,7 +136,7 @@ const CASOS = [
 function correr(activa, quien, [herramienta, entrada], previo) {
   const relevos = path.join(repo, '.xi-0', 'relevo');
   fs.rmSync(relevos, { recursive: true, force: true });
-  if (previo) {
+  if (previo && previo.relevo) {
     fs.mkdirSync(relevos, { recursive: true });
     const r = path.join(relevos, `${previo.relevo}.md`);
     fs.writeFileSync(r, 'resultado: salida.log\ntope: 12:00\n');
@@ -112,13 +146,26 @@ function correr(activa, quien, [herramienta, entrada], previo) {
   const f = path.join(repo, '.claude', 'xi-0', 'activa.json');
   if (activa) fs.writeFileSync(f, JSON.stringify(activa)); else fs.rmSync(f, { force: true });
   fs.rmSync(path.join(repo, '.claude', 'xi-0', 'activos.json'), { force: true });
+  const p = previo || {};
+  if (p.activaRota) fs.writeFileSync(f, '{ esto no es JSON');
+  const archivoCfg = path.join(repo, '.claude', 'xi-0', 'config.json');
+  if (p.config === 'roto') fs.writeFileSync(archivoCfg, '{ esto no es JSON');
+  else if (p.config) { const c = JSON.parse(JSON.stringify(cfg)); p.config(c); fs.writeFileSync(archivoCfg, JSON.stringify(c)); }
+  // Un guardián copiado a una carpeta sin equipos.json al lado: no puede cargar sus datos.
+  let guardian = GUARDIAN;
+  if (p.sinEquipos) {
+    guardian = path.join(repo, 'sin-equipos', 'hooks', 'guardian.js');
+    fs.mkdirSync(path.dirname(guardian), { recursive: true });
+    fs.copyFileSync(GUARDIAN, guardian);
+  }
   const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: repo, tool_input: entrada };
   if (quien) evento.agent_type = quien;
   // El guardián deja escribir en la carpeta temporal del sistema; aquí el repo de prueba vive en ella,
   // así que al guardián se le dice que la temporal es otra.
   const otra = path.join(repo, 'sin-tmp');
   const env = { ...process.env, TEMP: otra, TMP: otra, TMPDIR: otra };
-  const r = spawnSync(process.execPath, [GUARDIAN], { input: JSON.stringify(evento), encoding: 'utf8', env });
+  const r = spawnSync(process.execPath, [guardian], { input: JSON.stringify(evento), encoding: 'utf8', env });
+  if (p.config) fs.writeFileSync(archivoCfg, JSON.stringify(cfg));
   let motivo = null;
   try {
     const o = JSON.parse(r.stdout).hookSpecificOutput;
