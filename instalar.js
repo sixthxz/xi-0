@@ -97,6 +97,9 @@ function revisar(repo) {
         try { new RegExp(c.slice(3)); }
         catch (err) { avisos.push(`"comandos.${e}" tiene una expresión inválida (${c}): el guardián negaría todo Bash.`); }
       }
+      // Un permitido sin "re:" vale si el comando es igual o sigue con un espacio: "node pruebas/" nunca coincide con "node pruebas/x.js".
+      else if (typeof c === 'string' && /[\/\\=:]$/.test(c))
+        avisos.push(`"comandos.${e}" tiene "${c}", que nunca coincide con un comando: un permitido es el comando completo o su comienzo hasta un espacio. Para una carpeta usa una expresión, por ejemplo "re:^node +pruebas/[^ ]+[.]js$".`);
 
   const r = cfg.remoto || {};
   if (r.push && !r.remote_permitido) avisos.push('"remoto.push" es true pero falta "remote_permitido".');

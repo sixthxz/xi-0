@@ -72,7 +72,10 @@ const slug = (r) => (r.replace(/^\/+|\/+$/g, '').replace(/[^\w-]+/g, '_') || 'in
   const vistas = [{ nombre: 'escritorio', viewport: { width: 1440, height: 900 } }];
   if (!args['sin-movil']) vistas.push({ nombre: 'movil', viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2 });
 
-  const informe = [`# Recorrido visual`, `- Base: ${args.url || `build local ${path.resolve(args.dist)}`}`, `- Fecha: ${new Date().toISOString()}`, ''];
+  // El informe entra al historial de la tarea: la carpeta va relativa, sin la ruta de esta máquina.
+  const distRelativa = path.relative(process.cwd(), path.resolve(args.dist || '.')).replace(/\\/g, '/') || '.';
+  const distInforme = /^\.\.|^[a-zA-Z]:|^\//.test(distRelativa) ? path.basename(path.resolve(args.dist || '.')) : distRelativa;
+  const informe = [`# Recorrido visual`, `- Base: ${args.url || `build local ${distInforme}`}`, `- Fecha: ${new Date().toISOString()}`, ''];
   let problemas = 0;
 
   for (const ruta of rutas) {

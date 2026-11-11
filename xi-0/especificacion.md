@@ -624,7 +624,7 @@ El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación s
 7. Ningún equipo pasa su máximo de agentes.
 8. En cualquier tarea con código entra al menos uno de Front end o Back end.
 9. Nadie escribe fuera de sus carpetas.
-10. Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa en la tarea, lo hace DevOps. Solo DevOps lo une a main.
+10. Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa en la tarea, lo hace DevOps. Solo DevOps lo une a main. Sin ninguna tarea abierta, xi-0 puede abrir el PR de una rama propia; nunca sube a main ni une.
 11. Las pruebas verifican criterios de aceptación, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.
 12. Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.
 13. Una prueba que ya existía no se debilita ni se borra para que algo pase. Si QA la cambia, lo justifica en el reporte de validez con el requisito o contrato que excedía, y xi-0 lo revisa antes de entregar.
@@ -756,7 +756,7 @@ Revisión: implementación alternativa <ok | atadas: …> · límites y errores 
 2. Nadie escribe fuera de sus carpetas. Si necesita un cambio en otra, se lo pide al dueño.
 3. Cuando Front end y Back end trabajaron en ramas propias, Yunque las une a la rama de la tarea, Back end primero. No hay más ramas que unir: el plan, las pruebas, los reportes y la documentación se escriben en la copia de la tarea.
 4. **La tarea se entrega en un solo commit sobre la rama base.** En una tarea chica nadie hace commit hasta el visto bueno de QA: QA prueba sobre los cambios sin commit y después quien construyó hace el commit único, con su código, las pruebas y `.xi-0/`. En una mediana o grande cada equipo hace un commit por unidad terminada, y al entregar xi-0 deja la rama en un commit (`git reset --soft` al punto donde la rama salió de la base, y un commit nuevo).
-5. Se publica al final, después del commit único. Publica la rama y abre el PR Yunque; si Yunque no participa en la tarea, DevOps. Un solo PR por tarea, y nadie más abre PRs.
+5. Se publica al final, después del commit único. Publica la rama y abre el PR Yunque; si Yunque no participa en la tarea, DevOps. Un solo PR por tarea, y nadie más abre PRs. Cuando no hay ninguna tarea abierta (por ejemplo, al mantener el repo desde la sesión principal), xi-0 puede subir una rama propia y abrir su PR; con una tarea abierta no puede.
 6. QA y Seguridad dan su visto bueno antes de publicar y Docs mete su parte; después DevOps es el único que une a main.
 7. Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.
 8. Los agentes ligeros nunca abren PRs ni hacen merge.
@@ -839,7 +839,7 @@ En una tarea chica, el commit wip de Guardado es el único que se permite antes 
 | Herramientas por equipo | Lista `tools` de cada archivo de agente. |
 | Escribir solo en carpetas propias | Hook `PreToolUse` sobre `Write` y `Edit` que compara la ruta con las carpetas del agente. |
 | Comandos y dependencias permitidas | Hook `PreToolUse` sobre `Bash` que valida contra `permisos.json` (lo escribe Herramientas). |
-| Solo Yunque abre el PR, solo DevOps une a main | Hook `PreToolUse` sobre `Bash` que bloquea `gh pr create` y `gh pr merge` para los demás. |
+| Solo Yunque abre el PR, solo DevOps une a main | Hook `PreToolUse` sobre `Bash` que bloquea `gh pr create` y `gh pr merge` para los demás. Sin tarea abierta deja `gh pr create` a la sesión principal. |
 | Máximo de agentes por equipo | Hook `PreToolUse` sobre `Agent` que cuenta los subagentes activos del líder. |
 | QA no completa sin pruebas; nada se cierra con fallas abiertas | Hook `TaskCompleted` (salir con código 2 frena la acción). |
 | Mensajes solo por las líneas del mapa y formatos con largo máximo | Hook `PreToolUse` sobre `SendMessage`. |

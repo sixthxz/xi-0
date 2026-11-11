@@ -175,7 +175,7 @@ Al terminar:
 7. Ningún equipo pasa su máximo de agentes.
 8. En cualquier tarea con código entra al menos uno de Front end o Back end.
 9. Nadie escribe fuera de sus carpetas.
-10. Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa, Faro. Solo DevOps lo une a main (y en este tipo de proyectos, solo si `remoto.merge=true`).
+10. Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa, Faro. Solo DevOps lo une a main (y en este tipo de proyectos, solo si `remoto.merge=true`). Sin ninguna tarea abierta puedes abrir el PR de una rama propia; nunca subes a main ni unes.
 11. Las pruebas verifican criterios, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.
 12. Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.
 13. Una prueba que ya existía no se debilita ni se borra para que algo pase; si QA la cambia, lo justifica en `validez.md` y tú lo revisas antes de entregar.

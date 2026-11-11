@@ -86,6 +86,13 @@ const CASOS = [
   ['chica: Yunque ya no sube', 'chica', 'yunque', bash('git push fork tarea/t1'), /Solo Faro sube/],
   ['chica: un constructor no sube', 'chica', 'prisma', bash('git push fork tarea/t1'), /Solo Faro sube/],
   ['chica: xi-0 no abre el PR', 'chica', null, bash('gh pr create -R yo/fork --fill'), /Solo Faro abre/],
+  // --- Sin tarea abierta: la sesión principal abre el PR de su propia rama ---
+  ['sin tarea: xi-0 abre el PR', 'ninguna', null, bash('gh pr create -R yo/fork --fill'), PASA],
+  ['sin tarea: xi-0, PR sin -R', 'ninguna', null, bash('gh pr create --fill'), /debe llevar -R yo\/fork/],
+  ['sin tarea: un equipo no abre el PR', 'ninguna', 'faro', bash('gh pr create -R yo/fork --fill'), /Solo Yunque abre/],
+  ['sin tarea: xi-0 no sube a main', 'ninguna', null, bash('git push fork main'), /Nunca push a main/],
+  ['sin tarea: xi-0 no une el PR', 'ninguna', null, bash('gh pr merge 1 -R yo/fork'), /merge está desactivado|Solo DevOps/],
+  ['reglas 2: xi-0 no abre el PR', 'reglas2', null, bash('gh pr create -R yo/fork --fill'), /Solo Yunque abre/],
   ['mediana sin Yunque: Faro sube', 'medianaMeridiano', 'faro', bash('git push fork tarea/t1'), PASA],
   // --- Remotos: el push se reconoce esté escrito como esté ---
   ['push: git -C no lo esconde', 'reglas2', 'yunque', bash('git -C . push fork main'), /Nunca push a main/],

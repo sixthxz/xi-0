@@ -4,18 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mapa de agentes de xi-0</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;1,500&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#e9eff1;--sea:#dde6ea;--grid:#cbd7dc;--ink:#15232c;--mut:#55656e;--card:#fbfdfd;--line:#b8c6cc;--on:#ffffff;
---c0:#a8731a;--c0t:rgba(168,115,26,.10);--c1:#2a62ab;--c1t:rgba(42,98,171,.09);--c2:#1f7d5a;--c2t:rgba(31,125,90,.10);
+--c0:#a8731a;--c0k:#8a5e12;--c0t:rgba(168,115,26,.10);--c1:#2a62ab;--c1t:rgba(42,98,171,.09);--c2:#1f7d5a;--c2t:rgba(31,125,90,.10);
 --info:#b0177a;--fail:#cf3f26}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1c27;--sea:#132433;--grid:#1d3243;--ink:#e5edf0;--mut:#93a6b1;--card:#182b3b;--line:#2f475a;--on:#0f1c27;
---c0:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}}
+--c0:#e4b558;--c0k:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}}
 :root[data-theme="dark"]{--bg:#0f1c27;--sea:#132433;--grid:#1d3243;--ink:#e5edf0;--mut:#93a6b1;--card:#182b3b;--line:#2f475a;--on:#0f1c27;
---c0:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}
+--c0:#e4b558;--c0k:#e4b558;--c0t:rgba(228,181,88,.10);--c1:#78a9ee;--c1t:rgba(120,169,238,.10);--c2:#5fcb9f;--c2t:rgba(95,203,159,.10);--info:#f272c2;--fail:#ff8c63}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Alegreya Sans",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -83,7 +84,7 @@ dt{color:var(--mut)}dd{margin:0}
 
 /* SVG */
 #map text{font-family:"Alegreya Sans",ui-sans-serif,sans-serif;pointer-events:none}
-.grid line{stroke:var(--grid);stroke-width:1}
+#gp path{fill:none;stroke:var(--grid);stroke-width:1}
 .t-fill{fill:var(--tint);stroke:var(--col);stroke-opacity:.5;stroke-width:1.5}
 .t-line{fill:none;stroke:var(--col);stroke-opacity:.3;stroke-width:1.5;stroke-dasharray:1 8;stroke-linecap:round}
 .tl{font:italic 500 30px Alegreya,Georgia,serif;fill:var(--col);paint-order:stroke;stroke:var(--sea);stroke-width:8px;stroke-linejoin:round}
@@ -94,8 +95,6 @@ dt{color:var(--mut)}dd{margin:0}
 .edge.r{stroke:var(--fail);stroke-width:2;stroke-dasharray:7 5;opacity:.45}
 .focus .edge{opacity:.07}
 .focus .edge.hl{opacity:1;stroke-width:3.2}
-.pt{transition:opacity .35s}.pt.i{fill:var(--info)}.pt.r{fill:var(--fail)}.pt.d{fill:var(--col)}
-.focus .pt{opacity:0}.focus .pt.hl{opacity:1}
 .node{cursor:pointer;transition:opacity .35s}
 .node:focus{outline:none}
 .focus .node{opacity:.25}.focus .node.hl{opacity:1}
@@ -120,17 +119,15 @@ dt{color:var(--mut)}dd{margin:0}
 .core{fill:var(--ink);stroke:var(--sea);stroke-width:4}
 .root.sel .core{stroke:var(--info)}
 #map .rt{font:700 22px Alegreya,Georgia,serif;fill:var(--sea)}
-.ring{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-dasharray:1.5 9;stroke-linecap:round;opacity:.7}
-.pulse{fill:none;stroke:var(--ink);stroke-width:1.5;opacity:0}
 .el{font-size:15px;font-weight:700;paint-order:stroke;stroke:var(--sea);stroke-width:6px;stroke-linejoin:round;opacity:0;transition:opacity .35s}
 .el.i{fill:var(--info)}.el.r{fill:var(--fail)}
 .el.hl{opacity:1}
 .node.off .cd{fill:none;stroke-dasharray:4 6}.node.off .tn,.node.off .ts,.node.off .mx{opacity:.45}.node.off .bar,.node.off .m{opacity:.3}
 .phase-n.off .disc{fill:var(--sea);stroke:var(--col);stroke-width:2;stroke-dasharray:4 6}.phase-n.off .pn{fill:var(--col);opacity:.6}.phase-n.off .m{fill:var(--col);opacity:.3}
-.edge.off{opacity:.08}.pt.off{opacity:0}.focus .edge.off.hl{opacity:.35}
-.edge.g{stroke:var(--ink);stroke-width:2;opacity:.55}.pt.g{fill:var(--ink)}.el.g{fill:var(--ink)}
+.edge.off{opacity:.08}.focus .edge.off.hl{opacity:.35}
+.edge.g{stroke:var(--ink);stroke-width:2;opacity:.55}.el.g{fill:var(--ink)}
 #map:not(.git) .g,#map:not(.git) .tg{display:none}
-#map.git .edge.d,#map.git .edge.i,#map.git .edge.r,#map.git .pt.d,#map.git .pt.i,#map.git .pt.r,#map.git .el.i,#map.git .el.r,#map.git .ts{display:none}
+#map.git .edge.d,#map.git .edge.i,#map.git .edge.r,#map.git .el.i,#map.git .el.r,#map.git .ts{display:none}
 #map.git .el.g.key{opacity:1}#map.git.focus .el.g.key:not(.hl){opacity:0}
 .tg{font-size:15px;fill:var(--col);font-weight:500}
 .gnode rect{fill:var(--card);stroke:var(--ink);stroke-width:2.5}#map .gn{font:700 18px Alegreya,Georgia,serif;fill:var(--ink)}.gs{font-size:14px;fill:var(--mut)}
@@ -199,50 +196,77 @@ details.lvl{margin:-4px 0 14px}details.lvl summary{cursor:pointer;color:var(--mu
 .roles td.on{font-weight:700;color:var(--col)}
 .ag:focus{outline:none}.ag:focus-visible .row{stroke:var(--ink);stroke-width:2}
 
-@media (prefers-reduced-motion:no-preference){
-.node,.ap{transform-box:fill-box;transform-origin:center}
-.ring,.pulse{transform-box:fill-box;transform-origin:center}
-.ring{animation:spin 80s linear infinite}
-.pulse{animation:pulse 5s ease-out infinite}.pulse.b{animation-delay:2.5s}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%{opacity:.45;transform:scale(1)}100%{opacity:0;transform:scale(2.1)}}
-@keyframes fadein{from{opacity:0}}
-@keyframes pop{from{opacity:0;transform:scale(.35)}}
-.boot .terr,.boot .tl{animation:fadein 1s both;animation-delay:var(--d)}
-.boot .node{animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:var(--d)}
-.boot .edge,.boot .pt{animation:fadein .9s both;animation-delay:var(--d)}
-.ap{transform-origin:50% 0;animation:drop .45s cubic-bezier(.2,.9,.3,1.1) both}
-.ap.up{transform-origin:50% 100%}
-@keyframes drop{from{opacity:0;transform:scaleY(.25)}}
-.ag{animation:fadein .35s both;animation-delay:calc(var(--j)*70ms + 160ms)}
-.ag .dot.on{animation:blink 1.5s ease-in-out infinite;animation-delay:calc(var(--j)*-.4s)}
-.ag .dot{transform-box:fill-box;transform-origin:center}
-.ag .dot.nw{animation:pop .45s cubic-bezier(.2,.9,.3,1.5) both,blink 1.5s ease-in-out .45s infinite}
-.ap.still,.ap.still .ag{animation:none}
-@keyframes blink{50%{opacity:.2}}
-.chip.on.bump{animation:bump .4s}
-@keyframes bump{40%{transform:translateY(-4px)}}
-}
+/* Flujo */
+.cx{--col:var(--ink);--tint:var(--sea)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px}
+.fhead>span{font-size:15px;color:var(--mut)}
+.plv p{margin:0 0 10px;max-width:70ch}
+.fq{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.fq>li{display:grid;grid-template-columns:1fr;gap:4px;font-size:15px}
+.fq .chips{margin:0}
+@media (min-width:760px){.fq>li{grid-template-columns:170px 230px 1fr;align-items:center}}
+.fq b{color:var(--col)}.fq>li.c0>b{color:var(--c0k)}.c0 .fn,.c0 .fcur{background:var(--c0k)}
+.lchip{justify-self:start;font-size:14px;border-radius:999px;padding:2px 10px;border:1.5px solid var(--col);background:var(--tint);color:var(--ink)}
+.lchip.sinlider{border-style:dashed;background:transparent;color:var(--mut)}
+.fnav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 10px}
+.fnav span{flex:1;min-width:110px;font-weight:700}
+.fnav button{font:inherit;font-size:15px;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:7px 14px;background:var(--card);color:var(--ink)}
+.fnav button:disabled{cursor:default;opacity:.45}
+.flujo{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.fpaso{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:14px;padding:10px 14px 12px;transition:background-color .15s,border-color .15s}
+.fpaso.cur{border-color:var(--col);background:linear-gradient(var(--tint),var(--tint)) var(--card)}
+.fstep{display:flex;align-items:flex-start;gap:10px;width:100%;font:inherit;text-align:left;cursor:pointer;border:0;background:transparent;color:var(--ink);padding:2px 0;border-radius:8px}
+.fn{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--col);color:var(--on);font-weight:700;font-size:15px}
+.cx .fn{background:var(--ink);color:var(--bg)}
+.fstep .ft{flex:1;min-width:0}
+.fstep b{display:block;font-size:17px;line-height:1.3}
+.fstep small{display:block;font-size:14px;color:var(--mut)}
+.fcur{flex:none;font-size:13px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--col);color:var(--on)}
+.cx .fcur{color:var(--bg)}
+.fpaso:not(.cur) .fcur{display:none}
+.fcuerpo{padding-left:40px}
+.fcuerpo>p{margin:6px 0 8px;max-width:70ch;font-size:15px}
+.fpie{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 16px}
+.fcm{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--mut);white-space:nowrap}
+.fcm i{font-style:normal;font-size:16px;color:var(--ink)}
+.fcm.unico{color:var(--ink);font-weight:700}
+.fnota{font-size:14px;color:var(--mut);border-left:2px dashed var(--line);padding-left:10px;margin:8px 0 0}
+.relevo{margin:12px 0 0;border-left:2px dashed var(--line);padding:2px 0 2px 14px}
+.relevo h4{font:500 18px/1.25 Alegreya,Georgia,serif;margin:0 0 4px}
+.relevo>p{margin:0 0 8px;font-size:15px;color:var(--mut);max-width:70ch}
+.rel{list-style:none;margin:0 0 8px;padding:0;display:grid;grid-template-columns:1fr;gap:8px;counter-reset:r}
+@media (min-width:760px){.rel{grid-template-columns:repeat(4,1fr)}}
+.rel li{counter-increment:r;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.45}
+.rel li::before{content:counter(r);display:inline-grid;place-items:center;width:22px;height:22px;margin-right:6px;border-radius:50%;border:1.5px solid var(--ink);font-weight:700;font-size:13px}
+.rel code,.fcuerpo code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+.fley{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 30px;padding:0;list-style:none}
+@media (max-width:760px){.fcuerpo{padding-left:0}}
+@media (max-width:440px){.tab{padding:6px 11px}}
+/* Sin animaciones en reposo: solo transiciones que responden a una acción y terminan solas */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>Mapa de agentes de xi-0</h1>
 <p class="lead">Toca cualquier nodo para ver con quién se comunica y qué agentes lanza.</p>
-<div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="map" aria-selected="true">Mapa</button><button class="tab" role="tab" data-tab="exp" aria-selected="false">Explicación</button><button class="tab" role="tab" data-tab="lim" aria-selected="false">Límite</button></div>
+<div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="map" aria-selected="true">Mapa</button><button class="tab" role="tab" data-tab="flu" aria-selected="false">Flujo</button><button class="tab" role="tab" data-tab="exp" aria-selected="false">Explicación</button><button class="tab" role="tab" data-tab="lim" aria-selected="false">Límite</button></div>
 </div>
 
 <div id="tab-map" role="tabpanel">
 <div class="stage">
-<svg id="map" class="boot" role="group" aria-label="Mapa de agentes de xi-0">
+<svg id="map" role="group" aria-label="Mapa de agentes de xi-0">
 <defs>
+<pattern id="gp" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M80 0H0V80"/></pattern>
+<marker id="md" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--mut)"/></marker>
 <marker id="ma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--info)"/></marker>
 <marker id="mg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--ink)"/></marker>
 <marker id="mr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8.5 5L1 9z" style="fill:var(--fail)"/></marker>
 </defs>
-<g id="cam"><g class="grid" id="grid"></g><g id="terrs"></g><g id="edges"></g><g id="parts"></g><g id="nodes"></g><g id="labels"></g><g id="over"></g></g>
+<g id="cam"><g class="grid" id="grid"></g><g id="terrs"></g><g id="edges"></g><g id="nodes"></g><g id="labels"></g><g id="over"></g></g>
 </svg>
-<div class="size" role="group" aria-label="Tamaño de la tarea"><span>Tarea</span><button class="szb" data-sz="0" aria-pressed="false">Corrección</button><button class="szb" data-sz="1" aria-pressed="true">Función</button><button class="szb" data-sz="2" aria-pressed="false">Proyecto</button></div>
+<div class="size" role="group" aria-label="Tipo de tarea"><span>Tipo</span><button class="szb" data-sz="0" aria-pressed="false">Corrección</button><button class="szb" data-sz="1" aria-pressed="true">Función</button><button class="szb" data-sz="2" aria-pressed="false">Proyecto</button></div>
 <div class="hint" id="hint">Arrastra para moverte, pellizca para acercar.</div>
 <div class="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zfit" aria-label="Ver todo el mapa"><svg viewBox="0 0 20 20"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg></button></div>
 <div class="chip" id="chip" aria-hidden="true"><b id="chipt"></b><button id="chipb">Ver detalle</button></div>
@@ -255,8 +279,22 @@ details.lvl{margin:-4px 0 14px}details.lvl summary{cursor:pointer;color:var(--mu
 <button class="flt" data-l="r" aria-pressed="true"><i style="color:var(--fail);border-top-style:dashed"></i><span>Fallas devueltas</span></button>
 <label class="tsel"><span>Quién puede</span><select id="tool"><option value="">elige una herramienta</option></select></label>
 </div>
-<p class="note" id="gnote" hidden>Vista de ramas: cada tarjeta muestra las carpetas que son suyas. Todo termina en la rama de la tarea, que es un solo PR a main.</p>
-<p class="note">Borde sólido: no negociable. Borde punteado: xi-0 decide si entra. Número: paso de la ruta (hueco si es opcional). Barras: esfuerzo (1 low, 2 medium, 3 high). Número en cada tarjeta: máximo de agentes ligeros que puede lanzar su líder. Arriba eliges el tipo de tarea; lo que se apaga no entra.</p>
+<p class="note" id="gnote" hidden>Vista de ramas: cada tarjeta muestra las carpetas que son suyas. Todos escriben en la copia de la tarea. La rama termina en un solo commit y un solo PR a main; si Yunque no participa, publica DevOps.</p>
+<p class="note">Borde sólido: no negociable. Borde punteado: xi-0 decide si entra. Número: paso de la ruta (hueco si es opcional). Barras: esfuerzo (1 low, 2 medium, 3 high). Número en cada tarjeta: máximo de agentes ligeros que puede lanzar su líder. Arriba eliges el tipo de tarea; lo que se apaga no entra. El tamaño (chica, mediana, grande) se ve en la pestaña Flujo.</p>
+</div>
+
+<div id="tab-flu" role="tabpanel" hidden>
+<div class="wrap">
+<p class="lead">Cómo avanza una tarea, paso a paso. El tipo dice qué equipos pueden entrar; el tamaño, cuánta coordinación se paga.</p>
+<div class="fhead"><span id="fzl">Tamaño</span><div class="mode" role="group" aria-labelledby="fzl"><button class="mdb" data-fz="0" aria-pressed="false">Chica</button><button class="mdb" data-fz="1" aria-pressed="true">Mediana</button><button class="mdb" data-fz="2" aria-pressed="false">Grande</button></div></div>
+<div class="plv"><h3>Cuándo</h3><p id="fcuando"></p><p class="sub" id="fej"></p></div>
+<div class="plv"><h3>Quién entra</h3><ul class="fq" id="fquien"></ul><p id="fqnota" class="sub"></p></div>
+<div class="fnav"><span id="fpos" aria-live="polite"></span><button id="fprev">‹ Anterior</button><button id="fnext">Siguiente ›</button></div>
+<p class="sr" id="fanun" aria-live="polite"></p>
+<ol class="flujo" id="flujo" aria-label="Pasos de la tarea"></ol>
+<p class="note" style="padding:0 0 6px">Los equipos unidos con + trabajan en paralelo, en el mismo paso. Publicar va siempre después del commit único y del visto bueno de QA, y del de Seguridad cuando entra.</p>
+<ul class="fley note" aria-label="Leyenda de commits"><li><b aria-hidden="true">○</b> sin commit</li><li><b aria-hidden="true">●</b> commit por unidad terminada</li><li><b aria-hidden="true">◆</b> commit único</li><li><b aria-hidden="true">↑</b> publica</li></ul>
+</div>
 </div>
 
 <div id="tab-exp" role="tabpanel" hidden>
@@ -267,7 +305,7 @@ details.lvl{margin:-4px 0 14px}details.lvl summary{cursor:pointer;color:var(--mu
 <li><b>Nivel 2</b><span>Líder de equipo: lanza, coordina y cierra a sus agentes ligeros.</span></li>
 <li><b>Nivel 3</b><span>Agentes ligeros: nacen para una tarea acotada, con esfuerzo bajo, y terminan al entregarla.</span></li>
 </ul>
-<h2 class="sec">Cómo se arma en Claude Code</h2><p class="lead">Con agent teams. Las secciones se quedan como agentes propios, para que cada una tenga su contexto y xi-0 no se confunda.</p><div class="plv"><ul class="nn" id="imp" style="padding-bottom:12px"></ul></div><h2 class="sec">Políticas por nivel</h2><p class="lead">Regla general: la información solo viaja por las líneas del mapa. Si dos equipos no tienen línea, el mensaje pasa por su líder de fase.</p><div id="pols"></div><h2 class="sec">No negociables</h2><p class="lead">Reglas que nadie puede saltarse, ni siquiera xi-0.</p><div class="plv"><ol class="nn" id="nn"></ol></div><h2 class="sec">Negociables</h2><p class="lead">Lo que xi-0 decide en cada tarea.</p><div class="plv"><ul class="nn" id="ng"></ul></div><h2 class="sec">Rutas obligatorias</h2><p class="lead">El orden por el que siempre pasa cada tipo de tarea. Lo marcado como opcional entra solo si se cumple su condición.</p><div id="rutas"></div><h2 class="sec">Ramas y PRs</h2><p class="lead">Para que no haya conflictos ni un PR por cada agente.</p><div class="plv"><ol class="nn" id="rg"></ol></div><div class="plv"><h3>Archivos compartidos con un solo dueño</h3><dl id="sh" style="padding-bottom:12px"></dl></div><h2 class="sec">Herramientas por equipo</h2><p class="lead">El mod solo deja usar a cada equipo lo marcado. Si un equipo necesita otra, la pide a su líder de fase y Sextante la evalúa; Seguridad puede vetarla.</p><div class="mat" id="tmat"></div><h2 class="sec">Fases y equipos</h2><div id="phases"></div>
+<h2 class="sec">Cómo se arma en Claude Code</h2><p class="lead">Con agent teams. Las secciones se quedan como agentes propios, para que cada una tenga su contexto y xi-0 no se confunda.</p><div class="plv"><ul class="nn" id="imp" style="padding-bottom:12px"></ul></div><h2 class="sec">Políticas por nivel</h2><p class="lead">Regla general: la información solo viaja por las líneas del mapa. Si dos equipos no tienen línea, el mensaje pasa por su líder de fase. Si la fase no tiene líder en la tarea, sus equipos reciben de xi-0 y le entregan una ficha de hasta 250 palabras.</p><div id="pols"></div><h2 class="sec">No negociables</h2><p class="lead">Reglas que nadie puede saltarse, ni siquiera xi-0.</p><div class="plv"><ol class="nn" id="nn"></ol></div><h2 class="sec">Negociables</h2><p class="lead">Lo que xi-0 decide en cada tarea.</p><div class="plv"><ul class="nn" id="ng"></ul></div><h2 class="sec">Rutas obligatorias</h2><p class="lead">El orden por el que siempre pasa cada tipo de tarea. Lo marcado como opcional entra solo si se cumple su condición.</p><div id="rutas"></div><h2 class="sec">Ramas y PRs</h2><p class="lead">Para que no haya conflictos ni un PR por cada agente.</p><div class="plv"><ol class="nn" id="rg"></ol></div><div class="plv"><h3>Archivos compartidos con un solo dueño</h3><dl id="sh" style="padding-bottom:12px"></dl></div><h2 class="sec">Herramientas por equipo</h2><p class="lead">El mod solo deja usar a cada equipo lo marcado. Si un equipo necesita otra, la pide a su líder de fase y Sextante la evalúa; Seguridad puede vetarla.</p><div class="mat" id="tmat"></div><h2 class="sec">Fases y equipos</h2><div id="phases"></div>
 </div>
 </div>
 
@@ -324,17 +362,17 @@ const ST=['n n n x x x f x f x n','x f x x x x f f f f x','f f f f f f f f f f f
 const STEP=[[0,0,0,1,2,2,3,4,5,4,0],[1,2,3,3,4,4,5,6,7,6,3],[1,2,3,3,4,4,5,6,7,6,3]];
 const COND={0:'si hay que investigar algo nuevo',2:'si hay pantallas nuevas',3:'si cambia contratos o módulos',4:'si toca la interfaz',5:'si toca lógica o datos',7:'si toca datos, dependencias o permisos',9:'si cambia cómo se usa',10:'si hace falta una herramienta nueva'};
 all.forEach((t,i)=>{t.tt=TT[i];t.cond=COND[i]||''});
-const NN=['Solo xi-0 habla con el usuario.','Todo cambio de código pasa por QA antes de entregarse, incluidas las correcciones pequeñas.','Nada se publica sin el visto bueno de QA. Si la tarea toca datos, dependencias o permisos, también hace falta el de Seguridad.','Ningún contrato de API cambia sin Arquitectura.','Ninguna herramienta nueva entra sin Sextante, y Seguridad siempre puede vetarla.','Las fallas regresan al equipo que las causó. Si siguen después de 3 vueltas, se escala a xi-0.','Ningún equipo pasa su máximo de agentes.','En cualquier tarea con código entra al menos uno de Front end o Back end.','Nadie escribe fuera de sus carpetas.','Solo Yunque abre el PR de la tarea y solo DevOps lo une a main, y solo si el repo lo permite.','Las pruebas verifican criterios, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.','Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.','Una prueba que ya existía no se debilita ni se borra para que algo pase; si QA la cambia, lo justifica y xi-0 lo revisa antes de entregar.'];
-const NG=['Qué equipos opcionales entran en cada tarea, según sus condiciones','Cuántos agentes ligeros lanza cada líder, dentro de su máximo','El esfuerzo de cada líder; puede bajarlo si la tarea es chica','Qué pasos van en paralelo y cuáles en orden','Si se investiga antes de empezar'];
+const NN=['Solo xi-0 habla con el usuario.','Todo cambio de código pasa por QA antes de entregarse, incluidas las correcciones pequeñas.','Nada se publica sin el visto bueno de QA. Si la tarea toca datos, dependencias o permisos, también hace falta el de Seguridad.','Ningún contrato de API cambia sin Arquitectura.','Ninguna herramienta nueva entra sin Sextante, y Seguridad siempre puede vetarla.','Las fallas regresan al equipo que las causó. Si siguen después de 3 vueltas, se escala a xi-0.','Ningún equipo pasa su máximo de agentes.','En cualquier tarea con código entra al menos uno de Front end o Back end.','Nadie escribe fuera de sus carpetas.','Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa en la tarea, lo hace DevOps. Solo DevOps lo une a main.','Las pruebas verifican criterios, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.','Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.','Una prueba que ya existía no se debilita ni se borra para que algo pase; si QA la cambia, lo justifica y xi-0 lo revisa antes de entregar.','La tarea se entrega en un solo commit sobre la rama base. En una tarea chica nadie hace commit antes del visto bueno de QA.','Nadie espera una corrida larga con su contexto abierto: deja un relevo escrito y se cierra.'];
+const NG=['Qué equipos opcionales entran en cada tarea, según sus condiciones','Cuántos agentes ligeros lanza cada líder, dentro de su máximo','El esfuerzo de cada líder; puede bajarlo si la tarea es chica','El tamaño de la tarea y, con él, qué líderes de fase participan','Qué pasos van en paralelo y cuáles en orden','Si se investiga antes de empezar'];
 /* Ramas y PRs */
 const OWN=['/plan/investigacion','/plan/requisitos','/plan/diseno','/plan/arq + /contratos','/web','/api + /db','/tests','/seguridad','/infra + /.github','/docs','/plan/herramientas'];
-const GIT=[];all.forEach(t=>GIT.push(['t'+t.i,'p'+t.pi,'une su rama']));
-GIT.push(['p0','b','une el plan','',0],['p1','b','une el código y abre el PR','',0,0,1],['p2','b','une pruebas y docs','',-130],['t6','b','aprueba el PR','',0,0,1],['t7','b','aprueba el PR','',[770,880],0,1],['t8','b','une el PR a main','',0,0,1]);
-const PGIT=['Une las ramas de sus equipos a la rama de la tarea, primero que nadie.','Une las ramas de Front end y Back end (Back end primero) y abre el único PR de la tarea.','Une las pruebas, los reportes y la documentación a la rama de la tarea antes de que DevOps la una a main.'];
-const RG=['Cada equipo trabaja en su propio worktree y su propia rama. Sus agentes ligeros hacen commits ahí, sobre archivos distintos; si dos necesitan el mismo archivo, el líder los pone en fila.','Nadie escribe fuera de sus carpetas. Si necesita un cambio en otra, se lo pide al dueño.','Los líderes de fase unen las ramas de sus equipos a la rama de la tarea en el orden que fija Yunque: plan, Back end, Front end, y al final pruebas y docs.','Yunque abre un solo PR por tarea. Nadie más abre PRs.','QA y Seguridad aprueban el PR y Docs mete su parte; después DevOps es el único que lo une a main.','Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.','Los agentes ligeros nunca abren PRs ni hacen merge.'];
+/* Solo Front end y Back end tienen rama propia, y solo si coinciden en el paso; el resto escribe en la copia de la tarea */
+const GIT=[['t4','p1','su rama, si coinciden en el paso'],['t5','p1','su rama, si coinciden en el paso'],['p0','b','commit de los documentos','',0],['p1','b','une Front y Back, publica y abre el PR','',0,0,1],['t6','b','visto bueno','',0,0,1],['t7','b','visto bueno','',[770,880],0,1],['t9','b','mete su parte','',[800,1000]],['t8','b','une el PR a main','',0,0,1]];
+const PGIT=['Nada que unir: hace el commit de los documentos de los equipos que no hacen commit propio.','Une las ramas de Front end y Back end cuando las hay (Back end primero) y, al final, publica la rama y abre el único PR de la tarea.','Nada que unir: sus equipos trabajan en la copia de la tarea.'];
+const RG=['La tarea vive en una copia del repo (worktree) con la rama tarea/&lt;id&gt;, y los equipos trabajan ahí, cada uno en sus carpetas. Solo Front end y Back end tienen rama y worktree propios, y solo cuando coinciden en el mismo paso. Los agentes ligeros hacen commits donde trabaja su líder, sobre archivos distintos; si dos necesitan el mismo archivo, el líder los pone en fila.','Nadie escribe fuera de sus carpetas. Si necesita un cambio en otra, se lo pide al dueño.','Cuando Front end y Back end trabajaron en ramas propias, Yunque las une a la rama de la tarea, Back end primero. No hay más ramas que unir.','La tarea se entrega en un solo commit sobre la rama base. En una chica nadie hace commit hasta el visto bueno de QA y después quien construyó hace el único commit; en una mediana o grande hay un commit por unidad terminada y al entregar xi-0 deja la rama en un commit.','Se publica al final, después del commit único. Publica la rama y abre el PR Yunque; si Yunque no participa, DevOps. Un solo PR por tarea, y nadie más abre PRs.','QA y Seguridad dan su visto bueno antes de publicar y Docs mete su parte; después DevOps es el único que une a main.','Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.','Los agentes ligeros nunca abren PRs ni hacen merge.'];
 const SH=[['Contratos de API y tipos compartidos','Arquitectura'],['Dependencias de /web y de /api','Front end y Back end, cada uno las suyas, solo con herramientas aprobadas'],['Configuración raíz del repo y CI','DevOps'],['Migraciones de base de datos','Back end, un agente a la vez'],['Lista de permisos de herramientas','Herramientas (Sextante)'],['estado.md, el punto de guardado','xi-0']];
 let TOOL='';const act=t=>ST[SZ][t.i]!='n';
-/* Cuántos agentes de cada rol lanza el líder según el tamaño de la tarea: [pequeña, mediana, grande] */
+/* Cuántos agentes de cada rol lanza el líder según el tipo de tarea: [corrección, función nueva, proyecto completo] */
 const Q=[[[1,2,3],[1,1,2],[0,1,2],[1,1,1]],[[1,1,2],[0,1,1]],[[1,1,2],[1,2,3]],[[1,1,2],[0,1,2]],[[1,2,3],[0,1,1],[1,1,2]],[[1,2,3],[1,1,1],[1,1,2]],[[1,2,3],[0,1,2],[0,1,1]],[[1,1,1],[1,1,2],[0,1,1]],[[0,1,1],[1,1,1],[0,1,1]],[[1,1,2],[0,1,1]],[[0,1,1],[1,1,2],[0,1,2],[1,1,1]]];
 const RP=['Divide por producto o fuente: un comparador por cada producto a comparar, buscadores y lectores trabajando en paralelo, y un solo sintetizador al final que junta todo.',
 'Un redactor por área del producto. El priorizador entra cuando hay más requisitos de los que caben.',
@@ -350,12 +388,12 @@ const RP=['Divide por producto o fuente: un comparador por cada producto a compa
 all.forEach((t,i)=>{t.q=Q[i];t.rp=RP[i];t.max=Q[i].reduce((n,q)=>n+q[2],0)});
 /* Políticas: qué puede y qué no puede hacer cada nivel */
 const L={
-r:{n:'xi-0',si:['Hablar con el usuario y aclarar lo que pide','Dividir la tarea en fases y decidir cuáles se activan','Lanzar a los líderes de fase y, cuando ellos lo pidan, a sus líderes de equipo','Fijar el esfuerzo de cada líder de fase','Pedir que una fase repita su trabajo','Integrar los resultados y entregar al usuario'],
-no:['Hacer el trabajo de un equipo directamente','Dar órdenes a un equipo saltándose a su líder de fase','Entregar al usuario sin el visto bueno de Calidad','Cambiar lo que pidió el usuario sin consultarle']},
+r:{n:'xi-0',si:['Hablar con el usuario y aclarar lo que pide','Dividir la tarea en fases y decidir cuáles se activan','Lanzar a los líderes de fase y, cuando ellos lo pidan, a sus líderes de equipo','Encargar directo a un equipo cuando su fase no tiene líder en la tarea','Fijar el esfuerzo de cada líder de fase','Pedir que una fase repita su trabajo','Integrar los resultados y entregar al usuario'],
+no:['Hacer el trabajo de un equipo directamente','Dar órdenes a un equipo saltándose a su líder de fase, cuando la fase tiene líder en la tarea','Entregar al usuario sin el visto bueno de Calidad','Cambiar lo que pidió el usuario sin consultarle']},
 p:{n:'Líder de fase',si:['Repartir su parte entre los equipos de su fase','Pedir a xi-0 que lance o cierre a los líderes de equipo de su fase','Revisar y juntar lo que entregan sus equipos antes de pasarlo a la siguiente fase','Decidir qué va en orden y qué va en paralelo','Fijar el esfuerzo de sus líderes de equipo, sin pasar el suyo','Devolver trabajo a un equipo de su fase','Escalar bloqueos a xi-0'],
 no:['Hablar con el usuario','Dar órdenes a equipos de otra fase','Cambiar el alcance acordado sin pasar por xi-0','Lanzar líderes de equipo o agentes ligeros por su cuenta']},
 t:{n:'Líder de equipo',si:['Lanzar agentes ligeros hasta su máximo','Decidir cuántos lanza y cómo reparte la tarea','Pasar entregables a los equipos con los que tiene línea en el mapa','Cerrar un agente que no avanza y lanzar otro'],
-no:['Pasar su máximo de agentes','Lanzar otros líderes de equipo','Hablar con un equipo sin línea en el mapa; eso va por su líder de fase','Cambiar entregables, requisitos o contratos de otro equipo']},
+no:['Pasar su máximo de agentes','Lanzar otros líderes de equipo','Hablar con un equipo sin línea en el mapa; eso va por su líder de fase, o por xi-0 si la fase no tiene líder en la tarea','Cambiar entregables, requisitos o contratos de otro equipo']},
 w:{n:'Agente ligero',si:['Trabajar solo la tarea acotada que le dieron','Leer lo que su líder le pasa','Entregar su resultado a su líder'],
 no:['Lanzar otros agentes','Hablar con otros equipos o con el usuario','Seguir activo después de entregar','Trabajar con un esfuerzo distinto de low','Tocar cosas fuera de su tarea']}};
 const TP=[
@@ -367,11 +405,11 @@ const TP=[
 {si:['Construir endpoints, datos y lógica','Cambiar la base de datos, con un solo agente a la vez'],no:['Tocar la interfaz','Romper el contrato de API acordado','Publicar']},
 {si:['Ejecutar todas las pruebas','Devolver fallas a Front end y Back end','Frenar la entrega si quedan fallas'],no:['Corregir el código él mismo','Dar visto bueno sin haber probado']},
 {si:['Auditar código y dependencias','Devolver vulnerabilidades a Back end','Frenar la publicación si hay un riesgo alto','Vetar una herramienta aprobada por Sextante si encuentra riesgo'],no:['Corregir el código él mismo','Usar datos reales de usuarios sin permiso']},
-{si:['Unir el PR de la tarea a main, después de QA, Seguridad y Docs','Publicar versiones aprobadas por QA y Seguridad','Monitorear lo publicado','Volver a la versión anterior si algo falla'],no:['Publicar sin los dos vistos buenos','Cambiar código']},
+{si:['Publicar la rama y abrir el PR cuando Yunque no participa en la tarea','Unir el PR de la tarea a main, después de QA, Seguridad y Docs','Publicar versiones aprobadas por QA y Seguridad','Monitorear lo publicado','Volver a la versión anterior si algo falla'],no:['Publicar sin los dos vistos buenos','Cambiar código']},
 {si:['Leer todo lo construido','Escribir documentación técnica y guía de uso'],no:['Cambiar código o decisiones técnicas','Publicar la documentación sin DevOps']},
 {si:['Proponer y comparar herramientas, librerías y servicios','Probar herramientas en un entorno aislado','Aprobar o rechazar las herramientas nuevas que pidan los equipos'],no:['Instalar herramientas en el proyecto real','Aprobar una herramienta que Seguridad haya vetado','Darse permisos a sí mismo fuera de la lista']}];
 const pol=(o,ti)=>`<div class="pol"><div class="si"><h3>${ti?ti+' puede':'Puede'}</h3><ul>${o.si.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="no"><h3>${ti?ti+' no puede':'No puede'}</h3><ul>${o.no.map(x=>`<li>${x}</li>`).join('')}</ul></div></div>`;
-let SZ=1,PSZ=1;const SZN=['corrección','función nueva','proyecto completo'],SZA=['una corrección','una función nueva','un proyecto completo'],rng=q=>q[0]==q[2]?'siempre '+q[2]:q[0]+' a '+q[2];
+let SZ=1;const SZN=['corrección','función nueva','proyecto completo'],SZA=['una corrección','una función nueva','un proyecto completo'],rng=q=>q[0]==q[2]?'siempre '+q[2]:q[0]+' a '+q[2];
 
 /* [origen, destino, qué pasa, tipo (b = ida y vuelta, r = falla), ruta] */
 const E=[
@@ -420,28 +458,23 @@ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')
 
 /* Construcción del mapa */
 function build(){
-let g='';for(let x=-1200;x<=CW+1200;x+=80)g+=`<line x1="${x}" y1="-1200" x2="${x}" y2="${CH+1200}"/>`;for(let y=-1200;y<=CH+1200;y+=80)g+=`<line x1="-1200" y1="${y}" x2="${CW+1200}" y2="${y}"/>`;$('#grid').innerHTML=g;
-$('#terrs').innerHTML=P.map((p,i)=>{const[x,y,w,h]=p.box;return`<g class="terr c${i}" style="--d:${120+i*140}ms"><rect class="t-fill" x="${x}" y="${y}" width="${w}" height="${h}" rx="40"/><rect class="t-line" x="${x+12}" y="${y+12}" width="${w-24}" height="${h-24}" rx="30"/></g>`}).join('');
+$('#grid').innerHTML=`<rect x="-1200" y="-1200" width="${CW+2400}" height="${CH+2400}" fill="url(#gp)"/>`;
+$('#terrs').innerHTML=P.map((p,i)=>{const[x,y,w,h]=p.box;return`<g class="terr c${i}"><rect class="t-fill" x="${x}" y="${y}" width="${w}" height="${h}" rx="40"/><rect class="t-line" x="${x+12}" y="${y+12}" width="${w-24}" height="${h-24}" rx="30"/></g>`}).join('');
 let ed='',lb='';
-DLG.forEach(([a,b,rt],x)=>{const ph=b[0]=='p'?+b.slice(1):all[+b.slice(1)].pi,G=geo(a,b,rt);ed+=`<path id="d${x}" class="edge d c${ph}" data-id="d${x}" d="${G.d}" style="--d:${a=='r'?260:620}ms"/>`});
+DLG.forEach(([a,b,rt],x)=>{const ph=b[0]=='p'?+b.slice(1):all[+b.slice(1)].pi,G=geo(a,b,rt);ed+=`<path id="d${x}" class="edge d c${ph}" data-id="d${x}" d="${G.d}" marker-end="url(#md)"/>`});
 E.forEach((e,x)=>{const ty=e[3]=='r'?'r':'i',G=geo('t'+e[0],'t'+e[1],e[4]),mk=ty=='r'?'mr':'ma';e.G=G;
-ed+=`<path id="e${x}" class="edge ${ty}" data-id="e${x}" d="${G.d}" marker-end="url(#${mk})"${e[3]=='b'?` marker-start="url(#${mk})"`:''} style="--d:${1050+x*30}ms"/>`;
+ed+=`<path id="e${x}" class="edge ${ty}" data-id="e${x}" d="${G.d}" marker-end="url(#${mk})"${e[3]=='b'?` marker-start="url(#${mk})"`:''}/>`;
 lb+=`<text class="el ${ty}" data-id="e${x}" text-anchor="${G.anc}" x="${f(G.lp[0])}" y="${f(G.lp[1]+5+(e[5]||0))}">${e[2]}</text>`});
 GIT.forEach((e,x)=>{const G=geo(e[0],e[1],e[4]);e.G=G;ed+=`<path id="g${x}" class="edge g" data-id="g${x}" d="${G.d}" marker-end="url(#mg)"/>`;lb+=`<text class="el g${e[6]?' key':''}" data-id="g${x}" text-anchor="${G.anc}" x="${f(G.lp[0])}" y="${f(G.lp[1]+5+(e[5]||0))}">${e[2]}</text>`});
-P.forEach((p,i)=>lb+=`<text class="tl c${i}" style="--d:${200+i*140}ms" x="${p.box[0]+14}" y="${p.box[1]-12}">${p.n}</text>`);
+P.forEach((p,i)=>lb+=`<text class="tl c${i}" x="${p.box[0]+14}" y="${p.box[1]-12}">${p.n}</text>`);
 $('#edges').innerHTML=ed;$('#labels').innerHTML=lb;
 let nd='';const[rx,ry]=R;let star='';for(let k=0;k<16;k++){const a=(k*22.5-90)*Math.PI/180,r=k%4==0?RR:k%2==0?50:14;star+=(k?'L':'M')+f(rx+r*Math.cos(a))+' '+f(ry+r*Math.sin(a))}
-nd+=`<g class="node root" data-k="r" tabindex="0" role="button" aria-label="xi-0, el cerebro" style="--d:0ms"><circle class="pulse" cx="${rx}" cy="${ry}" r="40"/><circle class="pulse b" cx="${rx}" cy="${ry}" r="40"/><circle class="ring" cx="${rx}" cy="${ry}" r="62"/><path class="star" d="${star}Z"/><circle class="core" cx="${rx}" cy="${ry}" r="34"/><text class="rt" text-anchor="middle" x="${rx}" y="${ry+7}">xi-0</text></g>`;
-nd+=`<g class="gnode g"><rect x="552" y="568" width="176" height="64" rx="32"/><text class="gn" text-anchor="middle" x="640" y="596">rama de la tarea</text><text class="gs" text-anchor="middle" x="640" y="617">un solo PR a main</text></g>`;
-P.forEach((p,i)=>{const[x,y]=p.xy;nd+=`<g class="node phase-n c${i}" data-k="p" data-i="${i}" tabindex="0" role="button" aria-label="${p.n}, líder ${p.l}" style="--d:${380+i*120}ms"><circle class="disc" cx="${x}" cy="${y}" r="${PR}"/><text class="pn" text-anchor="middle" x="${x}" y="${y+3}">${p.l}</text>${meter(x-23,y+13,EF[p.e],12)}</g>`});
+nd+=`<g class="node root" data-k="r" tabindex="0" role="button" aria-label="xi-0, el cerebro"><path class="star" d="${star}Z"/><circle class="core" cx="${rx}" cy="${ry}" r="34"/><text class="rt" text-anchor="middle" x="${rx}" y="${ry+7}">xi-0</text></g>`;
+nd+=`<g class="gnode g"><rect x="552" y="568" width="176" height="64" rx="32"/><text class="gn" text-anchor="middle" x="640" y="596">rama de la tarea</text><text class="gs" text-anchor="middle" x="640" y="617">un commit, un PR</text></g>`;
+P.forEach((p,i)=>{const[x,y]=p.xy;nd+=`<g class="node phase-n c${i}" data-k="p" data-i="${i}" tabindex="0" role="button" aria-label="${p.n}, líder ${p.l}"><circle class="disc" cx="${x}" cy="${y}" r="${PR}"/><text class="pn" text-anchor="middle" x="${x}" y="${y+3}">${p.l}</text>${meter(x-23,y+13,EF[p.e],12)}</g>`});
 all.forEach(t=>{const[cx,cy]=t.xy,x=cx-TW/2,y=cy-TH/2;const dots=`<text class="mx" text-anchor="end" x="${x+TW-14}" y="${y+72}">hasta ${t.max}</text>`;
-nd+=`<g class="node team c${t.pi}" data-k="t" data-i="${t.i}" tabindex="0" role="button" aria-label="${t.n}, líder ${t.l}${t.n2?', propuesto':''}" style="--d:${720+t.i*60}ms"><rect class="cd" x="${x}" y="${y}" width="${TW}" height="${TH}" rx="14"/><rect class="bar" x="${x+10}" y="${y+14}" width="4" height="${TH-28}" rx="2"/><text class="tn" x="${x+24}" y="${y+33}">${t.n}</text><text class="ts" x="${x+24}" y="${y+55}">líder ${t.l} (${t.e})</text><text class="tg" x="${x+24}" y="${y+55}">${OWN[t.i]}</text>${meter(x+24,y+65,EF[t.e],13)}${dots}<g class="stp"></g></g>`});
-$('#nodes').innerHTML=nd;
-if(!red){let pt='';const part=(id,cls,r,dur,beg,rev)=>`<circle class="pt ${cls}" data-id="${id}" r="${r}"><animateMotion dur="${dur}s" begin="-${beg}s" repeatCount="indefinite"${rev?' keyPoints="1;0" keyTimes="0;1" calcMode="linear"':''}><mpath href="#${id}"/></animateMotion></circle>`;
-document.querySelectorAll('#edges path').forEach((p,x)=>{const id=p.id,L=p.getTotalLength(),cls=p.getAttribute('class').replace('edge ','');
-if(id[0]=='d'||id[0]=='g'){const du=f(L/55);pt+=part(id,cls,3,du,f((x*.37)%du))}
-else{const e=E[+id.slice(1)],du=f(Math.max(2.2,L/95));[0,.5].forEach(o=>pt+=part(id,cls,4.5,du,f(du*o+x*.3)));if(e[3]=='b')[.25,.75].forEach(o=>pt+=part(id,cls,4.5,du,f(du*o),1))}});
-$('#parts').innerHTML=pt}}
+nd+=`<g class="node team c${t.pi}" data-k="t" data-i="${t.i}" tabindex="0" role="button" aria-label="${t.n}, líder ${t.l}${t.n2?', propuesto':''}"><rect class="cd" x="${x}" y="${y}" width="${TW}" height="${TH}" rx="14"/><rect class="bar" x="${x+10}" y="${y+14}" width="4" height="${TH-28}" rx="2"/><text class="tn" x="${x+24}" y="${y+33}">${t.n}</text><text class="ts" x="${x+24}" y="${y+55}">líder ${t.l} (${t.e})</text><text class="tg" x="${x+24}" y="${y+55}">${OWN[t.i]}</text>${meter(x+24,y+65,EF[t.e],13)}${dots}<g class="stp"></g></g>`});
+$('#nodes').innerHTML=nd;}
 
 /* Cámara: arrastrar, pellizcar, rueda */
 const svg=$('#map'),cam=$('#cam');let V={x:0,y:0,k:.4},anim=0,view=null;
@@ -474,21 +507,21 @@ const isOff=k=>k=='r'||k=='b'?false:k[0]=='p'?!P[+k.slice(1)].t.some(act):!act(a
 function applyOff(){all.forEach(t=>{const g=document.querySelector(`#nodes .team[data-i="${t.i}"]`),v=ST[SZ][t.i],n=STEP[SZ][t.i],[cx,cy]=t.xy,x=cx-TW/2,y=cy-TH/2;g.classList.toggle('fix',v=='f');g.classList.toggle('neg',v=='x');
 g.querySelector('.stp').innerHTML=v!='n'&&n?`<circle class="${v=='f'?'sf':'sx'}" cx="${x+4}" cy="${y+4}" r="15"/><text class="${v=='f'?'tf':'tx'}" text-anchor="middle" x="${x+4}" y="${y+9.5}">${n}</text>`:''});
 document.querySelectorAll('#nodes .node').forEach(g=>g.classList.toggle('off',isOff(key(g))));
-document.querySelectorAll('.edge,.pt,.el').forEach(el=>{const id=el.dataset.id,x=+id.slice(1),o=id[0]=='d'?isOff(DLG[x][1]):id[0]=='g'?isOff(GIT[x][0])||isOff(GIT[x][1]):isOff('t'+E[x][0])||isOff('t'+E[x][1]);el.classList.toggle('off',o)})}
-function setSize(n){if(n==SZ)return;PSZ=SZ;SZ=n;document.querySelectorAll('.szb').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.sz==SZ));applyOff();agents(true);detail();hideHint()}
+document.querySelectorAll('.edge,.el').forEach(el=>{const id=el.dataset.id,x=+id.slice(1),o=id[0]=='d'?isOff(DLG[x][1]):id[0]=='g'?isOff(GIT[x][0])||isOff(GIT[x][1]):isOff('t'+E[x][0])||isOff('t'+E[x][1]);el.classList.toggle('off',o)})}
+function setSize(n){if(n==SZ)return;SZ=n;document.querySelectorAll('.szb').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.sz==SZ));applyOff();agents();detail();hideHint()}
 const key=g=>g.dataset.k=='r'?'r':g.dataset.k+g.dataset.i;
 function paint(){const h=sets();svg.classList.toggle('focus',!!h);
 document.querySelectorAll('#nodes .node').forEach(g=>{const k=key(g);g.classList.toggle('hl',!!h&&h.N.has(k));g.classList.toggle('sel',!!sel&&(sel.k=='r'?k=='r':k==(sel.k=='w'?'t':sel.k)+sel.i))});
-document.querySelectorAll('.edge,.pt').forEach(el=>el.classList.toggle('hl',!!h&&h.Es.has(el.dataset.id)));
+document.querySelectorAll('.edge').forEach(el=>el.classList.toggle('hl',!!h&&h.Es.has(el.dataset.id)));
 const placed=[];document.querySelectorAll('.el').forEach(el=>{const on=!!h&&h.Es.has(el.dataset.id);el.classList.toggle('hl',on);
 const e=(el.dataset.id[0]=='g'?GIT:E)[+el.dataset.id.slice(1)];let x=e.G.lp[0],y=e.G.lp[1]+5+(e[5]||0);if(on){const w=e[2].length*7.4,x0=e.G.anc=='end'?x-w:x-w/2;let tries=0;while(placed.some(b=>x0<b[0]+b[2]&&x0+w>b[0]&&Math.abs(y-b[1])<19)&&tries++<6)y+=20;placed.push([x0,y,w])}el.setAttribute('y',f(y))})}
-function agents(still){const o=$('#over');o.innerHTML='';if(!sel||(sel.k!='t'&&sel.k!='w'))return null;
+function agents(){const o=$('#over');o.innerHTML='';if(!sel||(sel.k!='t'&&sel.k!='w'))return null;
 const t=all[sel.i],n=t.a.length,PW=300,RH=48,top=64,ph=top+n*RH+6,[cx,cy]=t.xy,x=Math.max(16,Math.min(CW-16-PW,cx-PW/2)),below=cy+TH/2+ph+16<CH,y=below?cy+TH/2+8:cy-TH/2-8-ph,tot=act(t)?t.q.reduce((m,q)=>m+q[SZ],0):0;
-let s=`<g class="ap c${t.pi}${below?'':' up'}${still?' still':''}"><rect class="bg" x="${x}" y="${y}" width="${PW}" height="${ph}" rx="14"/><text class="ah" x="${x+16}" y="${y+26}">${t.l} decide cuántos lanzar, hasta ${t.max}</text><text class="tot" x="${x+16}" y="${y+51}">${act(t)?`En ${SZA[SZ]}: lanza ${tot} agente${tot==1?'':'s'}`:`En ${SZA[SZ]} no entra`}</text>`;
+let s=`<g class="ap c${t.pi}"><rect class="bg" x="${x}" y="${y}" width="${PW}" height="${ph}" rx="14"/><text class="ah" x="${x+16}" y="${y+26}">${t.l} decide cuántos lanzar, hasta ${t.max}</text><text class="tot" x="${x+16}" y="${y+51}">${act(t)?`En ${SZA[SZ]}: lanza ${tot} agente${tot==1?'':'s'}`:`En ${SZA[SZ]} no entra`}</text>`;
 
-t.a.forEach((a,j)=>{const ry=y+top+j*RH,q=t.q[j],c=act(t)?q[SZ]:0,pc=ST[PSZ][t.i]!='n'?q[PSZ]:0,on=sel.k=='w'&&sel.j==j,lab=a.length>27?a.slice(0,26)+'…':a;let dt='';
-for(let d=0;d<q[2];d++)dt+=`<circle class="dot ${d<c?'on':'off'}${still&&d<c&&d>=pc?' nw':''}" style="--j:${d}" cx="${x+PW-22-(q[2]-1-d)*17}" cy="${ry+21}" r="5.5"/>`;
-s+=`<g class="ag${on?' sel':''}${c?'':' zero'}" data-k="w" data-i="${t.i}" data-j="${j}" tabindex="0" role="button" aria-label="${esc(a)}, ${rng(q)}, en esta tarea ${c}" style="--j:${j}"><rect class="row" x="${x+6}" y="${ry}" width="${PW-12}" height="${RH-4}" rx="8"/><text x="${x+16}" y="${ry+19}">${esc(lab)}</text><text class="s2" x="${x+16}" y="${ry+37}">${rng(q)}${c?'':', esta vez no se lanza'}</text>${dt}</g>`});
+t.a.forEach((a,j)=>{const ry=y+top+j*RH,q=t.q[j],c=act(t)?q[SZ]:0,on=sel.k=='w'&&sel.j==j,lab=a.length>27?a.slice(0,26)+'…':a;let dt='';
+for(let d=0;d<q[2];d++)dt+=`<circle class="dot ${d<c?'on':'off'}" cx="${x+PW-22-(q[2]-1-d)*17}" cy="${ry+21}" r="5.5"/>`;
+s+=`<g class="ag${on?' sel':''}${c?'':' zero'}" data-k="w" data-i="${t.i}" data-j="${j}" tabindex="0" role="button" aria-label="${esc(a)}, ${rng(q)}, en esta tarea ${c}"><rect class="row" x="${x+6}" y="${ry}" width="${PW-12}" height="${RH-4}" rx="8"/><text x="${x+16}" y="${ry+19}">${esc(lab)}</text><text class="s2" x="${x+16}" y="${ry+37}">${rng(q)}${c?'':', esta vez no se lanza'}</text>${dt}</g>`});
 o.innerHTML=s+'</g>';return{x,y,w:PW,h:ph}}
 function union(bs){const x0=Math.min(...bs.map(b=>b.x)),y0=Math.min(...bs.map(b=>b.y)),x1=Math.max(...bs.map(b=>b.x+b.w)),y1=Math.max(...bs.map(b=>b.y+b.h));return{x:x0,y:y0,w:x1-x0,h:y1-y0}}
 const nbox=k=>{const s=S(k);return s.r?{x:s.c[0]-s.r,y:s.c[1]-s.r,w:2*s.r,h:2*s.r}:{x:s.c[0]-s.w/2,y:s.c[1]-s.h/2,w:s.w,h:s.h}};
@@ -499,11 +532,11 @@ const own=union([nbox('t'+sel.i),ap]),wide=union([own,...[...sets().N].map(nbox)
 function select(s,keepCam){sel=s;if(s){TOOL='';$('#tool').value=''}paint();const ap=agents();detail();chip();if(!keepCam)fly(frame(ap))}
 function chip(){const c=$('#chip');if(!sel){c.classList.remove('on');c.setAttribute('aria-hidden','true');return}
 const t=sel.k=='r'?'xi-0, el cerebro':sel.k=='p'?P[sel.i].n+', líder '+P[sel.i].l:sel.k=='t'?all[sel.i].n+', líder '+all[sel.i].l:all[sel.i].a[sel.j];
-hideHint();$('#chipt').textContent=t;c.style.setProperty('--col',sel.k=='r'?'var(--ink)':`var(--c${sel.k=='p'?sel.i:all[sel.i].pi})`);c.classList.add('on');c.setAttribute('aria-hidden','false');c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump')}
+hideHint();$('#chipt').textContent=t;c.style.setProperty('--col',sel.k=='r'?'var(--ink)':`var(--c${sel.k=='p'?sel.i:all[sel.i].pi})`);c.classList.add('on');c.setAttribute('aria-hidden','false')}
 const sh=on=>{const e=$('#sheet');if(on){$('#shbody').innerHTML=$('#detail').innerHTML;$('#shbody').scrollTop=0}e.classList.toggle('on',on);e.setAttribute('aria-hidden',!on);(on?$('#shx'):$('#chipb')).focus({preventScroll:true})};
 $('#chipb').onclick=()=>sh(true);$('#shx').onclick=()=>sh(false);addEventListener('keydown',e=>{if(e.key=='Escape'&&$('#sheet').classList.contains('on'))sh(false)});
 function hit(e){const g=e.target.closest('.node,.ag');if(!g)return null;return{k:g.dataset.k,i:+g.dataset.i||0,j:g.dataset.j!=null?+g.dataset.j:null}}
-const setSz=z=>{PSZ=SZ;SZ=+z.dataset.sz;agents(true);detail();const n=document.querySelector(`#over .sz[data-sz="${SZ}"]`);n&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.sz')&&n.focus({preventScroll:true})};
+const setSz=z=>{SZ=+z.dataset.sz;agents();detail();const n=document.querySelector(`#over .sz[data-sz="${SZ}"]`);n&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.sz')&&n.focus({preventScroll:true})};
 svg.addEventListener('click',e=>{if(moved>8)return;hideHint();const z=e.target.closest('.sz');if(z){setSz(z);return}const h=hit(e);if(!h){if(sel)select(null);return}
 if(h.k=='w'){select(h,true);return}
 if(sel&&sel.k==h.k&&sel.i==h.i&&h.k!='r'&&h.k!='w'){fly(frame(document.querySelector('#over .ap')?{...nbox('t'+h.i)}:nbox('t'+h.i)));return}
@@ -518,10 +551,10 @@ function detail(){const s=sel,cr=a=>`<div class="crumbs">${a.map(x=>`<span>${x}<
 const nA=all.reduce((n,t)=>n+t.a.length,0);
 if(!s)h=`<h2>Toda la organización</h2><p>xi-0 coordina ${P.length} fases, ${all.length} equipos y ${nA} agentes ligeros. La información baja de Planeación a Construcción y de ahí a Calidad y entrega; las fallas regresan hacia Construcción.</p><p class="sub">Ruta en ${SZA[SZ]} (en negrita lo no negociable)</p>${route(SZ)}<p class="sub" style="margin:0">Toca un nodo del mapa para ver su detalle aquí.</p>`;
 else if(s.k=='r')h=cr(['xi-0'])+`<h2>xi-0, el cerebro</h2><p>Entiende la tarea, la divide por fases, fija el esfuerzo de cada líder e integra el resultado. Es el único que habla con el usuario.</p>${pol(L.r)}<details class="lvl"><summary>No negociables que tampoco puede saltarse</summary><ol class="nn">${NN.map(x=>`<li>${x}</li>`).join('')}</ol></details><dl><dt>Herramientas</dt><dd>Leer el proyecto y lanzar líderes de fase</dd><dt>Delega en</dt><dd>${P.map(p=>p.l+' ('+p.n+')').join(', ')}</dd><dt>Esfuerzo</dt><dd>high</dd></dl>`;
-else if(s.k=='p'){const p=P[s.i];c=`var(--c${s.i})`;h=cr(['xi-0',p.l])+`<h2>${p.n}, líder ${p.l}</h2><p>${p.d}</p>${pol(L.p)}<p class="sub">Equipos a su cargo</p>${lst(p.t.map(t=>t.n+' ('+t.l+')'))}<dl><dt>Ramas</dt><dd>${PGIT[s.i]}</dd><dt>Herramientas</dt><dd>Leer el proyecto y usar git para unir las ramas de sus equipos${s.i==1?'; además abre el PR':''}</dd><dt>Reporta a</dt><dd>xi-0</dd><dt>Esfuerzo</dt><dd>${p.e}</dd></dl>`}
+else if(s.k=='p'){const p=P[s.i];c=`var(--c${s.i})`;h=cr(['xi-0',p.l])+`<h2>${p.n}, líder ${p.l}</h2><p>${p.d}</p>${pol(L.p)}<p class="sub">Equipos a su cargo</p>${lst(p.t.map(t=>t.n+' ('+t.l+')'))}<dl><dt>Ramas</dt><dd>${PGIT[s.i]}</dd><dt>Herramientas</dt><dd>Leer el proyecto y usar git${s.i==1?'; además publica la rama y abre el PR':''}</dd><dt>Participa</dt><dd>Solo si su fase tiene dos o más equipos en la ruta (o la tarea es grande); si no, sus equipos le reportan a xi-0</dd><dt>Reporta a</dt><dd>xi-0</dd><dt>Esfuerzo</dt><dd>${p.e}</dd></dl>`}
 else{const t=all[s.i];c=`var(--c${t.pi})`;
 if(s.k=='w'){const w=t.a[s.j];h=cr(['xi-0',t.p.l,t.l])+`<h2>${w}</h2><p>Agente ligero del equipo ${t.n}. Lo lanza ${t.l}, trabaja una tarea acotada y termina al entregarla.</p>${pol(L.w)}<dl><dt>Reporta a</dt><dd>${t.l}, líder de ${t.n}</dd><dt>Herramientas</dt><dd>Las mismas que su líder: ${t.tt.map(k=>TN[k].toLowerCase()).join(', ')}</dd><dt>Cuántos lanza</dt><dd>${rng(t.q[s.j])} según la tarea; en ${SZA[SZ]}, ${act(t)?t.q[s.j][SZ]:0}</dd><dt>Esfuerzo</dt><dd>low</dd></dl>`}
-else h=cr(['xi-0',t.p.l,t.l])+`<h2>${t.n}, líder ${t.l}${t.n2?' (propuesto)':''}</h2><p>${t.r}</p>${pol(TP[s.i])}<details class="lvl"><summary>Además, lo que aplica a todo líder de equipo</summary>${pol(L.t)}</details><p class="sub">Herramientas que puede usar</p><ul class="tools">${Object.keys(TN).map(k=>t.tt.includes(k)?`<li class="y">${TN[k]}${TNOTE[s.i+k]?` <small>(${TNOTE[s.i+k]})</small>`:''}</li>`:`<li class="n">${TN[k]}</li>`).join('')}</ul><p class="sub">Cómo reparte el trabajo</p><p>${t.rp}</p><p class="sub">Agentes ligeros que puede lanzar (máximo ${t.max}). Columnas: cuántos en una corrección, una función nueva y un proyecto completo.</p><table class="roles"><thead><tr><th>Rol</th><th>Corr.</th><th>Func.</th><th>Proy.</th></tr></thead><tbody>${t.a.map((a,j)=>`<tr><td>${a}</td>${t.q[j].map((c,k)=>`<td${k==SZ?' class="on"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table><dl><dt>Reporta a</dt><dd>${t.p.l}, líder de ${t.p.n}</dd><dt>Cuándo entra</dt><dd>${[0,1,2].map(k=>`<span${k==SZ?' style="font-weight:700"':''}>${SZN[k][0].toUpperCase()+SZN[k].slice(1)}: ${stTxt(t,k)}</span>`).join('<br>')}</dd><dt>Dueño de</dt><dd>${OWN[s.i]}</dd><dt>Rama</dt><dd>La suya propia; la une ${t.p.l} a la rama de la tarea${s.i==8?'. Además es el único que une el PR a main':''}</dd><dt>Entrega</dt><dd>${t.o}</dd><dt>Esfuerzo del líder</dt><dd>${t.e}</dd>${comm(s.i)}</dl>`}
+else h=cr(['xi-0',t.p.l,t.l])+`<h2>${t.n}, líder ${t.l}${t.n2?' (propuesto)':''}</h2><p>${t.r}</p>${pol(TP[s.i])}<details class="lvl"><summary>Además, lo que aplica a todo líder de equipo</summary>${pol(L.t)}</details><p class="sub">Herramientas que puede usar</p><ul class="tools">${Object.keys(TN).map(k=>t.tt.includes(k)?`<li class="y">${TN[k]}${TNOTE[s.i+k]?` <small>(${TNOTE[s.i+k]})</small>`:''}</li>`:`<li class="n">${TN[k]}</li>`).join('')}</ul><p class="sub">Cómo reparte el trabajo</p><p>${t.rp}</p><p class="sub">Agentes ligeros que puede lanzar (máximo ${t.max}). Columnas: cuántos en una corrección, una función nueva y un proyecto completo.</p><table class="roles"><thead><tr><th>Rol</th><th>Corr.</th><th>Func.</th><th>Proy.</th></tr></thead><tbody>${t.a.map((a,j)=>`<tr><td>${a}</td>${t.q[j].map((c,k)=>`<td${k==SZ?' class="on"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table><dl><dt>Reporta a</dt><dd>${t.p.l}, líder de ${t.p.n}; a xi-0 si ${t.p.l} no participa en la tarea</dd><dt>Cuándo entra</dt><dd>${[0,1,2].map(k=>`<span${k==SZ?' style="font-weight:700"':''}>${SZN[k][0].toUpperCase()+SZN[k].slice(1)}: ${stTxt(t,k)}</span>`).join('<br>')}</dd><dt>Dueño de</dt><dd>${OWN[s.i]}</dd><dt>Rama</dt><dd>${s.i==4||s.i==5?`La copia de la tarea; si coincide con ${s.i==4?'Back end':'Front end'} en el mismo paso, su propia rama y worktree, que Yunque une a la rama de la tarea`:'La copia de la tarea, en sus carpetas'}${s.i==8?'. Publica si Yunque no participa y es el único que une el PR a main':''}</dd><dt>Entrega</dt><dd>${t.o}</dd><dt>Esfuerzo del líder</dt><dd>${t.e}</dd>${comm(s.i)}</dl>`}
 if(!s&&TOOL){const q=all.filter(t=>t.tt.includes(TOOL));h=`<h2>Quién puede: ${TN[TOOL].toLowerCase()}</h2><p>${q.map(t=>t.n+(TNOTE[t.i+TOOL]?' ('+TNOTE[t.i+TOOL]+')':'')).join(', ')}.</p><p class="sub" style="margin:0">Los demás equipos tienen esta herramienta bloqueada por el mod.</p>`}
 $('#detail').innerHTML=`<div class="dcard" style="--col:${c}">${h}</div>`}
 
@@ -529,13 +562,13 @@ $('#detail').innerHTML=`<div class="dcard" style="--col:${c}">${h}</div>`}
 $('#phases').innerHTML=P.map((p,i)=>`<div class="phase c${i}"><h2>${p.n}</h2><p>Líder ${p.l}. ${p.d}</p><div class="teams">${p.t.map(t=>`<button class="tb${t.n2?' prop':''}" data-i="${t.i}"><b>${t.n}</b><span>líder ${t.l}</span></button>`).join('')}</div></div>`).join('');
 const EX=['Arreglar un error o cambiar un texto','Agregar algo a lo que ya existe, como el inicio de sesión','Una aplicación nueva desde cero'];
 const route=k=>{const mx=Math.max(...STEP[k]);let o='';for(let n=1;n<=mx;n++){const ts=all.filter(t=>STEP[k][t.i]==n&&ST[k][t.i]!='n');if(!ts.length)continue;o+=`<li>${ts.map(t=>ST[k][t.i]=='f'?`<b>${t.n}</b>`:`${t.n} <small>(opcional, ${t.cond})</small>`).join(ts.length>1?' + ':'')}</li>`}return`<ol class="ruta">${o}</ol>`};
-$('#imp').innerHTML=['xi-0 es el líder del agent team: la sesión principal.','Los líderes de fase y los de equipo son compañeros del equipo. La plataforma solo deja lanzar compañeros al líder, así que xi-0 lanza a los de equipo cuando su líder de fase se lo pide.','Los líderes de fase no lanzan, pero sí dirigen su sección: asignan tareas a sus equipos, revisan lo que entregan y lo pasan a la siguiente fase.','Los agentes ligeros son subagentes de cada líder de equipo y corren en primer plano, en Sonnet con esfuerzo bajo. Las corridas largas van en segundo plano y nadie espera más de 4 minutos dentro de una llamada.','Los mensajes viajan por el buzón de cada agente. La ruta se vuelve la lista de tareas compartida, con dependencias entre pasos.','Las herramientas de cada equipo son la lista tools de su archivo de agente.','Solo se lanzan los compañeros del paso activo y se cierran al terminar, para no gastar de más.','Al reanudar una sesión los compañeros no vuelven solos, por eso estado.md es obligatorio.'].map(x=>`<li>${x}</li>`).join('');
+$('#imp').innerHTML=['xi-0 es el líder del agent team: la sesión principal.','Los líderes de fase y los de equipo son compañeros del equipo. La plataforma solo deja lanzar compañeros al líder, así que xi-0 lanza a los de equipo cuando su líder de fase se lo pide.','Los líderes de fase no lanzan, pero sí dirigen su sección: asignan tareas a sus equipos, revisan lo que entregan y lo pasan a la siguiente fase.','Los agentes ligeros son subagentes de cada líder de equipo y corren en primer plano, en Sonnet con esfuerzo bajo. Una corrida de más de unos 4 minutos no se espera: el líder escribe un relevo y se cierra. Los ligeros no dejan relevo: la lanzan desprendida y le devuelven a su líder la ruta de la salida (pestaña Flujo).','Los mensajes viajan por el buzón de cada agente. La ruta se vuelve la lista de tareas compartida, con dependencias entre pasos.','Las herramientas de cada equipo son la lista tools de su archivo de agente.','Solo se lanzan los compañeros del paso activo y se cierran al terminar, para no gastar de más.','Al reanudar una sesión los compañeros no vuelven solos, por eso estado.md es obligatorio.'].map(x=>`<li>${x}</li>`).join('');
 $('#rg').innerHTML=RG.map(x=>`<li>${x}</li>`).join('');$('#sh').innerHTML=SH.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('');
 const LV=[{at:0,n:'Normal',c:'--c2',d:['Todo trabaja normal.','xi-0 avanza la ruta y los líderes lanzan agentes según la tarea.']},
 {at:70,n:'Ahorro',c:'--c0',d:['No se lanzan agentes ligeros nuevos, salvo para cerrar algo ya empezado.','Los líderes priorizan terminar lo que está en curso.','xi-0 no abre pasos nuevos de la ruta.']},
 {at:85,n:'Guardado',c:'--info',d:['Cada agente ligero hace commit de lo que lleva, aunque esté a medias, marcado como wip.','Cada líder escribe su parte del punto de guardado.','Los agentes que terminan ya no se reemplazan.']},
 {at:95,n:'Pausa',c:'--fail',d:['xi-0 completa estado.md con todo lo pendiente.','Se cierran todos los agentes; no queda nada sin commit.','La sesión se detiene limpia, sin interrupciones a medias.']}];
-const RES=['Cuando el límite se reinicia, xi-0 lee estado.md desde la rama de la tarea.','Relanza solo a los líderes con trabajo pendiente, en el paso de la ruta donde iban.','Cada líder convierte sus commits wip en commits limpios antes de seguir.','El panel vuelve a Normal y la ruta continúa.'];
+const RES=['Cuando el límite se reinicia, xi-0 lee estado.md desde la rama de la tarea.','Relanza solo a los líderes con trabajo pendiente, en el paso de la ruta donde iban.','Los commits wip se quedan como están: desaparecen en el commit único de la entrega. Si quedó algún relevo en .xi-0/relevo/, xi-0 lo retoma primero.','El panel vuelve a Normal y la ruta continúa.'];
 $('#llv').innerHTML=LV.map((l,k)=>`<div class="plv" style="border-left:5px solid var(${l.c})"><h3>${l.n} <small style="font:15px 'Alegreya Sans',sans-serif;color:var(--mut)">${k?'desde '+l.at+'%':'menos de 70%'}</small></h3><ul class="nn" style="padding-bottom:12px">${l.d.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('');
 $('#lres').innerHTML=RES.map(x=>`<li>${x}</li>`).join('');
 $('#lstate-md').textContent=`# Estado de la tarea 123 (función nueva)
@@ -565,7 +598,72 @@ $('#rutas').innerHTML=EX.map((x,k)=>`<div class="plv"><h3>${SZN[k][0].toUpperCas
 $('#tmat').innerHTML=`<table class="roles"><thead><tr><th>Equipo</th>${Object.values(TN).map(v=>`<th>${v}</th>`).join('')}</tr></thead><tbody>${all.map(t=>`<tr><td>${t.n}</td>${Object.keys(TN).map(k=>`<td>${t.tt.includes(k)?'<span class="ok">✓</span>':'<span class="nx">–</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 $('#pols').innerHTML=['r','p','t','w'].map(k=>`<div class="plv"><h3>${L[k].n}</h3>${pol(L[k])}</div>`).join('');
 $('#phases').addEventListener('click',e=>{const b=e.target.closest('.tb');if(b){tab('map');select({k:'t',i:+b.dataset.i})}});
-function tab(n){['map','exp','lim'].forEach(x=>{$('#tab-'+x).hidden=x!=n;$(`[data-tab="${x}"]`).setAttribute('aria-selected',x==n)});if(n=='map'){V=frame(document.querySelector('#over .ap')&&agents());apply()}}
+/* Flujo de una tarea por tamaño (especificación §5 Tamaño, §7 y §9) */
+const FCM={no:['○','sin commit'],unidad:['●','commit por unidad'],unico:['◆','commit único'],pub:['↑','publica']};
+const SL='sin líder: reporta a xi-0';
+const FLU=[
+{n:'chica',cuando:'Una corrección o una función nueva acotada que cumple todo: un solo lado (Front end o Back end), un módulo y pocos archivos, sin cambio de contratos, sin dependencias nuevas, sin pantallas nuevas, sin tocar datos ni permisos, sin cambiar cómo se usa y sin corridas largas. Si deja de cumplir una sola de esas condiciones, ya no es chica.',
+ej:'Cambiar el texto de un botón',tipo:'corrección',
+q:[[0,null,[],'no entra'],[1,SL,['Front end (Prisma), quien construye']],[2,SL,['QA (Argos)','DevOps (Faro), solo si se publica']]],lig:'no',
+nota:'Sin líderes de fase: xi-0 encarga directo a cada equipo y cada equipo le entrega a xi-0 una ficha de hasta 250 palabras.',
+p:[['xi-0','Sesión principal',-1,'Clasifica la tarea como chica y la abre sin líderes de fase.','Encargo','Front end','no'],
+['Front end (Prisma)','Construcción, sin líder · reporta a xi-0',1,'Cambia el texto y corre la verificación del proyecto. No hace commit.','Cambios sin commit y su ficha','xi-0','no',{nota:'En una chica no hay corridas largas. Si aparece una, la tarea deja de ser chica y xi-0 la sube a mediana.'}],
+['QA (Argos)','Calidad y entrega, sin líder · reporta a xi-0',2,'Repite la verificación y prueba sobre los cambios sin commit. Si algo falla, vuelve a Front end.','Visto bueno o fallas','xi-0','no'],
+['Front end (Prisma)','Construcción, sin líder · reporta a xi-0',1,'Con el visto bueno de QA, hace el único commit de la tarea: su código, las pruebas y <code>.xi-0/</code>.','Commit único','xi-0','unico'],
+['DevOps (Faro), solo si se publica','Calidad y entrega, sin líder · reporta a xi-0',2,'Publica la rama y abre el PR, porque Yunque no participa.','PR','xi-0','pub'],
+['xi-0','Sesión principal',-1,'Entrega el resultado a la persona.','Resultado','La persona','']]},
+{n:'mediana',cuando:'Lo que no es chica ni grande. Entran los equipos de la ruta de su tipo, y un líder de fase solo si su fase tiene dos o más equipos en la ruta.',
+ej:'Mostrar el flujo de una tarea en este mapa',tipo:'función nueva',
+q:[[0,'Norte',['Producto (Brújula)','Diseño (Lumen)']],[1,SL,['Front end (Prisma)']],[2,'Meridiano',['QA (Argos)','Seguridad (Égida)','Docs (Códice)','DevOps (Faro)']]],lig:'sí, dentro del máximo de cada líder de equipo',
+nota:'Yunque no participa porque Construcción tiene un solo equipo. Por eso Front end recibe de xi-0 y le entrega a xi-0 una ficha de hasta 250 palabras, y publica DevOps.',
+p:[['xi-0','Sesión principal',-1,'Clasifica la tarea (función nueva, mediana) y anota los líderes de fase que participan: Norte y Meridiano.','Encargo','Norte','no'],
+['Producto (Brújula)','Planeación · reporta a Norte',0,'Escribe los criterios de aceptación.','Requisitos','Diseño','unidad','lo hace Norte'],
+['Diseño (Lumen)','Planeación · reporta a Norte',0,'Captura el estado actual y diseña la vista.','Diseño','Front end','unidad','lo hace Norte'],
+['Front end (Prisma)','Construcción, sin líder · reporta a xi-0',1,'Construye el cambio, con un commit por unidad terminada.','Interfaz para probar; ficha','QA; la ficha, a xi-0','unidad'],
+['QA (Argos)','Calidad y entrega · reporta a Meridiano',2,'Prueba y hace el QA visual. Las fallas vuelven a Front end.','Visto bueno o fallas','Meridiano','unidad',{relevo:'argos'}],
+['Seguridad (Égida) + Docs (Códice)','Calidad y entrega · reportan a Meridiano',2,'Seguridad revisa riesgos; Docs alinea la documentación.','Visto bueno y documentación','Meridiano','unidad'],
+['xi-0','Sesión principal',-1,'Deja la rama en un solo commit sobre la base: <code>git reset --soft</code> al punto donde salió y un commit nuevo.','Rama de un commit','DevOps','unico'],
+['DevOps (Faro)','Calidad y entrega · reporta a Meridiano',2,'Publica la rama y abre el PR, porque Yunque no participa. Solo DevOps une a main, si el repo lo permite.','PR','xi-0','pub'],
+['xi-0','Sesión principal',-1,'Entrega el resultado a la persona.','Resultado','La persona','']]},
+{n:'grande',cuando:'Un proyecto completo, o una ruta donde las tres fases tienen dos o más equipos. Entran los equipos de la ruta y los líderes de las tres fases.',
+ej:'Una aplicación nueva desde cero',tipo:'proyecto completo',
+q:[[0,'Norte',['Exploración (Atlas)','Producto (Brújula)','Diseño (Lumen)','Arquitectura (Plano)','Herramientas (Sextante)']],[1,'Yunque',['Front end (Prisma)','Back end (Forja)']],[2,'Meridiano',['QA (Argos)','Seguridad (Égida)','Docs (Códice)','DevOps (Faro)']]],lig:'sí, dentro del máximo de cada líder de equipo',
+nota:'Si Front end y Back end coinciden en el mismo paso, cada uno trabaja en su propia rama y Yunque las une a la rama de la tarea, Back end primero.',
+p:[['xi-0','Sesión principal',-1,'Abre la tarea con los tres líderes de fase.','Encargo','Norte','no'],
+['Exploración (Atlas)','Planeación · reporta a Norte',0,'Investiga productos similares.','Hallazgos','Producto','unidad','lo hace Norte'],
+['Producto (Brújula)','Planeación · reporta a Norte',0,'Define el alcance y los criterios de aceptación.','Requisitos','Diseño y Arquitectura','unidad','lo hace Norte'],
+['Diseño + Arquitectura + Herramientas','Planeación · reportan a Norte',0,'Pantallas, contratos y herramientas aprobadas.','Plan','Yunque, Front end y Back end','unidad','lo hace Norte'],
+['Front end + Back end','Construcción · reportan a Yunque',1,'Construyen. Si coinciden en el paso, cada uno en su rama; Yunque las une, Back end primero.','Código para probar','QA','unidad'],
+['QA (Argos)','Calidad y entrega · reporta a Meridiano',2,'Prueba; las fallas vuelven a quien las causó.','Visto bueno o fallas','Meridiano','unidad',{relevo:'argos'}],
+['Seguridad (Égida) + Docs (Códice)','Calidad y entrega · reportan a Meridiano',2,'Auditan y documentan.','Vistos buenos y documentación','Meridiano','unidad'],
+['xi-0','Sesión principal',-1,'Deja la rama en un solo commit sobre la base.','Rama de un commit','Yunque','unico'],
+['Yunque, luego DevOps (Faro)','Construcción y Calidad y entrega',1,'Yunque publica la rama y abre el único PR; DevOps es el único que lo une a main, si el repo lo permite.','PR','xi-0','pub'],
+['xi-0','Sesión principal',-1,'Entrega el resultado a la persona.','Resultado','La persona','']]}];
+const relevo=eq=>'<div class="relevo"><h4>Relevo: si una corrida pasa de unos 4 minutos</h4><p>Por ejemplo, la suite completa de pruebas. Nadie la espera con el contexto abierto: cada espera larga vence la caché del agente.</p><ol class="rel">'+
+`<li><b>Escribe y lanza.</b> QA escribe <code>.xi-0/relevo/${eq}.md</code> (qué lanzó, archivo de resultado y de salida, hora tope, qué hacer al terminar y qué lleva hecho), lanza la corrida desprendida y avisa: <code>relevo: .xi-0/relevo/${eq}.md</code>.</li>`+
+'<li><b>xi-0 cierra al agente.</b> Nadie se queda esperando con su contexto abierto.</li>'+
+'<li><b>Vigía.</b> Un comando en segundo plano espera el archivo de resultado (<code>ok</code> o <code>falla</code>) o la hora tope, sin gastar contexto.</li>'+
+'<li><b>Agente nuevo.</b> xi-0 lanza otro QA, que lee el relevo y sigue desde “al terminar”. Si venció el tope sin resultado, primero diagnostica con la salida.</li></ol>'+
+'<p>Los agentes ligeros no dejan relevo: lanzan la corrida desprendida y le devuelven a su líder la ruta de la salida.</p></div>';
+let FZ=1,FI=0;
+function flujo(anun){const z=FLU[FZ],cl=f=>f<0?'cx':'c'+f;
+document.querySelectorAll('[data-fz]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.fz==FZ));
+$('#fcuando').textContent=z.cuando;$('#fej').textContent=`Ejemplo: ${z.ej}. Tipo del ejemplo: ${z.tipo}.`;
+$('#fquien').innerHTML=`<li class="cx"><b>xi-0</b><span class="lchip">sesión principal</span><span></span></li>`+z.q.map(([f,l,eq,no])=>`<li class="${cl(f)}"><b>${P[f].n}</b>${eq.length?`<span class="lchip${l==SL?' sinlider':''}">${l==SL?l:l+', líder de fase'}</span><ul class="chips">${eq.map(x=>`<li>${x}</li>`).join('')}</ul>`:`<span class="lchip sinlider">${no}</span><span></span>`}</li>`).join('')+`<li class="cx"><b>Agentes ligeros</b><span>${z.lig}</span></li>`;
+$('#fqnota').textContent=z.nota;
+$('#flujo').innerHTML=z.p.map(([q,sub,f,h,e,a,c,cn,x],i)=>{if(cn&&typeof cn=='object'){x=cn;cn=''}x=x||{};
+return`<li class="fpaso ${cl(f)}" id="fp${i}"><button class="fstep" data-fi="${i}"><span class="fn">${i+1}</span><span class="ft"><b>${q}</b><small>${sub}</small></span><span class="fcur">Paso actual</span></button><div class="fcuerpo"><p>${h}</p><div class="fpie"><dl><dt>Entrega</dt><dd>${e}</dd><dt>A quién</dt><dd>${a}</dd></dl>${c?`<span class="fcm ${c}"><i aria-hidden="true">${FCM[c][0]}</i>${FCM[c][1]}${cn?` (${cn})`:''}</span>`:''}</div>${x.nota?`<p class="fnota">${x.nota}</p>`:''}${x.relevo?relevo(x.relevo):''}</div></li>`}).join('');
+if(anun)$('#fanun').textContent=`Tamaño ${z.n}, ${z.p.length} pasos`;paso(0)}
+function paso(i,mover){const n=FLU[FZ].p.length;FI=Math.max(0,Math.min(n-1,i));
+document.querySelectorAll('#flujo .fpaso').forEach((li,k)=>{const on=k==FI;li.classList.toggle('cur',on);const b=li.querySelector('.fstep');on?b.setAttribute('aria-current','step'):b.removeAttribute('aria-current')});
+$('#fpos').textContent=`Paso ${FI+1} de ${n}`;const pv=$('#fprev'),nx=$('#fnext'),ac=document.activeElement;pv.disabled=FI==0;nx.disabled=FI==n-1;
+if(ac==pv&&pv.disabled)nx.focus();if(ac==nx&&nx.disabled)pv.focus();
+if(mover)$('#fp'+FI).scrollIntoView({block:'nearest',behavior:red?'auto':'smooth'})}
+document.querySelectorAll('[data-fz]').forEach(b=>b.onclick=()=>{if(+b.dataset.fz!=FZ){FZ=+b.dataset.fz;flujo(1)}});
+$('#fprev').onclick=()=>paso(FI-1,1);$('#fnext').onclick=()=>paso(FI+1,1);
+$('#flujo').addEventListener('click',e=>{const b=e.target.closest('.fstep');if(b)paso(+b.dataset.fi)});
+flujo();
+function tab(n){['map','flu','exp','lim'].forEach(x=>{$('#tab-'+x).hidden=x!=n;$(`[data-tab="${x}"]`).setAttribute('aria-selected',x==n)});$('#detail').hidden=n=='flu';if(n=='map'){V=frame(document.querySelector('#over .ap')&&agents());apply()}}
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)tab(b.dataset.tab)});
 document.querySelectorAll('.flt').forEach(b=>b.onclick=()=>{const on=b.getAttribute('aria-pressed')!='true';b.setAttribute('aria-pressed',on);svg.classList.toggle('no-'+b.dataset.l,!on)});
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{V=frame(sel&&(sel.k=='t'||sel.k=='w')?agents():null);apply()},120)});
@@ -573,11 +671,10 @@ let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{V=fram
 build();applyOff();detail();
 document.querySelectorAll('.szb').forEach(b=>b.onclick=()=>setSize(+b.dataset.sz));
 $('#tool').insertAdjacentHTML('beforeend',Object.entries(TN).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
-document.querySelectorAll('.mdb').forEach(b=>b.onclick=()=>{const g=b.dataset.m=='git';document.querySelectorAll('.mdb').forEach(x=>x.setAttribute('aria-pressed',x==b));svg.classList.toggle('git',g);$('#filters').classList.toggle('git',g);$('#gnote').hidden=!g;paint()});
+document.querySelectorAll('.mdb[data-m]').forEach(b=>b.onclick=()=>{const g=b.dataset.m=='git';document.querySelectorAll('.mdb[data-m]').forEach(x=>x.setAttribute('aria-pressed',x==b));svg.classList.toggle('git',g);$('#filters').classList.toggle('git',g);$('#gnote').hidden=!g;paint()});
 $('#tool').onchange=e=>{TOOL=e.target.value;select(null)};
 V=target({x:20,y:20,w:CW-40,h:CH-30},16);
-if(!red){const t=V;V={x:t.x,y:t.y+30,k:t.k*.92};apply();fly(t)}else apply();
-setTimeout(()=>svg.classList.remove('boot'),red?0:2600);setTimeout(hideHint,7000);
+apply();setTimeout(hideHint,7000);
 </script>
 </body>
 </html>
