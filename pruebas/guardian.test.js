@@ -24,7 +24,13 @@ const ACTIVAS = {
   chica: { tarea: 't1', reglas: 3, tamano: 'chica', fases: [] },
   medianaYunque: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'] },
   medianaMeridiano: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['meridiano'] },
+  // Con la copia de la tarea declarada (aquí, el mismo repo de prueba).
+  chicaCopia: { tarea: 't1', reglas: 3, tamano: 'chica', fases: [], worktree_tarea: repo },
+  medianaCopia: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'], worktree_tarea: repo },
+  reglas2Copia: { tarea: 't1', reglas: 2, worktree_tarea: repo },
 };
+const QA_COMPLETO = 'pruebas: npm test, 12 pasan\nrevision: aprobado\nvisual: no aplica\nvalidez: aprobado (1/1 criterios)\n';
+const cierreQA = ['TaskCompleted', { task_title: 'qa' }];
 const palabras = (n) => Array(n).fill('palabra').join(' ');
 const msg = (to, message) => ['SendMessage', { to, message }];
 const bash = (command, extra) => ['Bash', { command, ...extra }];
@@ -145,6 +151,7 @@ const CASOS = [
   ['nohup sin relevo', 'medianaYunque', 'forja', bash('nohup npm test > salida.log'), /escribe \.xi-0\/relevo\/forja\.md/],
   ['segundo plano con relevo', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), PASA, { relevo: 'forja', minutos: 1 }],
   ['nohup con relevo', 'medianaYunque', 'forja', bash('nohup npm test > salida.log'), PASA, { relevo: 'forja', minutos: 1 }],
+  ['la corrida que deja su marca de fin, con relevo', 'medianaYunque', 'forja', bash('nohup npm test > .xi-0/relevo/forja.log 2>&1 && echo ok > .xi-0/relevo/forja.fin || echo falla > .xi-0/relevo/forja.fin &'), PASA, { relevo: 'forja', minutos: 1 }],
   ['relevo de hace 20 minutos', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), /escribe \.xi-0\/relevo\/forja\.md/, { relevo: 'forja', minutos: 20 }],
   ['el relevo de otro equipo no vale', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), /escribe \.xi-0\/relevo\/forja\.md/, { relevo: 'prisma', minutos: 1 }],
   ['un ligero no usa segundo plano', 'medianaYunque', 'forja-ligero', bash('npm test', { run_in_background: true }), /Un ligero no usa segundo plano/],
@@ -153,6 +160,24 @@ const CASOS = [
   ['un equipo escribe su relevo', 'chica', 'forja', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'forja.md'), content: 'x' }], PASA],
   ['un equipo no escribe el relevo de otro', 'chica', 'forja', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'prisma.md'), content: 'x' }], /no es dueño/],
   ['un ligero no escribe el relevo', 'chica', 'forja-ligero', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'forja.md'), content: 'x' }], /no es dueño/],
+  // --- Tarea chica: un solo commit, después de QA ---
+  ['chica: quien construye no hace commit antes de QA', 'chicaCopia', 'forja', bash('git commit -m "fix: fecha"'), /uno solo y va después de QA/],
+  ['chica: tampoco con opciones antes del subcomando', 'chicaCopia', 'forja', bash('git -C api commit -am "fix: fecha"'), /uno solo y va después de QA/],
+  ['chica: tampoco encadenado', 'chicaCopia', 'prisma', bash('git add -A && git commit -m "fix: fecha"'), /uno solo y va después de QA/],
+  ['chica: tampoco un ligero', 'chicaCopia', 'forja-ligero', bash('git commit -m "fix: fecha"'), /uno solo y va después de QA/],
+  ['chica: con el resultado de QA a medias, tampoco', 'chicaCopia', 'forja', bash('git commit -m "fix: fecha"'), /le faltan "validez/, { qa: 'pruebas: ok\nrevision: aprobado\nvisual: no aplica\n' }],
+  ['chica: con una falla abierta, tampoco', 'chicaCopia', 'forja', bash('git commit -m "fix: fecha"'), /fallas abiertas \(qa-001\.md\)/, { qa: QA_COMPLETO, falla: true }],
+  ['chica: con el resultado de QA completo, sí', 'chicaCopia', 'forja', bash('git commit -m "fix: fecha"'), PASA, { qa: QA_COMPLETO }],
+  ['chica: un wip sin límite alto no vale', 'chicaCopia', 'forja', bash('git commit -m "wip: a medias"'), /uno solo y va después de QA/],
+  ['chica: un wip con el límite en Guardado, sí', 'chicaCopia', 'forja', bash('git commit -m "wip: a medias"'), PASA, { limite: 90 }],
+  ['chica: en Guardado, un commit que no es wip no vale', 'chicaCopia', 'forja', bash('git commit -m "fix: fecha"'), /uno solo y va después de QA/, { limite: 90 }],
+  ['chica: lo demás de git sigue igual', 'chicaCopia', 'forja', bash('git log --grep commit'), PASA],
+  ['mediana: los commits por unidad siguen', 'medianaCopia', 'forja', bash('git commit -m "feat: unidad 1"'), PASA],
+  ['reglas 2: el commit sigue como antes', 'reglas2Copia', 'forja', bash('git commit -m "feat: unidad 1"'), PASA],
+  // --- Pruebas que ya existían: también cuentan los cambios sin commit (reglas 3) ---
+  ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
+  ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
 ];
 
 function correr(activa, quien, [herramienta, entrada], previo) {
@@ -180,7 +205,36 @@ function correr(activa, quien, [herramienta, entrada], previo) {
     fs.mkdirSync(path.dirname(guardian), { recursive: true });
     fs.copyFileSync(GUARDIAN, guardian);
   }
-  const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: (previo || {}).fuera ? os.tmpdir() : repo, tool_input: entrada };
+  // Resultado de QA, fallas y nivel del límite: se dejan como los pide el caso (por defecto, nada).
+  const qa = path.join(repo, '.xi-0', 'qa');
+  const fallas = path.join(repo, '.xi-0', 'fallas');
+  const archivoLimite = path.join(repo, '.claude', 'limite.json');
+  fs.rmSync(qa, { recursive: true, force: true });
+  fs.rmSync(fallas, { recursive: true, force: true });
+  fs.rmSync(archivoLimite, { force: true });
+  if (p.qa) { fs.mkdirSync(qa, { recursive: true }); fs.writeFileSync(path.join(qa, 'resultado.md'), p.qa); }
+  if (p.validez) fs.writeFileSync(path.join(qa, 'validez.md'), p.validez);
+  if (p.falla) {
+    fs.mkdirSync(fallas, { recursive: true });
+    fs.writeFileSync(path.join(fallas, 'qa-001.md'), 'estado: abierta\nclase: implementación\nrequisito: CT-1\nvuelta: 1\n');
+  }
+  if (p.limite) fs.writeFileSync(archivoLimite, JSON.stringify({ five_hour: { used_percentage: p.limite, resets_at: Date.now() / 1000 + 3600 } }));
+  // Una prueba que ya estaba en la rama base y que la tarea cambió sin hacer commit.
+  const vieja = path.join(repo, 'api', 'tests', 'viejo.cs');
+  if (p.pruebaCambiada) {
+    if (!fs.existsSync(vieja)) {
+      fs.mkdirSync(path.dirname(vieja), { recursive: true });
+      fs.writeFileSync(vieja, 'prueba original\n');
+      const git = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=prueba', '-c', 'user.email=prueba@example.invalid', ...a], { stdio: 'ignore' });
+      git('checkout', '-q', '-B', 'main');
+      git('add', 'api/tests/viejo.cs');
+      git('commit', '-q', '-m', 'base');
+    }
+    fs.writeFileSync(vieja, 'prueba debilitada\n');
+  }
+  const evento = herramienta === 'TaskCompleted'
+    ? { hook_event_name: 'TaskCompleted', cwd: repo, ...entrada }
+    : { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: (previo || {}).fuera ? os.tmpdir() : repo, tool_input: entrada };
   if (quien) evento.agent_type = quien;
   // El guardián deja escribir en la carpeta temporal del sistema; aquí el repo de prueba vive en ella,
   // así que al guardián se le dice que la temporal es otra.

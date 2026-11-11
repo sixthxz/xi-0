@@ -121,6 +121,20 @@ Salió de una revisión del código con eventos sintéticos. Cada hueco se repro
 
 Sin cerrar: la lista de comandos por equipo sigue usando `segmentos`, que no separa `&` sola ni `$( )`; un push dentro de un alias de git o de un script no se ve; Bash puede escribir en carpetas de otro equipo con comandos permitidos (redirecciones, `node -e`); un script escrito en la carpeta temporal y ejecutado después tampoco se ve. Cerrar eso del todo pide aislamiento del sistema operativo, no un hook.
 
+## Ruta por tamaño, commit único y relevo (2026-11-10)
+
+La habilidad abre las tareas con `"reglas": 3`, que suma `tamano` y `fases` a `activa.json`. Las tareas con `"reglas": 2` no cambian. La especificación lo describe en las secciones 5 (Tamaño), 6 (no negociables 10, 14 y 15), 7, 9 y 11.
+
+- **Tamaño.** Chica: quien construye y QA, más DevOps solo si se publica; sin líderes de fase, sin ligeros, en Sonnet. Mediana: un líder de fase solo si su fase tiene dos o más equipos en la ruta. Grande: proyecto completo o tres fases con dos o más equipos. En la duda, el menor; se puede subir, no bajar.
+- **Un commit por tarea.** En chica nadie hace commit hasta el visto bueno de QA; QA prueba sobre los cambios sin commit y después quien construyó hace el commit único. El guardián le niega `git commit` a quien construye mientras `qa/resultado.md` no esté completo o haya fallas abiertas (pasa un `wip:` en Guardado o Pausa). En mediana y grande los equipos hacen commits por unidad y xi-0 deja la rama en uno al entregar. Se eligió que el commit de chica lo haga quien construyó y no xi-0, porque xi-0 no escribe en el código y el agente ya tiene el contexto del cambio.
+- **Pruebas existentes.** El cierre de QA compara también la copia de la tarea contra la rama base, porque en una chica los cambios a pruebas que ya existían están sin commit.
+- **Worktrees.** Todos trabajan en la copia de la tarea. Front end y Back end crean rama propia solo si coinciden en el mismo paso. Antes cada equipo creaba la suya y los líderes de fase las unían: eran merges y worktrees que no evitaban ningún choque, porque las carpetas ya separan a los equipos.
+- **Publicar.** Al final, después del commit único. Yunque si participa; si no, Faro.
+- **Relevo.** Quien lanza una corrida larga escribe `.xi-0/relevo/<equipo>.md`, la lanza desprendida con una marca de fin (`nohup <comando> > <salida> 2>&1 && echo ok > <resultado> || echo falla > <resultado> &`) y avisa. xi-0 cierra al agente y deja un vigía en segundo plano que espera el archivo de resultado o el tope; después lanza a un agente nuevo que retoma. Se eligió un archivo de marca y no el aviso de segundo plano del agente porque ese aviso se pierde cuando el agente se cierra.
+- **Mensajes directos.** Un equipo cuya fase no tiene líder en la tarea le entrega a xi-0 una ficha de hasta 250 palabras (`palabras_max.directo` en `equipos.json`).
+
+Sin verificar en una tarea real: que la corrida desprendida siga viva cuando se cierra el agente que la lanzó (en Windows depende de cómo Claude Code termine el árbol de procesos), que el aviso del vigía despierte a xi-0, y cuánto baja el costo de una chica frente a la ruta completa. La habilidad ya le dice a xi-0 que mire el archivo de resultado si el aviso no llega.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

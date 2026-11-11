@@ -592,6 +592,21 @@ Ejemplo: Una aplicación nueva desde cero.
 
 Una fase solo se activa si al menos uno de sus equipos entra.
 
+### Tamaño
+
+El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación se paga. Cada agente de más cuesta su contexto entero en cada turno, así que entra solo quien hace falta. xi-0 anota el tamaño (`tamano`) y los líderes de fase que participan (`fases`) en `activa.json`.
+
+| Tamaño | Cuándo | Quién entra |
+| :- | :- | :- |
+| **chica** | Corrección o función nueva acotada que cumple todo: un solo lado (Front end o Back end), un módulo y pocos archivos, sin cambio de contratos, sin dependencias nuevas, sin pantallas nuevas, sin tocar datos ni permisos, sin cambiar cómo se usa y sin corridas largas. | Quien construye y QA. DevOps solo si la rama se publica. Sin líderes de fase y sin agentes ligeros. |
+| **mediana** | Lo que no es chica ni grande. | Los equipos de la ruta de su tipo. Un líder de fase solo si su fase tiene dos o más equipos en la ruta. |
+| **grande** | Proyecto completo, o una ruta donde las tres fases tienen dos o más equipos. | Los equipos de la ruta y los líderes de sus fases. |
+
+- Las condiciones de una chica son las mismas que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica.
+- En una chica los agentes se lanzan con el modelo intermedio, y la verificación del proyecto la corre quien construye y la repite QA; por eso DevOps solo entra para publicar.
+- Si xi-0 duda entre dos tamaños, elige el menor. Subir es reescribir `tamano`, `fases` y la ruta en `activa.json` y lanzar a quien falte; bajar no se puede.
+- Cuando una fase no tiene líder en la tarea, xi-0 encarga directo a sus equipos y ellos le reportan a xi-0 (sección 7).
+
 ---
 
 ## 6. No negociables y negociables
@@ -607,16 +622,19 @@ Una fase solo se activa si al menos uno de sus equipos entra.
 7. Ningún equipo pasa su máximo de agentes.
 8. En cualquier tarea con código entra al menos uno de Front end o Back end.
 9. Nadie escribe fuera de sus carpetas.
-10. Solo Yunque abre el PR de la tarea y solo DevOps lo une a main.
+10. Solo Yunque publica la rama y abre el PR de la tarea; si Yunque no participa en la tarea, lo hace DevOps. Solo DevOps lo une a main.
 11. Las pruebas verifican criterios de aceptación, contratos y comportamiento observable. Ninguna implementación se rechaza solo por diferir en una estructura interna que no está en los contratos ni en los requisitos.
 12. Todo resultado negativo de QA dice si es defecto de implementación, defecto de prueba, ambigüedad de requisitos o falta de cobertura, con el requisito relacionado y evidencia reproducible.
 13. Una prueba que ya existía no se debilita ni se borra para que algo pase. Si QA la cambia, lo justifica en el reporte de validez con el requisito o contrato que excedía, y xi-0 lo revisa antes de entregar.
+14. La tarea se entrega en un solo commit sobre la rama base. En una tarea chica nadie hace commit antes del visto bueno de QA.
+15. Nadie espera una corrida larga con su contexto abierto: deja un relevo escrito y se cierra.
 
 **Negociables** (los decide xi-0 en cada tarea):
 
 - Qué equipos opcionales entran en cada tarea, según sus condiciones.
 - Cuántos agentes ligeros lanza cada líder, dentro de su máximo.
 - El esfuerzo de cada líder; puede bajarlo si la tarea es chica.
+- El tamaño de la tarea y, con él, qué líderes de fase participan (sección 5).
 - Qué pasos van en paralelo y cuáles en orden.
 - Si se investiga antes de empezar.
 
@@ -624,7 +642,7 @@ Una fase solo se activa si al menos uno de sus equipos entra.
 
 ## 7. Comunicación
 
-Regla general: **la información solo viaja por estas líneas.** Si dos equipos no tienen línea, el mensaje pasa por su líder de fase. Además, cada líder habla con su líder de fase y los líderes de fase con xi-0.
+Regla general: **la información solo viaja por estas líneas.** Si dos equipos no tienen línea, el mensaje pasa por su líder de fase. Además, cada líder habla con su líder de fase y los líderes de fase con xi-0. Cuando una fase no tiene líder en la tarea (sección 5, Tamaño), sus equipos hablan directo con xi-0: reciben de xi-0 el encargo y le entregan una ficha de hasta 250 palabras, porque no hay quien la resuma.
 
 | De | A | Qué pasa | Tipo |
 | :- | :- | :- | :- |
@@ -732,19 +750,20 @@ Revisión: implementación alternativa <ok | atadas: …> · límites y errores 
 
 ## 9. Ramas y PRs
 
-1. Cada equipo trabaja en su propio worktree y su propia rama. Sus agentes ligeros hacen commits ahí, sobre archivos distintos; si dos necesitan el mismo archivo, el líder los pone en fila.
+1. La tarea vive en una copia del repo (worktree) con la rama `tarea/<id>`, y los equipos trabajan ahí, cada uno en sus carpetas. Solo Front end y Back end crean rama y worktree propios, y solo cuando coinciden en el mismo paso, para no pisarse. Los agentes ligeros hacen commits donde trabaja su líder, sobre archivos distintos; si dos necesitan el mismo archivo, el líder los pone en fila.
 2. Nadie escribe fuera de sus carpetas. Si necesita un cambio en otra, se lo pide al dueño.
-3. Los líderes de fase unen las ramas de sus equipos a la rama de la tarea en el orden que fija Yunque: plan, Back end, Front end, y al final pruebas y docs.
-4. Yunque abre un solo PR por tarea. Nadie más abre PRs.
-5. QA y Seguridad aprueban el PR y Docs mete su parte; después DevOps es el único que lo une a main.
-6. Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.
-7. Los agentes ligeros nunca abren PRs ni hacen merge.
+3. Cuando Front end y Back end trabajaron en ramas propias, Yunque las une a la rama de la tarea, Back end primero. No hay más ramas que unir: el plan, las pruebas, los reportes y la documentación se escriben en la copia de la tarea.
+4. **La tarea se entrega en un solo commit sobre la rama base.** En una tarea chica nadie hace commit hasta el visto bueno de QA: QA prueba sobre los cambios sin commit y después quien construyó hace el commit único, con su código, las pruebas y `.xi-0/`. En una mediana o grande cada equipo hace un commit por unidad terminada, y al entregar xi-0 deja la rama en un commit (`git reset --soft` al punto donde la rama salió de la base, y un commit nuevo).
+5. Se publica al final, después del commit único. Publica la rama y abre el PR Yunque; si Yunque no participa en la tarea, DevOps. Un solo PR por tarea, y nadie más abre PRs.
+6. QA y Seguridad dan su visto bueno antes de publicar y Docs mete su parte; después DevOps es el único que une a main.
+7. Un conflicto lo resuelve el dueño del archivo. Si no sale en 2 intentos, se escala a xi-0.
+8. Los agentes ligeros nunca abren PRs ni hacen merge.
 
 **Qué une cada líder de fase:**
 
-- Norte: Une las ramas de sus equipos a la rama de la tarea, primero que nadie.
-- Yunque: Une las ramas de Front end y Back end (Back end primero) y abre el único PR de la tarea.
-- Meridiano: Une las pruebas, los reportes y la documentación a la rama de la tarea antes de que DevOps la una a main.
+- Norte: Nada que unir; hace el commit de los documentos de los equipos que no hacen commit propio.
+- Yunque: Une las ramas de Front end y Back end cuando las hay (Back end primero) y, al final, publica la rama y abre el único PR de la tarea.
+- Meridiano: Nada que unir; sus equipos trabajan en la copia de la tarea.
 
 **Archivos compartidos con un solo dueño:**
 
@@ -757,7 +776,18 @@ Revisión: implementación alternativa <ok | atadas: …> · límites y errores 
 | Lista de permisos de herramientas | Herramientas (Sextante) |
 | estado.md, el punto de guardado | xi-0 |
 
-Nombres: rama de la tarea `tarea/<id>`, rama de cada equipo `tarea/<id>-<equipo>`, cada una en su propio worktree (git no deja tener `tarea/<id>` y `tarea/<id>/<equipo>` a la vez).
+Nombres: rama de la tarea `tarea/<id>`; rama propia de Front end o Back end, cuando la hay, `tarea/<id>-<equipo>`, cada una en su propio worktree (git no deja tener `tarea/<id>` y `tarea/<id>/<equipo>` a la vez).
+
+**Por qué un solo commit.** El historial de `main` queda con un commit por tarea, que se revisa y se revierte entero. Y en una chica evita el commit de apertura, el de cada vuelta de QA y el de cierre, que no le sirven a quien revisa.
+
+**Relevo de corridas largas.** Una corrida de más de unos 4 minutos (una suite completa, un build, una instalación) no se espera con el contexto abierto: cada espera larga vence la caché del agente y el turno siguiente vuelve a pagar todo su contexto.
+
+1. Quien la lanza escribe antes `.xi-0/relevo/<equipo>.md` en la copia de la tarea: qué lanzó, el archivo de resultado, el archivo de salida, la hora tope, qué hacer al terminar y qué lleva hecho.
+2. Lanza la corrida desprendida, con la salida a un archivo y una marca de fin (`ok` o `falla`) en el archivo de resultado, y avisa con una línea: `relevo: .xi-0/relevo/<equipo>.md`.
+3. xi-0 cierra a ese agente y deja un vigía: un comando en segundo plano que espera el archivo de resultado o el tope y no gasta contexto.
+4. Cuando el vigía termina, xi-0 lanza a un agente nuevo del mismo equipo, que lee el relevo y sigue desde "al terminar". Si el tope venció sin resultado, el encargo es diagnosticar con la salida antes de relanzar nada.
+
+Los agentes ligeros no dejan relevo: lanzan la corrida desprendida y devuelven la ruta de la salida a su líder.
 
 ---
 
@@ -789,11 +819,13 @@ Rama: tarea/<id>, último commit <hash>
 2. ...
 ```
 
+En una tarea chica, el commit wip de Guardado es el único que se permite antes del visto bueno de QA.
+
 **Al reiniciarse el límite:**
 
 1. Cuando el límite se reinicia, xi-0 lee estado.md desde la rama de la tarea.
 2. Relanza solo a los líderes con trabajo pendiente, en el paso de la ruta donde iban.
-3. Cada líder convierte sus commits wip en commits limpios antes de seguir.
+3. Los commits wip se quedan como están: desaparecen en el commit único de la entrega (sección 9). Si quedó algún relevo en `.xi-0/relevo/`, xi-0 lo retoma primero.
 4. El panel vuelve a Normal y la ruta continúa.
 
 ---
@@ -816,6 +848,13 @@ Rama: tarea/<id>, último commit <hash>
 | Pruebas existentes que cambian, justificadas | `TaskCompleted` de QA: cada archivo de prueba de la rama base que cambió o se borró aparece en "Pruebas existentes que cambiaron" de `validez.md`. |
 | Resumen de fase con evidencia | Hook `PreToolUse` sobre `SendMessage`: un resumen (`estado:`) a xi-0 sin línea `evidencia:` no sale. |
 | Ninguna llamada espera más de 4 minutos | Hook `PreToolUse` sobre `Bash` (todos menos xi-0, con tarea activa): niega `sleep`, `time.sleep`, `Start-Sleep` o `timeout /t` de más de 240 s, y cualquier espera con `timeout` de más de 270 s fuera de segundo plano. `sleep` de hasta 240 s vale aunque no esté en `comandos`. |
+| Mensajes directos sin líder de fase | Hook `PreToolUse` sobre `SendMessage`: con `fases` en `activa.json`, xi-0 y un equipo cuya fase no tiene líder se escriben directo; la ficha del equipo lleva un máximo de 250 palabras. |
+| Tarea chica sin agentes ligeros | Hook `PreToolUse` sobre `Agent`: niega lanzar un ligero si `tamano` es `chica`. |
+| Tarea chica: un solo commit, después de QA | Hook `PreToolUse` sobre `Bash`: a quien construye le niega `git commit` mientras `qa/resultado.md` no esté completo o haya fallas abiertas. Pasa un `wip:` con el límite en Guardado o Pausa. |
+| Pruebas existentes que cambian, también sin commit | `TaskCompleted` de QA: además de las ramas, compara la copia de la tarea contra la rama base. |
+| Quién publica | Hook `PreToolUse` sobre `Bash`: `git push` y `gh pr create` solo para Yunque; si Yunque no está en `fases`, solo para DevOps. |
+| Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano. |
+| Un solo commit en mediana y grande | Lo hace xi-0 al entregar; no se automatiza. |
 | Tope de cada encargo | Criterio de quien encarga (formato en la sección 8); no se automatiza. |
 | Si la evidencia alcanza para entregar | Criterio de los líderes de fase y de xi-0; no se automatiza. |
 | Panel visual del límite | Mod (opcional). |

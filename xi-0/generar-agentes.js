@@ -28,7 +28,7 @@ const FASES = {
   yunque: {
     titulo: 'Yunque', fase: 'Construcción', effort: 'medium', color: 'orange',
     resp: 'Convierte el plan en código y mantiene a Front end y Back end alineados.',
-    une: 'Une las ramas `tarea/<id>-forja` y después `tarea/<id>-prisma` a `tarea/<id>` (Back end primero) y "abre" el único PR de la tarea: en este proyecto no se abren PRs reales salvo que `.claude/xi-0/config.json` tenga `remoto.pr=true`; si no, escribe `.xi-0/PR.md` (título, resumen, cambios por equipo, evidencia, veredictos de QA y Seguridad, cómo probarlo) y haz commit en la rama de la tarea.',
+    une: 'Si Front end y Back end trabajaron en el mismo paso, cada uno tiene su rama: une `tarea/<id>-forja` y después `tarea/<id>-prisma` a `tarea/<id>` (Back end primero). Si solo trabajó uno, sus commits ya están en `tarea/<id>`. Después "abres" el único PR de la tarea: en este proyecto no se abren PRs reales salvo que `.claude/xi-0/config.json` tenga `remoto.pr=true`; si no, escribe `.xi-0/PR.md` (título, resumen, cambios por equipo, evidencia, veredictos de QA y Seguridad, cómo probarlo) y haz commit en la rama de la tarea. Si hay remoto (`remoto.push=true`), el push y el PR real van al final de la tarea, cuando xi-0 te lo pide: antes xi-0 deja la rama en un solo commit.',
     evidencia: `Antes de pasar a Calidad, revisa la **evidencia de implementación** y devuelve lo que falte:
 
 - Cada equipo entrega con commits por unidad y con su build, formato y verificación pasando (comando y resultado en la ficha).
@@ -41,7 +41,7 @@ En \`.xi-0/PR.md\`, la sección **Evidencia** apunta a la de requisitos, la de i
   meridiano: {
     titulo: 'Meridiano', fase: 'Calidad y entrega', effort: 'high', color: 'green',
     resp: 'Comprueba que funciona, que es seguro y que la evidencia alcanza para entregar, y lo deja publicado y explicado.',
-    une: 'Une las ramas de pruebas (`tarea/<id>-argos`), despliegue (`tarea/<id>-faro`) y los documentos de Seguridad y Docs a `tarea/<id>`, y haces commit de lo que Égida y Códice escriben en el worktree de la tarea. Después Faro deja la entrega lista.',
+    une: 'Tus equipos trabajan todos en el worktree de la tarea, sobre `tarea/<id>`: no hay ramas que unir. QA y DevOps hacen sus commits; tú haces commit de lo que Égida y Códice escriben ahí. Después Faro deja la entrega lista.',
     evidencia: `Antes de dar por buena la entrega de QA y antes de tu resumen, revisa la **evidencia de validación** y devuelve lo que falte:
 
 - \`.xi-0/qa/resultado.md\` tiene \`pruebas\`, \`revision\`, \`visual\` y \`validez\`, y \`.xi-0/qa/validez.md\` pone cada \`CT-n\` y \`CA-n\` con una prueba que pasa y observa comportamiento, o con un hueco explicado.
@@ -196,7 +196,7 @@ const EQUIPOS = {
   prisma: {
     titulo: 'Prisma', effort: 'medium', color: 'blue', bash: true, web: false, codigo: true,
     resp: 'Construye la interfaz que ve el usuario (la SPA Angular de `spa/`).',
-    entrega: 'Interfaz funcionando en la rama `tarea/<id>-prisma`, compilando (`npm run build`).',
+    entrega: 'Interfaz funcionando en la rama de la tarea, compilando (`npm run build`).',
     puede: ['Construir la interfaz.', 'Usar los contratos acordados.', 'Instalar dependencias solo de la lista aprobada.', 'Impugnar una falla de QA con evidencia: el criterio o contrato que muestra que la prueba exige algo no pedido (por ejemplo, un nombre interno). Se la mandas a Argos; si la mantiene, va por `yunque`.'],
     nopuede: ['Tocar código de Back end.', 'Cambiar el contrato por su cuenta.', 'Escribir pruebas `*.spec.ts` (son de QA).', 'Publicar.'],
     cuando: { c: 'negociable: entra si toca la interfaz (paso 2)', f: 'negociable: entra si toca la interfaz (paso 4)', p: 'no negociable, paso 4' },
@@ -206,7 +206,7 @@ const EQUIPOS = {
   forja: {
     titulo: 'Forja', effort: 'medium', color: 'red', bash: true, web: false, codigo: true,
     resp: 'Construye la lógica, los datos y los servicios: los exportadores C# de `api/`, los scripts de datos de `spa/scripts/` y los archivos de datos generados.',
-    entrega: 'Servicios y datos funcionando en la rama `tarea/<id>-forja`, compilando (`dotnet build`) y con formato (`dotnet csharpier check .`).',
+    entrega: 'Servicios y datos funcionando en la rama de la tarea, compilando (`dotnet build`) y con formato (`dotnet csharpier check .`).',
     puede: ['Construir exportadores, scripts de datos y lógica.', 'Cambiar los datos generados, con un solo agente a la vez.', 'Instalar dependencias solo de la lista aprobada.', 'Impugnar una falla de QA con evidencia: el criterio o contrato que muestra que la prueba exige algo no pedido (por ejemplo, un nombre interno). Se la mandas a Argos; si la mantiene, va por `yunque`.'],
     nopuede: ['Tocar la interfaz.', 'Romper el contrato acordado.', 'Escribir pruebas (`api/tests/`, `*.test.js` son de QA).', 'Publicar.'],
     cuando: { c: 'negociable: entra si toca lógica o datos (paso 2)', f: 'negociable: entra si toca lógica o datos (paso 4)', p: 'no negociable, paso 4' },
@@ -249,8 +249,8 @@ const EQUIPOS = {
   faro: {
     titulo: 'Faro', effort: 'medium', color: 'yellow', bash: true, web: false, codigo: true,
     resp: 'Deja lista la entrega y la vigila. En este proyecto no se publica ni se une nada al repo original: tu trabajo es comprobar que la rama de la tarea pasa lo mismo que el CI (`.github/workflows/`) y dejar el paso de publicación descrito.',
-    entrega: 'Verificación tipo CI de la rama `tarea/<id>` en `.xi-0/despliegue/verificacion.md` (comandos, resultado) y, si la tarea lo pide, cambios de CI en `tarea/<id>-faro`.',
-    puede: ['Ejecutar la verificación completa (build, formato, pruebas) de la rama de la tarea.', 'Tocar `.github/` y los scripts `Run-*`.', 'Unir el PR a main solo si `remoto.merge=true` y hay vistos buenos de QA y Seguridad.'],
+    entrega: 'Verificación tipo CI de la rama `tarea/<id>` en `.xi-0/despliegue/verificacion.md` (comandos, resultado) y, si la tarea lo pide, cambios de CI en la misma rama.',
+    puede: ['Ejecutar la verificación completa (build, formato, pruebas) de la rama de la tarea.', 'Tocar `.github/` y los scripts `Run-*`.', 'Unir el PR a main solo si `remoto.merge=true` y hay vistos buenos de QA y Seguridad.', 'Publicar la rama cuando Yunque no participa en la tarea (`fases` de `activa.json`) y xi-0 te lo pide: `git push <remote_permitido> tarea/<id>` y, si `remoto.pr=true`, `gh pr create`. En una tarea chica entras solo para eso, después del commit único.'],
     nopuede: ['Publicar sin los dos vistos buenos.', 'Cambiar código de la aplicación.', 'Hacer push o merge al repo original.'],
     cuando: { c: 'no negociable, paso 5', f: 'no negociable, paso 7', p: 'no negociable, paso 7' },
     reparte: 'Trabaja por etapas, uno detrás de otro: pipeline, despliegue y después monitoreo.',
@@ -280,16 +280,16 @@ const lineasDe = (id) => {
 
 const COMUN_LIDER = `## Al arrancar
 
-1. Lee \`.claude/xi-0/activa.json\` del repo principal: \`tarea\` (id), \`tipo\` (corrección | función nueva | proyecto completo), \`worktree_tarea\`, \`rama\` y \`ruta\`.
+1. Lee \`.claude/xi-0/activa.json\` del repo principal: \`tarea\` (id), \`tipo\` (corrección | función nueva | proyecto completo), \`tamano\` (chica | mediana | grande), \`fases\` (los líderes de fase que participan), \`worktree_tarea\`, \`rama\` y \`ruta\`.
 2. Lee \`.xi-0/tarea.md\` dentro de \`worktree_tarea\` y, si existen, los documentos de la fase anterior que te correspondan.
 3. Lee \`.claude/xi-0/config.json\`: tus carpetas, tus comandos y \`no_leer\` (archivos de datos enormes que nunca abres enteros; usa \`head\`, \`Grep\` o \`Read\` con \`limit\`).
 4. Revisa \`.claude/limite.json\`: si el nivel no es \`normal\`, sigue las reglas de límite de abajo.
 
 ## Límite de sesión
 
-- **Ahorro (≥70%)**: no lances agentes ligeros nuevos; termina lo que está en curso.
-- **Guardado (≥85%)**: haz commit de lo que lleves como \`wip: ...\` y escribe tu parte del punto de guardado en tu ficha a tu líder de fase (qué llevas, commit wip, siguiente acción).
-- **Pausa (≥95%)**: no empieces nada; confirma a tu líder que todo tiene commit y espera el cierre.
+- **Ahorro (≥${EQ.limite.ahorro}%)**: no lances agentes ligeros nuevos; termina lo que está en curso.
+- **Guardado (≥${EQ.limite.guardado}%)**: haz commit de lo que lleves como \`wip: ...\` y escribe tu parte del punto de guardado en tu ficha a quien reportas (qué llevas, commit wip, siguiente acción).
+- **Pausa (≥${EQ.limite.pausa}%)**: no empieces nada; confirma a quien reportas que todo tiene commit y espera el cierre.
 
 ## Evidencia en lo que entregas
 
@@ -311,7 +311,7 @@ pendiente: <qué falta>
 necesitas: <qué tiene que hacer quien recibe>
 \`\`\`
 
-Commit (quien implementa), uno por unidad terminada:
+Commit (quien implementa), uno por unidad terminada; en una tarea chica, uno solo al final (ver "Dónde trabajas"):
 
 \`\`\`
 tipo(área): qué cambió
@@ -366,7 +366,8 @@ ${filas}
 
 ${f.une}
 
-- Rama de la tarea: \`tarea/<id>\`, en \`worktree_tarea\`. Ramas de equipo: \`tarea/<id>-<equipo>\`, cada una en su worktree \`<worktrees>/<id>-<equipo>\`.
+- Rama de la tarea: \`tarea/<id>\`, en \`worktree_tarea\`. Ahí trabajan todos, salvo Front end y Back end cuando coinciden en un paso: entonces cada uno usa \`tarea/<id>-<equipo>\` en su worktree \`<worktrees>/<id>-<equipo>\`.
+- Los commits por unidad son para trabajar; al entregar, xi-0 los deja en uno solo. No reescribas tú la historia.
 - Orden de unión que fija Yunque: plan, Back end, Front end y al final pruebas y docs.
 - Un conflicto lo resuelve el dueño del archivo; si no sale en 2 intentos, escala a xi-0.
 - Usa \`git -C <ruta>\` en lugar de \`cd\` cuando puedas.
@@ -408,14 +409,30 @@ function toolsEquipo(e, conAgent) {
   return t.join(', ');
 }
 
+const CONSTRUYEN = ['prisma', 'forja'];
 function dondeTrabaja(id, e) {
-  if (e.codigo) return `Trabajas en tu propio worktree y rama:
+  if (CONSTRUYEN.includes(id)) {
+    const otro = EQUIPOS[CONSTRUYEN.find((x) => x !== id)];
+    return `Depende de \`tamano\` en \`activa.json\`:
 
-\`\`\`
-git -C <worktree_tarea> worktree add <worktrees>/<id>-${id} -b tarea/<id>-${id} tarea/<id>
-\`\`\`
+- **chica**: trabajas en \`worktree_tarea\`, sobre \`tarea/<id>\`, y **no haces commit**. Cuando tu verificación pasa, avisas a xi-0 que los cambios están listos para QA; Argos prueba sobre esos cambios sin commit. Con el visto bueno de QA, xi-0 te pide el commit: **uno solo** con todo (\`git add -A\`: tu código, las pruebas de Argos y \`.xi-0/\`), con el formato de commit de abajo. El guardián niega un commit tuyo mientras \`.xi-0/qa/resultado.md\` no esté completo o haya fallas abiertas. Única excepción: \`wip: ...\` con el límite en Guardado.
+- **mediana o grande, tú solo en el paso**: trabajas en \`worktree_tarea\`, sobre \`tarea/<id>\`, con un commit por unidad terminada.
+- **mediana o grande, con ${otro.titulo} en el mismo paso** (lo dice tu encargo): cada uno en su worktree y rama, para no pisarse:
 
-(\`<worktrees>\` está en \`.claude/xi-0/config.json\`; si el worktree ya existe, reutilízalo). Tus agentes ligeros hacen commits ahí, sobre archivos distintos; si dos necesitan el mismo archivo, los pones en fila. Antes de entregar, deja todo con commit. Nunca abres PRs ni haces merge a \`tarea/<id>\`: eso lo hace tu líder de fase.`;
+  \`\`\`
+  git -C <worktree_tarea> worktree add <worktrees>/<id>-${id} -b tarea/<id>-${id} tarea/<id>
+  \`\`\`
+
+  (\`<worktrees>\` está en \`.claude/xi-0/config.json\`; si el worktree ya existe, reutilízalo). No haces merge a \`tarea/<id>\`: eso lo hace Yunque.
+
+Tus agentes ligeros hacen commits donde tú trabajas, sobre archivos distintos; si dos necesitan el mismo archivo, los pones en fila. Salvo en chica, antes de entregar deja todo con commit. Nunca abres PRs.`;
+  }
+  if (e.codigo) return `Trabajas en \`worktree_tarea\`, sobre la rama de la tarea \`tarea/<id>\`, solo dentro de tus carpetas (no chocan con las de Construcción). No creas rama ni worktree propios.
+
+- **chica**: no haces commit. Lo que escribes (pruebas, \`.xi-0/\`) entra en el commit único que hace quien construyó, después de tu visto bueno.${id === 'argos' ? ' Pruebas sobre los cambios sin commit: el diff a revisar es `git diff <rama_base>` (sin `...`), y `git status` te dice qué archivos nuevos hay. Para comprobar que una prueba nueva falla contra el código de antes: `git stash push -- <archivos de código cambiados>`, corres la prueba, y `git stash pop` en la misma llamada.' : ''}
+- **mediana o grande**: un commit por unidad terminada, en \`tarea/<id>\`. Antes de entregar, deja todo con commit.
+
+Tus agentes ligeros trabajan ahí mismo, sobre archivos distintos. Nunca abres PRs ni haces merge, salvo lo que tu sección de arriba te permita.`;
   return `Tu equipo produce documentos. Escribes directamente en \`worktree_tarea\`, solo dentro de tus carpetas (no chocan con las de nadie). ${e.commit ? 'Puedes hacer commit de lo tuyo en la rama de la tarea' : 'Tu líder de fase hace el commit de lo que escribas'}.`;
 }
 
@@ -437,7 +454,7 @@ Eres ${e.titulo} (\`${id}\`), nivel 2 del equipo xi-0. ${e.resp}
 - **Carpetas propias:** las de \`carpetas.${id}\` en \`.claude/xi-0/config.json\`. El guardián bloquea cualquier escritura fuera de ellas.
 - **Recibe de:** ${recibe.length ? recibe.join('; ') : 'solo de tu líder de fase'}.
 - **Envía a:** ${envia.length ? envia.join('; ') : 'solo a tu líder de fase'}.
-- Con cualquier otro equipo hablas por \`${faseId}\`. Nunca con el usuario ni directamente con xi-0.
+- Con cualquier otro equipo hablas por \`${faseId}\`. Nunca con el usuario; con xi-0 solo cuando \`${faseId}\` no participa en la tarea (ver "Sin líder de fase").
 
 ## Puedes
 
@@ -452,7 +469,16 @@ ${e.nopuede.map((x) => `- ${x}`).join('\n')}
 - Hablar con un equipo sin línea en el mapa; eso va por \`${faseId}\`.
 - Cambiar entregables, requisitos o contratos de otro equipo.
 
-${e.extra ? `${e.extra}\n\n` : ''}## Cuándo entras
+${e.extra ? `${e.extra}\n\n` : ''}## Sin líder de fase
+
+\`fases\` en \`activa.json\` dice qué líderes de fase participan. En una tarea chica no participa ninguno; en una mediana, solo los de las fases con dos o más equipos.
+
+- Si \`${faseId}\` está en \`fases\`, todo va por ${FASES[faseId].titulo}, como dice este archivo.
+- Si no está, ${FASES[faseId].titulo} no existe en esta tarea: el encargo te lo da xi-0 y le entregas a xi-0 (\`team-lead\`) con la misma ficha, de hasta ${EQ.palabras_max.directo} palabras. Donde este archivo dice que algo va por \`${faseId}\` o lo decide tu líder de fase, va a xi-0. El guardián niega un mensaje a un líder de fase que no participa.
+- Tus líneas con otros equipos no cambian.
+- En una tarea chica no hay agentes ligeros (el guardián los niega): el trabajo lo haces tú.
+
+## Cuándo entras
 
 - Corrección: ${e.cuando.c}.
 - Función nueva: ${e.cuando.f}.
@@ -487,8 +513,26 @@ La caché de cada agente vence a los 5 minutos sin turno: el turno siguiente vue
 
 - No arranques cómputo pesado sin un encargo que lo pida con su tope de tiempo.
 - Antes de una corrida de más de ~15 min, haz una prueba de humo de 2 min como mucho, con una muestra chica: cada salida debe tener sentido (no vacía, no constante, sin errores). Si falla, corrige antes de gastar la corrida completa.
-- Una corrida de más de ~4 min la lanzas tú con \`run_in_background: true\` y su salida a un archivo. Sigue viva aunque termine tu turno, pero no cuentes con el aviso de fin: no siempre llega.
-- Para esperarla, lanza un ligero nuevo cuyo único encargo sea esperarla (\`Tarea: esperar <archivo> hasta <condición>\`, con \`Tope\`). Su contexto es chico, así que cada consulta cuesta poco. No la esperes tú ni la espere un ligero que ya trae mucho contexto. Al volver, otro ligero nuevo lee los resultados.
+- Una corrida de más de ~4 min no la espera nadie del equipo: dejas un **relevo** y te cierras. Antes de lanzarla, deja con commit lo que lleves (salvo en tarea chica) y escribe \`<worktree_tarea>/.xi-0/relevo/${id}.md\` (el guardián lo exige; vale 10 min):
+
+  \`\`\`
+  lanzado: <comando, y desde qué carpeta>
+  resultado: <worktree_tarea>/.xi-0/relevo/${id}.fin
+  salida: <worktree_tarea>/.xi-0/relevo/${id}.log
+  tope: <HH:MM en que debería haber terminado>
+  al terminar: <qué leer, qué decidir y qué falta del encargo>
+  hecho: <lo que ya quedó terminado antes de lanzar>
+  \`\`\`
+
+- Lánzala desprendida, de modo que al acabar deje el archivo de \`resultado\`:
+
+  \`\`\`
+  nohup <comando> > <salida> 2>&1 && echo ok > <resultado> || echo falla > <resultado> &
+  \`\`\`
+
+- Avisa en una línea, \`relevo: .xi-0/relevo/${id}.md\` (a tu líder de fase, o a xi-0 si no participa), y termina tu turno. xi-0 te cierra, vigila el archivo de resultado sin gastar contexto y, cuando aparece o vence el tope, lanza a un ${e.titulo} nuevo que retoma desde el relevo.
+- Si al arrancar existe \`.xi-0/relevo/${id}.md\`, tú eres ese relevo: léelo antes que nada, mira \`resultado\` y \`salida\`, y sigue desde \`al terminar\`. Si el tope venció sin resultado, la corrida no terminó: diagnostica con la salida antes de relanzar nada. Cuando retomes, borra los archivos del relevo.
+- Tus ligeros no usan segundo plano (el guardián lo niega): si a uno le toca una corrida larga, la lanza con \`nohup\` y te devuelve la ruta de la salida.
 ` : ''}
 ${COMUN_LIDER}
 `;
@@ -508,12 +552,11 @@ Eres un agente ligero (nivel 3) del equipo ${meta.nombre}, lanzado por ${e.titul
 ## Reglas
 
 - Haz solo la tarea acotada que te dieron. Nada fuera de ella. Si llegas al \`Tope\` del encargo, entrega lo que tengas: \`estado: bloqueado\` y en \`nota:\` qué falta.
-${e.bash ? `- Ninguna llamada espera más de 4 minutos: ni \`sleep\` largo, ni \`time.sleep\`, ni bucles de espera con \`timeout\` alto. Tu caché vence a los 5 minutos y el turno siguiente volvería a escribir todo tu contexto; el guardián lo niega. Si una corrida tarda más, va en segundo plano con su salida a un archivo, y tu líder decide quién la espera.
-- Si tu tarea es esperar una corrida: \`sleep 230\` con \`timeout: 250000\`, más una comprobación corta (que exista el archivo de resultado, o \`tail -n 2\` del log). Repite hasta que termine o llegues al tope. No leas los resultados: solo confirma que terminó y dónde quedaron.
+${e.bash ? `- Ninguna llamada espera más de 4 minutos: ni \`sleep\` largo, ni \`time.sleep\`, ni bucles de espera con \`timeout\` alto. Tu caché vence a los 5 minutos y el turno siguiente volvería a escribir todo tu contexto; el guardián lo niega. Si una corrida tarda más, no la esperas ni usas \`run_in_background\` (el guardián lo niega: a ti nadie te entrega el aviso): lánzala con \`nohup <comando> > <archivo de salida> 2>&1 &\`, y termina con \`estado: bloqueado\`, la ruta de la salida en \`dónde:\` y qué falta en \`nota:\`. Tu líder decide qué sigue.
 ` : ''}- Escribe solo en las carpetas de \`carpetas.${id}\` en \`.claude/xi-0/config.json\` (el guardián bloquea lo demás).
 - No leas enteros los archivos de \`no_leer\` de esa config (datos de varios MB): usa \`Grep\`, \`head\` o \`Read\` con \`limit\`.
 - No lanzas agentes, no hablas con otros equipos ni con el usuario.
-${e.bash && e.codigo ? `- Si cambias código: un commit por unidad terminada, en tu worktree:\n\n  \`\`\`\n  tipo(área): qué cambió\n  Por qué, en 1 a 3 líneas.\n  Tarea: #<id>\n  \`\`\`\n\n  Sin código comentado, archivos de prueba sueltos ni TODOs. Si te piden guardar por límite, haz commit \`wip: ...\` de lo que lleves.\n` : ''}${(e.reglasLigero || []).map((x) => `- ${x}\n`).join('')}- Al terminar, tu respuesta final son solo tres líneas y te detienes:
+${e.bash && e.codigo ? `- Si cambias código: un commit por unidad terminada, en el worktree que te indique tu líder:\n\n  \`\`\`\n  tipo(área): qué cambió\n  Por qué, en 1 a 3 líneas.\n  Tarea: #<id>\n  \`\`\`\n\n  Sin código comentado, archivos de prueba sueltos ni TODOs. Si te piden guardar por límite, haz commit \`wip: ...\` de lo que lleves.\n` : ''}${(e.reglasLigero || []).map((x) => `- ${x}\n`).join('')}- Al terminar, tu respuesta final son solo tres líneas y te detienes:
 
 \`\`\`
 estado: hecho | bloqueado

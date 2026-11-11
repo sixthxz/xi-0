@@ -274,6 +274,28 @@ function reglaComandos(cfg, quien, comando, raizTarea, activa) {
   }
 }
 
+// Tarea chica (reglas 3): la tarea sale en un solo commit. Quien construye no hace commit hasta que QA
+// dejó su resultado completo y sin fallas abiertas. Excepción: guardar avance ("wip:") con el límite en Guardado o Pausa.
+function reglaCommitChica(quien, comando, activa, raizTarea, limite) {
+  if (Number((activa || {}).reglas) < 3 || activa.tamano !== 'chica' || !raizTarea) return;
+  if (!['equipo', 'ligero'].includes(quien.rol) || !['prisma', 'forja'].includes(quien.equipo)) return;
+  for (const p of piezas(comando)) {
+    const g = subcomandoGit(p);
+    if (!g || g.sub !== 'commit') continue;
+    let mensaje = '';
+    g.args.forEach((a, i) => {
+      const m = /^--message=(.*)$/.exec(a);
+      if (m) mensaje = mensaje || m[1];
+      else if (/^(--message|-[a-zA-Z]*m)$/.test(a)) mensaje = mensaje || g.args[i + 1] || '';
+    });
+    if (/^wip:/i.test(mensaje.trim()) && ['guardado', 'pausa'].includes(limite.nivel)) continue;
+    const faltan = faltanEnResultado(raizTarea, true);
+    const abiertas = leerFallas(raizTarea).filter((x) => /^abiert/i.test(x.estado || ''));
+    if (faltan.length || abiertas.length)
+      negar(`En una tarea chica el commit es uno solo y va después de QA: ${faltan.length ? `a .xi-0/qa/resultado.md le faltan ${faltan.join(' · ')}` : `hay fallas abiertas (${abiertas.map((a) => a.f).join(', ')})`}. Deja los cambios sin commit, avisa a xi-0 que están listos para QA y espera su visto bueno. Solo con el límite en Guardado vale un commit "wip: ...".`);
+  }
+}
+
 function reglaDependencias(cfg, clave, s, raizTarea) {
   let paquetes = [];
   let m;
@@ -423,10 +445,7 @@ function reglaTareaCompletada(cfg, quien, raiz, activa, raizTarea, entrada) {
   if (quien.equipo !== 'argos') return;
 
   const qa = path.join(raizTarea, '.xi-0', 'qa');
-  const resultado = leerTexto(path.join(qa, 'resultado.md'));
-  const lineas = [['pruebas', 'pruebas: <comandos y resultado>'], ['revisi[oó]n', 'revision: <aprobado | N hallazgos>'], ['visual', 'visual: <aprobado | no aplica | N hallazgos>']];
-  if (v2) lineas.push(['validez', 'validez: <aprobado (n/n criterios) | N huecos o hallazgos>']);
-  const faltan = lineas.filter(([re]) => !campos(resultado, re).some(Boolean)).map(([, linea]) => `"${linea}"`);
+  const faltan = faltanEnResultado(raizTarea, v2);
   if (faltan.length) frenar(`QA no completa sin probar, revisar, mirar${v2 ? ' y validar' : ''}: a .xi-0/qa/resultado.md le faltan ${faltan.join(' · ')}.`);
   if (!v2) return;
 
@@ -437,7 +456,7 @@ function reglaTareaCompletada(cfg, quien, raiz, activa, raizTarea, entrada) {
   const sinClase = fallas.filter((x) => /^qa-/i.test(x.f)).map((x) => [x.f, faltanEnFallaQA(x.txt)]).filter(([, falta]) => falta.length);
   if (sinClase.length) frenar(`Fallas de QA sin clasificar: ${sinClase.map(([f, falta]) => `${f} (falta ${falta.join(', ')})`).join('; ')}.`);
   const anotadas = seccion(validez, /^#{1,6}[ \t]*pruebas existentes/im);
-  const sinJustificar = pruebasExistentesCambiadas(cfg, raiz, activa).filter((p) => !anotadas.includes(p) && !anotadas.includes(path.posix.basename(p)));
+  const sinJustificar = pruebasExistentesCambiadas(cfg, raiz, activa, raizTarea).filter((p) => !anotadas.includes(p) && !anotadas.includes(path.posix.basename(p)));
   if (sinJustificar.length) frenar(`Cambiaron o se borraron pruebas que ya existían en ${cfg.rama_base || 'main'} y no están en "Pruebas existentes que cambiaron" de .xi-0/qa/validez.md: ${sinJustificar.join(', ')}. Anota qué cambió y el requisito o contrato que excedía, o revierte el cambio.`);
 }
 
@@ -445,6 +464,13 @@ function reglaTareaCompletada(cfg, quien, raiz, activa, raizTarea, entrada) {
 // Las tareas abiertas antes de las reglas de evidencia siguen con las anteriores.
 const reglasEvidencia = (activa) => Number((activa || {}).reglas) >= 2;
 const leerTexto = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } };
+// Las líneas que le faltan a .xi-0/qa/resultado.md para valer como resultado de QA.
+function faltanEnResultado(raizTarea, v2) {
+  const resultado = leerTexto(path.join(raizTarea, '.xi-0', 'qa', 'resultado.md'));
+  const lineas = [['pruebas', 'pruebas: <comandos y resultado>'], ['revisi[oó]n', 'revision: <aprobado | N hallazgos>'], ['visual', 'visual: <aprobado | no aplica | N hallazgos>']];
+  if (v2) lineas.push(['validez', 'validez: <aprobado (n/n criterios) | N huecos o hallazgos>']);
+  return lineas.filter(([re]) => !campos(resultado, re).some(Boolean)).map(([, linea]) => `"${linea}"`);
+}
 
 // Lee "campo: valor" aunque venga como "- campo: valor" o "**Campo:** valor" (así escriben algunos agentes).
 function campos(txt, nombre) {
@@ -509,16 +535,19 @@ function seccion(txt, encabezado) {
 }
 
 // Archivos de prueba (carpetas de Argos) que ya existían en la rama base y que la tarea cambió o borró.
-function pruebasExistentesCambiadas(cfg, raiz, activa) {
-  if (!activa || !activa.rama) return [];
+function pruebasExistentesCambiadas(cfg, raiz, activa, raizTarea) {
+  if (!activa) return [];
   const base = cfg.rama_base || 'main';
   const reglas = (cfg.carpetas || {}).argos || [];
   const incluye = Array.isArray(reglas) ? reglas : reglas.incluye || [];
   const cambiadas = new Set();
-  for (const rama of [`${activa.rama}-argos`, `${activa.rama}/argos`, activa.rama]) {
+  const comparaciones = activa.rama ? [`${activa.rama}-argos`, `${activa.rama}/argos`, activa.rama].map((rama) => [raiz, `${base}...${rama}`]) : [];
+  // Con reglas 3 cuentan también los cambios sin commit de la copia de la tarea (en una tarea chica no hay commits hasta el final).
+  if (Number(activa.reglas) >= 3 && raizTarea) comparaciones.push([win(raizTarea), base]);
+  for (const [donde, que] of comparaciones) {
     let salida;
     try {
-      salida = execFileSync('git', ['-c', 'core.quotepath=false', '-C', raiz, 'diff', '--name-status', '--diff-filter=MDRT', `${base}...${rama}`, '--'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      salida = execFileSync('git', ['-c', 'core.quotepath=false', '-C', donde, 'diff', '--name-status', '--diff-filter=MDRT', que, '--'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
     } catch { continue; } // la rama no existe o git falló: esta regla no bloquea por eso
     for (const linea of salida.split('\n')) {
       const archivo = linea.split('\t')[1]; // en un renombre es la ruta vieja
@@ -582,6 +611,7 @@ function atender() {
       if (e.tool_name === 'Bash') {
         reglaEsperas(quien, e.tool_input || {}, activa, [raizTarea, raizWorktree(path.join(e.cwd || process.cwd(), 'x'))]);
         reglaComandos(cfg, quien, e.tool_input.command || '', raizTarea, activa);
+        reglaCommitChica(quien, e.tool_input.command || '', activa, raizTarea, limite);
       }
       else if (['Write', 'Edit', 'NotebookEdit'].includes(e.tool_name)) {
         if (quien.rol === 'desconocido') negar(`"${quien.equipo}" no pertenece al equipo xi-0 y no puede escribir mientras hay una tarea activa.`);

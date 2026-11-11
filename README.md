@@ -58,7 +58,9 @@ Cada líder de equipo puede lanzar agentes ligeros propios (`<equipo>-ligero`, e
 ## Cómo se trabaja
 
 - **Tú hablas solo con xi-0.** xi-0 entiende la orden, elige la ruta, lanza a los líderes y entrega. No escribe código.
-- **Tres tipos de tarea:** corrección, función nueva y proyecto completo. Cada una tiene su ruta de pasos; QA y DevOps entran siempre.
+- **Tres tipos de tarea:** corrección, función nueva y proyecto completo. Cada una tiene su ruta de pasos, y QA entra siempre.
+- **Tres tamaños:** chica, mediana y grande. Una tarea chica (un solo lado, pocos archivos, sin contratos ni dependencias nuevas) la hacen dos agentes: quien construye y QA. Los líderes de fase entran solo cuando hay dos o más equipos que coordinar.
+- **Un commit por tarea.** La rama se entrega como un solo commit sobre tu rama base.
 - **Cada tarea vive en su rama** `tarea/<id>`, en una copia aparte del repo (worktree). Nadie trabaja sobre tu rama principal.
 - **Los mensajes siguen líneas fijas.** Un equipo habla con su líder de fase y con los equipos con los que tiene línea, con un máximo de palabras. El detalle va en archivos dentro de `.xi-0/`.
 - **Las decisiones valen por su evidencia.** QA no cierra sin pruebas, revisión de código, validez de las pruebas y cada criterio de la tarea cubierto.
@@ -136,7 +138,7 @@ node ~/.claude/xi-0/metricas.js /ruta/a/tu/repo
 
 Un equipo de agentes gasta bastante más que una sesión sola. En una tarea real de 21 horas medida con `metricas.js`, casi la mitad del costo fue caché vencida: agentes esperando corridas largas. De ahí salieron la regla de los 4 minutos y el trabajo en curso.
 
-**En curso: ruta por tamaño.** La meta es que una corrección chica use 2 agentes en lugar de 9 o más, y que un agente que lanza una corrida larga deje un archivo de relevo y se cierre en vez de esperar. El guardián ya tiene esas reglas (se activan con `"reglas": 3` en la tarea); la habilidad y los agentes todavía no las usan.
+**Ruta por tamaño y relevo.** Una corrección chica usa 2 agentes en lugar de 9 o más, sin líderes de fase ni agentes ligeros. Un agente que lanza una corrida larga deja un archivo de relevo y se cierra en vez de esperar; otro agente retoma cuando la corrida termina. Todavía falta medirlo en una tarea real: cuánto baja el costo y si el relevo funciona de punta a punta están sin comprobar.
 
 ## Estructura
 

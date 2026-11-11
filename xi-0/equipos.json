@@ -44,6 +44,6 @@
     ["sextante", "plano", "ida y vuelta"]
   ],
   "limite": { "ahorro": 70, "guardado": 85, "pausa": 95 },
-  "palabras_max": { "equipo": 180, "fase": 120 },
+  "palabras_max": { "equipo": 180, "fase": 120, "directo": 250 },
   "vueltas_max": 3
 }
