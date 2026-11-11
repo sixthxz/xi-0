@@ -191,6 +191,20 @@ Además, en las dos plantillas los líderes de fase pueden usar `head`, `tail`, 
 
 Sin tocar, y conviene saberlo: la lista de comandos no mira lo que va dentro de `$( )` ni de comillas invertidas, y un comando permitido puede redirigir su salida a cualquier archivo (`cat x > y`). Las reglas de push, PR y merge sí miran dentro. Cerrarlo puede negar usos que hoy pasan (por ejemplo `git commit -m "$(cat <<EOF ...)"` en quien solo tiene `git`), así que va aparte y con medición.
 
+## Tarea chica que toca una pantalla que ya existe (2026-11-11)
+
+Hasta ahora, tocar una pantalla que ya existía metía a Diseño en la ruta, y con Diseño la tarea dejaba de ser chica: ningún cambio de interfaz podía ir por la ruta barata. Ahora, si la orden ya dice qué debe verse (estados, textos y dónde va cada cosa), Diseño no entra y la tarea puede ser chica. Argos captura el antes (guardando los cambios con `git stash`) y el después, y compara. Si hay que decidir flujos, estados o composición, sigue entrando Diseño y la tarea es mediana.
+
+`qa_visual.propio` (opcional, texto): para un proyecto que ya tiene su propio recorrido con navegador, por ejemplo una aplicación que necesita servidor y base de datos de pruebas y no se puede servir desde una carpeta compilada. Argos sigue lo que diga ahí en vez de `recorrido.js`.
+
+Sin medir todavía en una tarea real.
+
+## El guardián se apagaba si git no reconocía el repo (2026-11-11)
+
+El guardián ubica el repo con `git rev-parse`. En una carpeta donde git se niega a trabajar ("dubious ownership": la carpeta es de otro dueño de Windows y no está en `safe.directory`), esa llamada fallaba, el guardián no encontraba la config y dejaba pasar todo sin avisar. Ahora, si git falla, busca la raíz leyendo `.git` (carpeta, o archivo `gitdir:` en un worktree). Dos casos en `pruebas/guardian.test.js`.
+
+Aparte, en un repo así los agentes tampoco pueden usar git. Se arregla sin tocar la config global, con tres variables en `env` de los settings del repo: `GIT_CONFIG_COUNT=1`, `GIT_CONFIG_KEY_0=safe.directory`, `GIT_CONFIG_VALUE_0=<ruta del repo o *>`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

@@ -26,7 +26,7 @@
     ]
   },
   "qa_visual": {
-    "_nota": "Opcional, solo si el proyecto tiene interfaz web. Pide npm install en ~/.claude/xi-0/qa-visual. Sin esta clave no hay capturas y QA escribe \"visual: no aplica\".",
+    "_nota": "Opcional, solo si el proyecto tiene interfaz web. Pide npm install en ~/.claude/xi-0/qa-visual. Sin esta clave no hay capturas y QA escribe \"visual: no aplica\". Si el proyecto ya tiene su propio recorrido con navegador, descríbelo en propio (texto: comandos y dónde deja las capturas) y QA lo sigue en vez de recorrido.js.",
     "url_publicada": null,
     "build": "npm run build",
     "dist": "spa/dist/mi-app/browser"

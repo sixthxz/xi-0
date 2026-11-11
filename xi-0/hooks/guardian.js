@@ -69,6 +69,20 @@ function raizPrincipal(cwd) {
   try {
     const comun = execFileSync('git', ['-C', win(cwd), 'rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
     return norm(path.dirname(comun));
+  } catch { return raizSinGit(cwd); }
+}
+// Si git no responde (por ejemplo "dubious ownership" en una carpeta de otro dueño), la raíz se busca
+// leyendo .git: sin esto el guardián no encontraba la config y dejaba pasar todo.
+function raizSinGit(cwd) {
+  try {
+    const wt = raizWorktree(path.join(win(cwd), 'x'));
+    if (!wt) return null;
+    const punto = path.join(wt, '.git');
+    if (fs.statSync(punto).isDirectory()) return wt;
+    const gitdir = path.resolve(wt, fs.readFileSync(punto, 'utf8').match(/^gitdir:\s*(.+)$/m)[1].trim());
+    let comun = gitdir;
+    try { comun = path.resolve(gitdir, fs.readFileSync(path.join(gitdir, 'commondir'), 'utf8').trim()); } catch { /* no es un worktree */ }
+    return norm(path.dirname(comun));
   } catch { return null; }
 }
 // Raíz del worktree que contiene un archivo (sube hasta encontrar .git, archivo o carpeta).

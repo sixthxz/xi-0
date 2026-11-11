@@ -93,6 +93,8 @@ const CASOS = [
   ['sin tarea: xi-0 no sube a main', 'ninguna', null, bash('git push fork main'), /Nunca push a main/],
   ['sin tarea: xi-0 no une el PR', 'ninguna', null, bash('gh pr merge 1 -R yo/fork'), /merge está desactivado|Solo DevOps/],
   ['reglas 2: xi-0 no abre el PR', 'reglas2', null, bash('gh pr create -R yo/fork --fill'), /Solo Yunque abre/],
+  ['git no reconoce el repo: las reglas siguen', 'reglas2', 'egida', bash('npm publish x'), /no puede ejecutar "npm publish/, { sinGit: true }],
+  ['git no reconoce el repo: las carpetas siguen', 'reglas2', 'prisma', escribir(repo, 'api', 'x.cs'), /no es dueño/, { sinGit: true }],
   // --- Comandos: comillas, asignaciones y redirecciones (bloqueos falsos vistos en una tarea real) ---
   ['comillas: apóstrofo dentro de dobles', 'reglas2', 'egida', bash(`grep "don't" a.md | grep 'x|y'`), PASA],
   ['comillas: barra dentro de simples', 'reglas2', 'egida', bash(`grep -rn 'a|b' "docs/it's" | wc -l`), PASA],
@@ -258,6 +260,7 @@ function correr(activa, quien, [herramienta, entrada], previo) {
   // así que al guardián se le dice que la temporal es otra.
   const otra = path.join(repo, 'sin-tmp');
   const env = { ...process.env, TEMP: otra, TMP: otra, TMPDIR: otra, CLAUDE_PROJECT_DIR: (previo || {}).fuera ? repo : '' };
+  if ((previo || {}).sinGit) env.GIT_DIR = path.join(repo, 'no-existe'); // git deja de reconocer el repo
   const r = spawnSync(process.execPath, [guardian], { input: JSON.stringify(evento), encoding: 'utf8', env });
   if (p.config) fs.writeFileSync(archivoCfg, JSON.stringify(cfg));
   let motivo = null;

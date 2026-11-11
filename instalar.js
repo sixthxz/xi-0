@@ -109,7 +109,7 @@ function revisar(repo) {
   if (r.pr && !r.repo_pr) avisos.push('"remoto.pr" es true pero falta "repo_pr" (<usuario>/<repo>).');
 
   const qv = cfg.qa_visual;
-  if (qv && !fs.existsSync(path.join(DESTINO, 'qa-visual', 'node_modules')))
+  if (qv && !qv.propio && !fs.existsSync(path.join(DESTINO, 'qa-visual', 'node_modules')))
     avisos.push(`hay "qa_visual" pero falta npm install en ${aTexto(path.join(DESTINO, 'qa-visual'))}.`);
   return avisos;
 }
