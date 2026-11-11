@@ -33,7 +33,7 @@ flowchart TD
 
 Cada líder de equipo puede lanzar agentes ligeros propios (`<equipo>-ligero`, en Sonnet con esfuerzo bajo) dentro de un máximo por equipo.
 
-El mapa interactivo, con la explicación de cada agente y los niveles del límite de uso, está en [`xi-0/mapa.html`](xi-0/mapa.html). Descárgalo y ábrelo en el navegador.
+El mapa interactivo, con la explicación de cada agente y los niveles del límite de uso, está en **[sixthxz.github.io/xi-0/xi-0/mapa.html](https://sixthxz.github.io/xi-0/xi-0/mapa.html)** (el archivo es [`xi-0/mapa.html`](xi-0/mapa.html)).
 
 ### Cómo se trabaja
 

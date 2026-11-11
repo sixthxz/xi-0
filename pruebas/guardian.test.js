@@ -31,7 +31,7 @@ const bash = (command, extra) => ['Bash', { command, ...extra }];
 const agente = (subagent_type, name) => ['Agent', { subagent_type, name: name || '', prompt: 'p' }];
 const PASA = 'pasa';
 
-// [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo]
+// [nombre, tarea activa, quién llama (null = xi-0), [herramienta, entrada], PASA o regex del motivo, relevo previo]
 const CASOS = [
   // --- Mensajes: como siempre con reglas 2 ---
   ['xi-0 no ordena a un equipo', 'reglas2', null, msg('prisma', 'haz el cambio'), /saltándose a su líder de fase/],
@@ -83,15 +83,42 @@ const CASOS = [
   ['espera corta', 'reglas2', 'forja', bash('sleep 200'), PASA],
   ['espera larga', 'reglas2', 'forja', bash('sleep 300'), /Ninguna llamada espera más de 4 min/],
   ['xi-0 puede esperar', 'reglas2', null, bash('sleep 300'), PASA],
+  // --- Relevo antes de una corrida en segundo plano (reglas 3) ---
+  ['reglas 2: segundo plano sin relevo', 'reglas2', 'forja', bash('npm test', { run_in_background: true }), PASA],
+  ['segundo plano sin relevo', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), /escribe \.xi-0\/relevo\/forja\.md/],
+  ['nohup sin relevo', 'medianaYunque', 'forja', bash('nohup npm test > salida.log'), /escribe \.xi-0\/relevo\/forja\.md/],
+  ['segundo plano con relevo', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), PASA, { relevo: 'forja', minutos: 1 }],
+  ['nohup con relevo', 'medianaYunque', 'forja', bash('nohup npm test > salida.log'), PASA, { relevo: 'forja', minutos: 1 }],
+  ['relevo de hace 20 minutos', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), /escribe \.xi-0\/relevo\/forja\.md/, { relevo: 'forja', minutos: 20 }],
+  ['el relevo de otro equipo no vale', 'medianaYunque', 'forja', bash('npm test', { run_in_background: true }), /escribe \.xi-0\/relevo\/forja\.md/, { relevo: 'prisma', minutos: 1 }],
+  ['un ligero no usa segundo plano', 'medianaYunque', 'forja-ligero', bash('npm test', { run_in_background: true }), /Un ligero no usa segundo plano/],
+  ['un ligero sí usa nohup', 'medianaYunque', 'forja-ligero', bash('nohup npm test > salida.log'), PASA],
+  ['xi-0 no necesita relevo', 'chica', null, bash('npm test', { run_in_background: true }), PASA],
+  ['un equipo escribe su relevo', 'chica', 'forja', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'forja.md'), content: 'x' }], PASA],
+  ['un equipo no escribe el relevo de otro', 'chica', 'forja', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'prisma.md'), content: 'x' }], /no es dueño/],
+  ['un ligero no escribe el relevo', 'chica', 'forja-ligero', ['Write', { file_path: path.join(repo, '.xi-0', 'relevo', 'forja.md'), content: 'x' }], /no es dueño/],
 ];
 
-function correr(activa, quien, [herramienta, entrada]) {
+function correr(activa, quien, [herramienta, entrada], previo) {
+  const relevos = path.join(repo, '.xi-0', 'relevo');
+  fs.rmSync(relevos, { recursive: true, force: true });
+  if (previo) {
+    fs.mkdirSync(relevos, { recursive: true });
+    const r = path.join(relevos, `${previo.relevo}.md`);
+    fs.writeFileSync(r, 'resultado: salida.log\ntope: 12:00\n');
+    const hace = new Date(Date.now() - previo.minutos * 60000);
+    fs.utimesSync(r, hace, hace);
+  }
   const f = path.join(repo, '.claude', 'xi-0', 'activa.json');
   if (activa) fs.writeFileSync(f, JSON.stringify(activa)); else fs.rmSync(f, { force: true });
   fs.rmSync(path.join(repo, '.claude', 'xi-0', 'activos.json'), { force: true });
   const evento = { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: repo, tool_input: entrada };
   if (quien) evento.agent_type = quien;
-  const r = spawnSync(process.execPath, [GUARDIAN], { input: JSON.stringify(evento), encoding: 'utf8' });
+  // El guardián deja escribir en la carpeta temporal del sistema; aquí el repo de prueba vive en ella,
+  // así que al guardián se le dice que la temporal es otra.
+  const otra = path.join(repo, 'sin-tmp');
+  const env = { ...process.env, TEMP: otra, TMP: otra, TMPDIR: otra };
+  const r = spawnSync(process.execPath, [GUARDIAN], { input: JSON.stringify(evento), encoding: 'utf8', env });
   let motivo = null;
   try {
     const o = JSON.parse(r.stdout).hookSpecificOutput;
@@ -102,8 +129,8 @@ function correr(activa, quien, [herramienta, entrada]) {
 }
 
 let fallos = 0;
-for (const [nombre, clave, quien, llamada, espera] of CASOS) {
-  const motivo = correr(ACTIVAS[clave], quien, llamada);
+for (const [nombre, clave, quien, llamada, espera, previo] of CASOS) {
+  const motivo = correr(ACTIVAS[clave], quien, llamada, previo);
   const bien = espera === PASA ? motivo === null : motivo !== null && espera.test(motivo);
   if (!bien) {
     fallos++;

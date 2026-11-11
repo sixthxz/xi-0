@@ -156,9 +156,25 @@ function segmentos(comando) {
 // siguiente vuelva a escribir todo el contexto (en una tarea real medida, el 25% del costo).
 // Se mira el comando crudo, porque las esperas suelen ir entre comillas (python -c "...time.sleep(299)").
 const ESPERA_MAX_S = 240;
-function reglaEsperas(quien, ti) {
-  if (quien.rol === 'xi-0' || ti.run_in_background) return;
+const RELEVO_MIN = 10;
+function relevoReciente(equipo, raices) {
+  return raices.filter(Boolean).some((r) => {
+    try { return Date.now() - fs.statSync(path.join(win(r), '.xi-0', 'relevo', `${equipo}.md`)).mtimeMs < RELEVO_MIN * 60000; } catch { return false; }
+  });
+}
+function reglaEsperas(quien, ti, activa, raices) {
+  if (quien.rol === 'xi-0') return;
   const cmd = String(ti.command || '');
+  // Con reglas 3: quien deja una corrida en segundo plano escribe antes su relevo, para que otro agente
+  // pueda retomar el trabajo. A un ligero nadie le entrega el aviso de segundo plano: usa nohup.
+  if (Number((activa || {}).reglas) >= 3) {
+    const desprendida = ti.run_in_background || /(^|[;&|(\n])\s*nohup\s/.test(cmd);
+    if (quien.rol === 'ligero' && ti.run_in_background)
+      negar('Un ligero no usa segundo plano: nadie recibe el aviso. Lanza la corrida con nohup y salida a archivo, y devuelve la ruta de ese archivo.');
+    if (quien.rol === 'equipo' && desprendida && !relevoReciente(quien.equipo, raices))
+      negar(`Antes de dejar una corrida en segundo plano escribe .xi-0/relevo/${quien.equipo}.md (qué lanzaste, "resultado: <archivo>" y "tope: <hora>"). Vale por ${RELEVO_MIN} min.`);
+  }
+  if (ti.run_in_background) return;
   const seg = [];
   // sleep como comando (inicio, tras ; & | ( o do/then), no dentro de un texto como un mensaje de commit
   for (const m of cmd.matchAll(/(?:^|[;&|(\n]|\bdo|\bthen)\s*sleep\s+(\d+(?:\.\d+)?)([smh]?)\b/g)) seg.push(+m[1] * ({ m: 60, h: 3600 }[m[2]] || 1));
@@ -215,6 +231,7 @@ function reglaCarpetas(cfg, quien, archivo, raiz) {
   const wt = raizWorktree(abs);
   if (!wt || raizPrincipal(wt) !== raiz) negar(`${quien.equipo} no puede escribir fuera del repo y sus worktrees: ${abs}`);
   const rel = abs.slice(wt.length + 1);
+  if (quien.rol === 'equipo' && rel === `.xi-0/relevo/${quien.equipo}.md`) return; // su relevo, sin tocar la config del repo
   const reglas = (cfg.carpetas || {})[quien.equipo] || { incluye: [] };
   const incluye = Array.isArray(reglas) ? reglas : reglas.incluye;
   const excluye = Array.isArray(reglas) ? [] : reglas.excluye || [];
@@ -437,7 +454,7 @@ process.stdin.on('end', () => {
   switch (e.hook_event_name) {
     case 'PreToolUse':
       if (e.tool_name === 'Bash') {
-        reglaEsperas(quien, e.tool_input || {});
+        reglaEsperas(quien, e.tool_input || {}, activa, [raizTarea, raizWorktree(path.join(e.cwd || process.cwd(), 'x'))]);
         reglaComandos(cfg, quien, e.tool_input.command || '', raizTarea, activa);
       }
       else if (['Write', 'Edit', 'NotebookEdit'].includes(e.tool_name)) {
