@@ -201,11 +201,22 @@ function subcomandoGh(p) {
 }
 
 // Quita cuerpos de heredoc y el contenido entre comillas para no confundir texto con comandos.
+// Se recorre de izquierda a derecha: manda la comilla que abre primero, así un apóstrofo dentro de
+// comillas dobles ("don't") no se toma por el comienzo de otra cadena.
 function limpiar(comando) {
-  return comando
-    .replace(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(\n|$)/g, '<<HEREDOC\n')
-    .replace(/'[^']*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  const t = comando.replace(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(\n|$)/g, '<<HEREDOC\n');
+  let salida = '';
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (c === '\\' && i + 1 < t.length) { salida += c + t[++i]; continue; } // \' y \" no abren cadena
+    if (c !== "'" && c !== '"') { salida += c; continue; }
+    let j = i + 1;
+    while (j < t.length && t[j] !== c) j += c === '"' && t[j] === '\\' ? 2 : 1;
+    if (j >= t.length) { salida += t.slice(i); break; } // comilla sin cerrar: se deja como está
+    salida += c + c;
+    i = j;
+  }
+  return salida;
 }
 
 // Parte un comando en piezas simples: separa && || ; | y saltos de línea, quita cd y variables iniciales.
@@ -217,6 +228,10 @@ function segmentos(comando) {
     .map((s) => s.replace(/^(\w+=("[^"]*"|'[^']*'|\S+)\s+)+/, ''))
     .map((s) => s.replace(/^(GIT_CONFIG_\w+=\S+\s+)+/, ''))
     .map((s) => s.replace(/^((time(\s+-p)?|nohup|timeout\s+\d+[smh]?)\s+)+/, '')) // envoltorios: se revisa lo que envuelven
+    // Redirecciones que no escriben ningún archivo (2>&1, >/dev/null): sin esto una expresión terminada en $ nunca coincide.
+    .map((s) => s.replace(/\s*(?:\d*>&\d+|&>>?\s*\/dev\/null|\d*>>?\s*\/dev\/null)(?=\s|$)/g, '').trim())
+    // Una asignación sola (F="ruta") no ejecuta nada. Con $( ) dentro no entra aquí y se sigue revisando.
+    .filter((s) => !/^\w+=(""|''|[^\s$`()]*)$/.test(s))
     .filter((s) => s && !/^cd\s/.test(s) && !/^(echo|true|exit)\b/.test(s))
     .concat(internos);
 }
