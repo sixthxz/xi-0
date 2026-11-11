@@ -92,14 +92,26 @@
   },
   "comandos": {
     "norte": [
-      "git"
+      "git",
+      "head",
+      "tail",
+      "grep",
+      "wc"
     ],
     "meridiano": [
-      "git"
+      "git",
+      "head",
+      "tail",
+      "grep",
+      "wc"
     ],
     "yunque": [
       "git",
-      "gh pr create"
+      "gh pr create",
+      "head",
+      "tail",
+      "grep",
+      "wc"
     ],
     "lumen": [
       "re:^node\\s+\\S*recorrido\\.js\\b"

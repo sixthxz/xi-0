@@ -179,6 +179,18 @@ Sin medir todavía: una tarea chica, la misma tarea en una sesión sola (no hay 
 - Con una tarea abierta no cambia nada: abre el PR Yunque, o Faro si Yunque no participa. Las tareas con `"reglas": 2` siguen igual.
 - Subir a `main` y unir el PR siguen negados a la sesión principal.
 
+## Bloqueos falsos de comandos (2026-11-11)
+
+En la primera tarea medida el guardián negó comandos que sí estaban permitidos. Tres causas, las tres en cómo parte un comando antes de compararlo con la lista:
+
+- **Comillas mezcladas.** Un apóstrofo dentro de comillas dobles (`grep "don't" a.md | grep 'x|y'`) se tomaba por el comienzo de otra cadena, y una `|` que iba entre comillas partía el comando. Ahora se recorre de izquierda a derecha y manda la comilla que abre primero.
+- **Asignación sola.** `F="ruta"` en su propia línea se trataba como un comando llamado `F=""`. Ya no se revisa, salvo que lleve `$( )` o comillas invertidas.
+- **Redirecciones.** `2>&1` y `> /dev/null` hacían que una expresión terminada en `$` no coincidiera nunca. Se quitan antes de comparar; una redirección a un archivo se deja.
+
+Además, en las dos plantillas los líderes de fase pueden usar `head`, `tail`, `grep` y `wc`: solo tenían `git` y no podían ni acortar la salida de `git log`.
+
+Sin tocar, y conviene saberlo: la lista de comandos no mira lo que va dentro de `$( )` ni de comillas invertidas, y un comando permitido puede redirigir su salida a cualquier archivo (`cat x > y`). Las reglas de push, PR y merge sí miran dentro. Cerrarlo puede negar usos que hoy pasan (por ejemplo `git commit -m "$(cat <<EOF ...)"` en quien solo tiene `git`), así que va aparte y con medición.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

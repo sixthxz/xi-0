@@ -93,6 +93,17 @@ const CASOS = [
   ['sin tarea: xi-0 no sube a main', 'ninguna', null, bash('git push fork main'), /Nunca push a main/],
   ['sin tarea: xi-0 no une el PR', 'ninguna', null, bash('gh pr merge 1 -R yo/fork'), /merge está desactivado|Solo DevOps/],
   ['reglas 2: xi-0 no abre el PR', 'reglas2', null, bash('gh pr create -R yo/fork --fill'), /Solo Yunque abre/],
+  // --- Comandos: comillas, asignaciones y redirecciones (bloqueos falsos vistos en una tarea real) ---
+  ['comillas: apóstrofo dentro de dobles', 'reglas2', 'egida', bash(`grep "don't" a.md | grep 'x|y'`), PASA],
+  ['comillas: barra dentro de simples', 'reglas2', 'egida', bash(`grep -rn 'a|b' "docs/it's" | wc -l`), PASA],
+  ['comillas: lo de fuera se sigue revisando', 'reglas2', 'egida', bash(`grep "don't" a.md | npm publish 'x'`), /no puede ejecutar "npm publish/],
+  ['comillas: sin cerrar no esconde nada', 'reglas2', 'egida', bash(`grep "abc a.md; npm publish`), /no puede ejecutar "npm publish/],
+  ['asignación sola', 'reglas2', 'egida', bash('F="notas de qa.md"\ncat "$F"'), PASA],
+  ['asignación con un comando dentro', 'reglas2', 'egida', bash('F=$(npm publish x)\ncat "$F"'), /no puede ejecutar/],
+  ['redirección 2>&1 con expresión anclada', 'reglas2', 'egida', bash("sed -n '1,5p' a.md 2>&1"), PASA],
+  ['redirección a /dev/null', 'reglas2', 'egida', bash("sed -n '1,5p' a.md > /dev/null 2>&1"), PASA],
+  ['un líder de fase filtra la salida de git', 'reglas2', 'meridiano', bash('git log --oneline | tail -12'), PASA],
+  ['un líder de fase no corre otra cosa', 'reglas2', 'meridiano', bash('git log --oneline | npm test'), /no puede ejecutar "npm test/],
   ['mediana sin Yunque: Faro sube', 'medianaMeridiano', 'faro', bash('git push fork tarea/t1'), PASA],
   // --- Remotos: el push se reconoce esté escrito como esté ---
   ['push: git -C no lo esconde', 'reglas2', 'yunque', bash('git -C . push fork main'), /Nunca push a main/],
