@@ -52,7 +52,9 @@ if (args.includes('--quitar')) {
 
 const comun = execFileSync('git', ['-c', 'safe.directory=*', '-C', wt, 'rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8' }).trim();
 const principal = path.dirname(comun);
-if (path.resolve(principal) === wt) { console.log('Es el repo principal: no hay nada que enlazar.'); process.exit(0); }
+// Rutas reales: en Windows una carpeta puede llegar con su nombre corto (C:/Users/RUNNER~1) y git da el largo.
+const real = (p) => { try { return fs.realpathSync.native(p).toLowerCase(); } catch { return path.resolve(p).toLowerCase(); } };
+if (real(principal) === real(wt)) { console.log('Es el repo principal: no hay nada que enlazar.'); process.exit(0); }
 
 const enlazados = [];
 const distintos = [];
