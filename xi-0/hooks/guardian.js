@@ -388,6 +388,10 @@ function reglaEsperas(quien, ti, activa, raices) {
     const desprendida = ti.run_in_background || /(^|[;&|(\n])\s*nohup\s/.test(cmd);
     if (quien.rol === 'ligero' && ti.run_in_background)
       negar('Un ligero no usa segundo plano: nadie recibe el aviso. Lanza la corrida con nohup y salida a archivo, y devuelve la ruta de ese archivo.');
+    // Reglas 4: tampoco un líder de equipo. En una tarea real, varios lanzaron la verificación en segundo plano
+    // y se quedaron parados esperando un aviso que a un compañero no le llega.
+    if (Number(activa.reglas) >= 4 && quien.rol === 'equipo' && ti.run_in_background)
+      negar(`No uses segundo plano: a un compañero no le llega el aviso de que terminó y te quedarías parado. Si tarda menos de 10 min, córrelo en primer plano con timeout hasta 600000. Si tarda más, escribe .xi-0/relevo/${quien.equipo}.md, lánzalo con nohup <comando> > <archivo> 2>&1 & y cierra tu turno: xi-0 vigila el archivo y lanza tu relevo.`);
     if (quien.rol === 'equipo' && desprendida && !relevoReciente(quien.equipo, raices))
       negar(`Antes de dejar una corrida en segundo plano escribe .xi-0/relevo/${quien.equipo}.md (qué lanzaste, "resultado: <archivo>" y "tope: <hora>"). Vale por ${RELEVO_MIN} min.`);
   }
@@ -402,10 +406,15 @@ function reglaEsperas(quien, ti, activa, raices) {
   if (!seg.length && !/Wait-Process|\btail\s+-f\b|Get-Content\b[^|;]*-Wait/i.test(cmd)) return;
   const tope = Number(ti.timeout) || 120000;
   if (Math.max(0, ...seg) > ESPERA_MAX_S || tope > (ESPERA_MAX_S + 30) * 1000) {
-    negar(`Ninguna llamada espera más de ${ESPERA_MAX_S / 60} min (sleep largo, o espera con timeout de ${Math.round(tope / 1000)} s): tu caché vence a los 5 min y el turno siguiente volvería a escribir todo tu contexto. Para esperar una corrida: "sleep 230" con timeout 250000 y una comprobación corta, repetido; o devuelve a tu líder el archivo de salida y que él lance un ligero nuevo que la espere.`);
+    const forma = Number((activa || {}).reglas) >= 4
+      ? 'Para mirar una corrida que ya lanzaste: "sleep 230; tail -n 20 <archivo de salida>" con timeout 250000, una vez por llamada (sin for, while ni until). Si no va a terminar pronto, deja tu relevo y cierra tu turno.'
+      : 'Para esperar una corrida: "sleep 230" con timeout 250000 y una comprobación corta, repetido; o devuelve a tu líder el archivo de salida y que él lance un ligero nuevo que la espere.';
+    negar(`Ninguna llamada espera más de ${ESPERA_MAX_S / 60} min (sleep largo, o espera con timeout de ${Math.round(tope / 1000)} s): tu caché vence a los 5 min y el turno siguiente volvería a escribir todo tu contexto. ${forma}`);
   }
 }
 
+// Comprobaciones de solo lectura sobre un archivo: tail -n 20 x.log, tail -20 x.log, test -s x.log, [ -f x.log ].
+const COMPROBACION = /^(tail\s+(?:-n\s*)?-?\d+\s+[^\s|;&<>]+|test\s+-[efs]\s+[^\s|;&<>]+|\[\s+-[efs]\s+[^\s|;&<>]+\s+\])$/;
 function reglaComandos(cfg, quien, comando, raizTarea, activa) {
   if (quien.rol === 'xi-0') return; // el líder solo prepara ramas y worktrees; lo vigila su SKILL.md
   const clave = quien.rol === 'fase' ? quien.equipo : quien.equipo;
@@ -417,7 +426,10 @@ function reglaComandos(cfg, quien, comando, raizTarea, activa) {
     // Cada permitido es un prefijo ("npm ci") o una regex con "re:" ("re:^node\\s+\\S*recorrido\\.js\\b").
     const vale = (p) => (p.startsWith('re:') ? new RegExp(p.slice(3)).test(s) : s === p || s.startsWith(p + ' '));
     const corta = /^sleep\s+(\d+(?:\.\d+)?)s?$/.exec(s); // esperar poco siempre vale (ver reglaEsperas)
-    if (!(corta && +corta[1] <= ESPERA_MAX_S) && !permitidos.some(vale)) {
+    // Reglas 4: mirar la salida de una corrida siempre vale, aunque el equipo no tenga tail o test en su lista.
+    // Antes el mensaje de la regla de esperas sugería una comprobación que la lista podía negar.
+    const mira = Number((activa || {}).reglas) >= 4 && COMPROBACION.test(s) && !/\.env\b/.test(s);
+    if (!(corta && +corta[1] <= ESPERA_MAX_S) && !mira && !permitidos.some(vale)) {
       negar(`${clave} no puede ejecutar "${s.slice(0, 80)}". Permitidos: ${permitidos.join(', ') || 'ninguno'}. Si de verdad lo necesitas, pídelo a Sextante por tu líder de fase.`);
     }
     reglaDependencias(cfg, clave, s, raizTarea);

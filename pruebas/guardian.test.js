@@ -236,6 +236,18 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Reglas 4: esperas sin segundo plano y comprobaciones que siempre valen ---
+  ['esperas r4: un líder no usa segundo plano', 'r4Yunque', 'forja', bash('npm test', { run_in_background: true }), /No uses segundo plano[^]*timeout hasta 600000/, { relevo: 'forja', minutos: 1 }],
+  ['esperas r4: nohup con relevo sí', 'r4Yunque', 'forja', bash('nohup npm test > .xi-0/relevo/forja.log 2>&1 &'), PASA, { relevo: 'forja', minutos: 1 }],
+  ['esperas r4: verificación en primer plano con 10 min', 'r4Yunque', 'forja', bash('npm test', { timeout: 600000 }), PASA],
+  ['esperas r4: mirar la salida sin tail en la lista', 'r4Yunque', 'lumen', bash('sleep 230; tail -n 20 .xi-0/relevo/forja.log', { timeout: 250000 }), PASA],
+  ['esperas r4: otras formas de mirar', 'r4Yunque', 'lumen', bash('test -s salida.log && tail -40 salida.log; [ -f salida.fin ]'), PASA],
+  ['esperas r4: tail -f no es mirar', 'r4Yunque', 'lumen', bash('tail -f salida.log'), /no puede ejecutar "tail -f/],
+  ['esperas r4: .env no se mira', 'r4Yunque', 'lumen', bash('tail -n 5 .env'), /no puede ejecutar "tail -n 5 \.env/],
+  ['esperas r4: el mensaje da la forma exacta', 'r4Yunque', 'forja', bash('sleep 230; tail -n 20 x.log', { timeout: 600000 }), /"sleep 230; tail -n 20 <archivo de salida>" con timeout 250000/],
+  ['esperas r4: un bucle de espera sigue negado', 'r4Yunque', 'lumen', bash('until test -f salida.fin; do sleep 30; done'), /no puede ejecutar "until/],
+  ['esperas r3: segundo plano con relevo como antes', 'r3Yunque', 'forja', bash('npm test', { run_in_background: true }), PASA, { relevo: 'forja', minutos: 1 }],
+  ['esperas r3: tail sin estar en la lista, como antes', 'r3Yunque', 'lumen', bash('tail -n 20 salida.log'), /no puede ejecutar "tail/],
   // --- Un comando que actúa en otro repo se juzga con la config de ese repo ---
   ['otro repo: xi-0 abre su PR con la config de ese repo', 'ninguna', null, bash(`cd ${q(otro)} && gh pr create -R yo/otro --fill`), PASA],
   ['otro repo: su repo_pr manda', 'ninguna', null, bash(`cd ${q(otro)} && gh pr create -R yo/fork --fill`), /debe llevar -R yo\/otro/],

@@ -513,7 +513,9 @@ La caché de cada agente vence a los 5 minutos sin turno: el turno siguiente vue
 
 - No arranques cómputo pesado sin un encargo que lo pida con su tope de tiempo.
 - Antes de una corrida de más de ~15 min, haz una prueba de humo de 2 min como mucho, con una muestra chica: cada salida debe tener sentido (no vacía, no constante, sin errores). Si falla, corrige antes de gastar la corrida completa.
-- Una corrida de más de ~4 min no la espera nadie del equipo: dejas un **relevo** y te cierras. Antes de lanzarla, deja con commit lo que lleves (salvo en tarea chica) y escribe \`<worktree_tarea>/.xi-0/relevo/${id}.md\` (el guardián lo exige; vale 10 min):
+- **Nunca uses \`run_in_background\`**, tampoco para la verificación (pruebas, lint, build): a un compañero no le llega el aviso de que terminó y te quedarías parado esperándolo. Nunca termines un turno con "espero el aviso".
+- Una corrida de **hasta 10 min** va en primer plano, en una sola llamada con \`timeout\` de hasta 600000. Pagas una recarga de caché en el turno siguiente, pero sigues trabajando sin depender de nadie. Si no sabes cuánto tarda, mídelo con una parte (un archivo de pruebas) antes de correr todo.
+- Una corrida de **más de 10 min** no la espera nadie del equipo: dejas un **relevo** y te cierras. Antes de lanzarla, deja con commit lo que lleves (salvo en tarea chica) y escribe \`<worktree_tarea>/.xi-0/relevo/${id}.md\` (el guardián lo exige; vale 10 min):
 
   \`\`\`
   lanzado: <comando, y desde qué carpeta>
@@ -552,7 +554,7 @@ Eres un agente ligero (nivel 3) del equipo ${meta.nombre}, lanzado por ${e.titul
 ## Reglas
 
 - Haz solo la tarea acotada que te dieron. Nada fuera de ella. Si llegas al \`Tope\` del encargo, entrega lo que tengas: \`estado: bloqueado\` y en \`nota:\` qué falta.
-${e.bash ? `- Ninguna llamada espera más de 4 minutos: ni \`sleep\` largo, ni \`time.sleep\`, ni bucles de espera con \`timeout\` alto. Tu caché vence a los 5 minutos y el turno siguiente volvería a escribir todo tu contexto; el guardián lo niega. Si una corrida tarda más, no la esperas ni usas \`run_in_background\` (el guardián lo niega: a ti nadie te entrega el aviso): lánzala con \`nohup <comando> > <archivo de salida> 2>&1 &\`, y termina con \`estado: bloqueado\`, la ruta de la salida en \`dónde:\` y qué falta en \`nota:\`. Tu líder decide qué sigue.
+${e.bash ? `- Ninguna llamada espera más de 4 minutos: ni \`sleep\` largo, ni \`time.sleep\`, ni bucles de espera con \`timeout\` alto. Tu caché vence a los 5 minutos y el turno siguiente volvería a escribir todo tu contexto; el guardián lo niega. Una corrida de hasta 10 min va en primer plano, en una llamada con \`timeout\` de hasta 600000. Si tarda más, no la esperas ni usas \`run_in_background\` (el guardián lo niega: a ti nadie te entrega el aviso): lánzala con \`nohup <comando> > <archivo de salida> 2>&1 &\`, y termina con \`estado: bloqueado\`, la ruta de la salida en \`dónde:\` y qué falta en \`nota:\`. Tu líder decide qué sigue.
 ` : ''}- Escribe solo en las carpetas de \`carpetas.${id}\` en \`.claude/xi-0/config.json\` (el guardián bloquea lo demás).
 - No leas enteros los archivos de \`no_leer\` de esa config (datos de varios MB): usa \`Grep\`, \`head\` o \`Read\` con \`limit\`.
 - No lanzas agentes, no hablas con otros equipos ni con el usuario.
