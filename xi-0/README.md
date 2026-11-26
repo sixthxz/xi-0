@@ -297,6 +297,14 @@ Primer comando por fase. Corre solo la fase de Calidad sobre una rama o un PR qu
 - `instalar.js` instala todas las carpetas de `skills/`, no solo `xi-0`.
 - 6 casos nuevos en `pruebas/guardian.test.js`.
 
+## Verificación en el CI del proyecto (2026-11-25)
+
+- Config: `"ci": { "workflow": "verificacion.yml", "no_local": ["pnpm test"] }`. Con `workflow` en `null` todo sigue en local.
+- `xi-0/ci.js` (lo corre xi-0): sube una instantánea del worktree (índice aparte y `commit-tree`; incluye lo que no tiene commit, sin `.xi-0/`) a `tarea/<id>-ci-<n>`, espera la corrida y deja el resultado en `.xi-0/ci/ultimo.md`. `--comprobar` y `--limpiar`.
+- Guardián (reglas 4): niega a los equipos los comandos de `ci.no_local`.
+- `instalar.js --revisar` avisa si falta `remoto.push`, si el workflow no está en la rama base o si `no_local` no coincide con `verificacion`.
+- Pruebas: `pruebas/ci.test.js` (16 casos) y 6 casos nuevos del guardián.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

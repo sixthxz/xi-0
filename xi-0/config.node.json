@@ -11,6 +11,11 @@
     "repo_pr": null,
     "merge": false
   },
+  "ci": {
+    "_nota": "Opcional. Si el proyecto ya tiene un workflow de GitHub Actions que corre la verificación en cada push a tarea/**, pon su archivo en workflow (por ejemplo verificacion.yml) y en no_local los comandos que solo deben correr ahí (los lentos, por ejemplo ['npm test']). Necesita remoto.push=true. Con workflow en null, todo corre en local.",
+    "workflow": null,
+    "no_local": []
+  },
   "verificacion": {
     "raiz": [
       "npm ci",

@@ -24,3 +24,5 @@ jobs:
         run: node pruebas/guardian.test.js
       - name: Conformidad de documentos
         run: node pruebas/conformidad.test.js
+      - name: Verificación en CI (ci.js)
+        run: node pruebas/ci.test.js

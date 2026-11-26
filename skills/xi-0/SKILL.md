@@ -65,7 +65,7 @@ El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación s
 
 Si dudas entre dos tamaños, elige el menor: subir cuesta poco (ver **Subir de tamaño**) y bajar no se puede.
 
-En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]` si se publica. Las condiciones de arriba son las que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica. Tocar una pantalla que ya existe no la saca de chica si la orden ya trae decidido qué debe verse; si hay que decidir flujos, estados o composición, entra Diseño y es mediana. La verificación del proyecto (`config.verificacion`) la corre quien construye y la repite QA.
+En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]` si se publica. Las condiciones de arriba son las que harían entrar a Arquitectura, Herramientas, Diseño, Seguridad o Docs: si alguna se cumple, la tarea no es chica. Tocar una pantalla que ya existe no la saca de chica si la orden ya trae decidido qué debe verse; si hay que decidir flujos, estados o composición, entra Diseño y es mediana. La verificación del proyecto (`config.verificacion`) la corre quien construye y la repite QA; si la config tiene `ci`, corre en el CI (ver **Verificación en el CI**).
 
 ## 2. Preparar la tarea
 
@@ -134,6 +134,20 @@ Ningún agente espera una corrida larga con su contexto abierto: es lo más caro
 
 Si tu contexto se compacta o reanudas una sesión, lista `<worktree_tarea>/.xi-0/relevo/`: cada `.md` que haya es una corrida que alguien dejó y que nadie está esperando.
 
+### Verificación en el CI
+
+Si `config.ci.workflow` tiene un archivo (`"ci": { "workflow": "verificacion.yml", "no_local": [<comandos>] }`) y `remoto.push=true`, la suite completa no corre en la PC: corre en el CI del proyecto, y la lanzas tú. Los equipos corren en local solo las pruebas de lo que tocaron; el guardián les niega los comandos de `no_local`.
+
+1. **Cuándo:** cuando quien construye avisa que está listo para QA (chica), o al cerrar Construcción (mediana o grande), antes de abrir QA. Y otra vez después de cada corrección.
+2. **Cómo:** en primer plano, con timeout 600000:
+   ```
+   node ~/.claude/xi-0/ci.js "<worktree_tarea>"
+   ```
+   Sube una instantánea del worktree (con lo que no tiene commit, sin `.xi-0/`) a la rama desechable `tarea/<id>-ci-<n>`, espera la corrida y deja el resultado en `.xi-0/ci/ultimo.md`. La rama de la tarea no se toca.
+3. **Salida:** 0 verde · 1 rojo (en `ultimo.md` están las últimas líneas del log) · 3 sigue corriendo: vuelve a mirar con `--ver <n>`.
+4. **Rojo:** pásale a Argos `.xi-0/ci/ultimo.md` para que lo clasifique como falla; vuelve a quien la causó, como cualquier falla de QA.
+5. **Verde:** en el encargo de QA añade `El CI corrió en verde: .xi-0/ci/ultimo.md.` Argos lo cita en `pruebas:`, y Faro en `despliegue/verificacion.md`; ninguno de los dos lo repite.
+
 ### Subir de tamaño
 
 Una chica deja de serlo si aparece lo que la habría hecho mediana: hay que tocar el otro lado, un contrato, una dependencia, datos o permisos, o QA va por la tercera vuelta de la misma falla. Entonces: reescribe `tamano`, `fases` y `ruta` en `activa.json`, anótalo en `tarea.md` (`## Decisiones de xi-0`), pide a quien construye un commit de lo que lleva (ya no es chica: el guardián lo deja) y sigue la ruta nueva desde el paso que toque. Díselo al usuario en una línea.
@@ -144,6 +158,7 @@ Una chica deja de serlo si aparece lo que la habría hecho mediana: hay que toca
 
 No entregues sin:
 
+- Con `config.ci`: la última corrida en verde, y después del commit único `node ~/.claude/xi-0/ci.js "<worktree_tarea>" --comprobar` sale en 0 (el commit es lo que pasó en verde). Si no coincide, corre el CI otra vez antes de publicar.
 - `.xi-0/qa/resultado.md` con `pruebas:`, `revision:`, `visual:` y `validez:`, y sin fallas abiertas en `.xi-0/fallas/` (el guardián también lo vigila). Si la tarea tocó la interfaz, `visual:` no puede ser "no aplica": mira tú mismo un par de capturas de `.xi-0/qa/visual/` contra `.xi-0/plan/diseno/estado-actual/`.
 - Tu propia verificación: lee `git diff <rama_base>...tarea/<id> --stat` (en una tarea chica todavía no hay commit: `git -C <worktree_tarea> status --short` y `git -C <worktree_tarea> diff <rama_base> --stat`) y los cambios de los archivos centrales. No repitas lo que dijo un equipo sin comprobarlo. Si algo no cuadra con `tarea.md`, devuélvelo por el líder de fase, o directo si no participa.
 - La evidencia de validación, revisada por ti: en `.xi-0/qa/validez.md` cada `CT-n` (y cada `CA-n`) tiene una prueba que pasa y observa comportamiento, o un hueco con la evidencia que lo cubre; decide si alcanza. Revisa una por una las pruebas que ya existían y QA cambió: si la justificación no cita un criterio o contrato, devuélvelo. Y lee el pedido literal junto a los criterios: se entrega lo que pidió el usuario, no solo lo que dicen los criterios.
@@ -171,7 +186,7 @@ En los dos casos comprueba: `git log <rama_base>..tarea/<id> --oneline` tiene un
 
 Al terminar:
 
-1. Cierra a todos los compañeros que queden.
+1. Cierra a todos los compañeros que queden. Con `config.ci`, borra las ramas de CI de la tarea: `node ~/.claude/xi-0/ci.js "<worktree_tarea>" --limpiar`.
 2. Borra `.claude/xi-0/activa.json` (el guardián vuelve a modo pasivo). Deja los worktrees: el usuario los borra.
 3. Reporte al usuario, en español y corto: rama (y `PR.md` si lo hay), tamaño, qué se hizo, qué decidiste tú, evidencia (criterios demostrados n/m, huecos y pruebas existentes que cambiaron), qué queda pendiente, rondas de fallas y métricas (duración, % de límite consumido, compañeros y ligeros lanzados, relevos, bloqueos del guardián, costo en USD y el agente que más gastó; en una chica, de `node ~/.claude/xi-0/metricas.js "<repo principal>"`).
 
