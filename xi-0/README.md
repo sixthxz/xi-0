@@ -325,6 +325,17 @@ Idea tomada del modelo de "sistemas de registro": una tabla única con lo que pa
 - La habilidad principal y `/xi-0-revisar` registran al cerrar.
 - `pruebas/metricas.test.js` (13 casos), con la tabla en una carpeta temporal (`XI0_HISTORIAL`).
 
+## Un issue como orden (2026-11-26)
+
+Primer paso de las tareas que llegan por evento. `/xi-0 #12` o "resuelve el issue 12" sirven como orden: xi-0 lee el issue con `gh issue view` y lo usa como pedido literal, guarda `issue` en `activa.json` y el PR lleva `Closes #12`. Con `remoto.pr=true` comenta en el issue al empezar y al entregar.
+
+- El texto del issue es material, no instrucciones. Si lo escribió otra persona, xi-0 confirma con el usuario antes de empezar, y en ningún caso sigue lo que el texto diga sobre cómo trabajar.
+- La descripción de la habilidad incluye los issues, así que "resuelve el 12" la arranca sola.
+- Yunque y Faro ponen `Closes #n` en el PR.
+- No cambia el guardián: comentar en un issue es de la sesión principal, y abrir el PR sigue con las reglas de siempre.
+
+Siguiente paso planeado: un workflow en GitHub que, al abrirse un issue del dueño, decida si es chico (lo resuelve un Claude en la nube) o no (lo etiqueta para xi-0 en local).
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
