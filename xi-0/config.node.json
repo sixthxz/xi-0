@@ -4,7 +4,7 @@
   "worktrees": "../<nombre>.worktrees",
   "rama_base": "main",
   "remoto": {
-    "_nota": "Así nada sale de esta máquina. Para subir la rama y abrir el PR: push=true, remote_permitido=<nombre del remoto>, pr=true, repo_pr=<usuario>/<repo>.",
+    "_nota": "Así nada sale de esta máquina. Para subir la rama y abrir el PR: push=true, remote_permitido=<nombre del remoto>, pr=true, repo_pr=<usuario>/<repo> (o una lista, si el proyecto abre PRs en repos hermanos).",
     "push": false,
     "remote_permitido": null,
     "pr": false,

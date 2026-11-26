@@ -229,6 +229,14 @@ Lo que no:
 
 Sigue sin medir: la misma tarea en una sesión sola, y el aviso del vigía.
 
+## Push por variable y PR a repos hermanos (2026-11-25)
+
+- **`$G push` ya no se escapa.** La regla de remotos no reconocía un `git` guardado en una variable (`G="git -C ."; $G push fork main`), así que ese push pasaba sin revisión. Ahora las asignaciones del mismo comando (también con `export` y dentro de `bash -c`) se sustituyen antes de revisar, y una variable que no se asignó ahí (`$GIT`, `${G:-git}`) se trata como un posible `git` o `gh`. Con una tarea abierta, la lista de comandos de cada equipo ya negaba `$G …`; el hueco estaba sin tarea abierta y en la sesión principal. Es una corrección de una regla que ya existía y aplica también con `"reglas": 2`.
+- **`remoto.repo_pr` acepta una lista** (`["yo/bot", "yo/dashboard"]`) para proyectos que abren PRs en repos hermanos. El cambio se había hecho solo en la copia instalada; ahora está en el repo con sus pruebas. De paso, `-R` se compara con el repo exacto: antes bastaba con que alguna palabra del comando lo contuviera (`-R yo/fork-malo`, o el repo citado en el título).
+- 21 casos nuevos en `pruebas/guardian.test.js`; el guardián instalado antes de este cambio falla 15 de ellos.
+
+Sigue sin verse un push escondido en un alias de git o en un script.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
