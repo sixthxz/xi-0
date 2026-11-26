@@ -22,6 +22,12 @@ Rama: tarea/exportar-csv
 
 Después cada equipo hace su parte en una copia aparte del repo. Tú solo hablas con xi-0. Al final tienes la rama `tarea/<id>` con el código, las pruebas y un registro de lo que decidió cada equipo.
 
+La orden también puede ser un issue de GitHub. xi-0 lo lee, lo resuelve y el PR lleva `Closes #12`:
+
+```
+/xi-0 resuelve el issue 12
+```
+
 Para revisar una rama o un PR que ya existe, sin construir nada, solo con QA y Seguridad:
 
 ```

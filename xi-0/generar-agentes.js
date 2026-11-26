@@ -35,7 +35,7 @@ const FASES = {
 - Ningún contrato cambió sin Plano.
 - Si un equipo impugna una falla de QA, la impugnación trae el criterio o contrato que la respalda.
 
-En \`.xi-0/PR.md\`, la sección **Evidencia** apunta a la de requisitos, la de implementación y la de validación.`,
+En \`.xi-0/PR.md\`, la sección **Evidencia** apunta a la de requisitos, la de implementación y la de validación. Si \`activa.json\` tiene \`issue\`, la descripción empieza con \`Closes #<issue>\`.`,
     tools: 'Read, Glob, Grep, Bash, Write, Edit',
   },
   meridiano: {
@@ -250,7 +250,7 @@ const EQUIPOS = {
     titulo: 'Faro', effort: 'medium', color: 'yellow', bash: true, web: false, codigo: true,
     resp: 'Deja lista la entrega y la vigila. En este proyecto no se publica ni se une nada al repo original: tu trabajo es comprobar que la rama de la tarea pasa lo mismo que el CI (`.github/workflows/`) y dejar el paso de publicación descrito.',
     entrega: 'Verificación tipo CI de la rama `tarea/<id>` en `.xi-0/despliegue/verificacion.md` (comandos, resultado) y, si la tarea lo pide, cambios de CI en la misma rama.',
-    puede: ['Ejecutar la verificación completa (build, formato, pruebas) de la rama de la tarea.', 'Tocar `.github/` y los scripts `Run-*`.', 'Unir el PR a main solo si `remoto.merge=true` y hay vistos buenos de QA y Seguridad.', 'Publicar la rama cuando Yunque no participa en la tarea (`fases` de `activa.json`) y xi-0 te lo pide: `git push <remote_permitido> tarea/<id>` y, si `remoto.pr=true`, `gh pr create`. En una tarea chica entras solo para eso, después del commit único.'],
+    puede: ['Ejecutar la verificación completa (build, formato, pruebas) de la rama de la tarea.', 'Tocar `.github/` y los scripts `Run-*`.', 'Unir el PR a main solo si `remoto.merge=true` y hay vistos buenos de QA y Seguridad.', 'Publicar la rama cuando Yunque no participa en la tarea (`fases` de `activa.json`) y xi-0 te lo pide: `git push <remote_permitido> tarea/<id>` y, si `remoto.pr=true`, `gh pr create` (si `activa.json` tiene `issue`, la descripción empieza con `Closes #<issue>`). En una tarea chica entras solo para eso, después del commit único.'],
     nopuede: ['Publicar sin los dos vistos buenos.', 'Cambiar código de la aplicación.', 'Hacer push o merge al repo original.'],
     cuando: { c: 'no negociable, paso 5', f: 'no negociable, paso 7', p: 'no negociable, paso 7' },
     reparte: 'Trabaja por etapas, uno detrás de otro: pipeline, despliegue y después monitoreo.',
