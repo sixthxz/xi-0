@@ -27,6 +27,7 @@ const bandera = (n) => args.includes(n);
 const salir = (codigo, msg) => { if (msg) (codigo === 2 ? console.error : console.log)(msg); process.exit(codigo); };
 
 const wt = args[0] && !args[0].startsWith('--') ? path.resolve(args[0]) : null;
+require('./anotar.js').alFallar('ci.js', wt);
 if (!wt || !fs.existsSync(wt)) salir(2, 'Uso: node ci.js <worktree_tarea> [--ver <n> | --comprobar | --limpiar] [--esperar <s>] [--sin-esperar]');
 
 // git con safe.directory: en repos de otro dueño ("dubious ownership") git se niega sin esto.

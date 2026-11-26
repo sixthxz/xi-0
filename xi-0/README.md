@@ -344,7 +344,8 @@ Para que lo que falle en una tarea real no se pierda en la conversación: xi-0 l
 - **El repo es público y la tarea no:** antes de publicar quita las rutas del proyecto y sus worktrees (en sus formas con `\`, `/` y de Git Bash, de la más larga a la más corta), el home, el nombre del proyecto, sus repos de GitHub, los correos, los tokens, las variables tipo `*_PASSWORD=` y las cadenas de conexión a bases de datos.
 - `instalar.js` escribe `~/.claude/xi-0/instalacion.json` con el repo de origen y el commit instalado, que van al pie del issue.
 - Qué se reporta: fallas de xi-0, no del proyecto. Los equipos lo avisan con `falla de xi-0:` en su ficha; xi-0 decide y reporta al cerrar, o en el momento si lo bloquea.
-- `pruebas/reportar.test.js` (22 casos, con `--dry-run`, sin publicar nada).
+- **Autorreporte:** al cerrar cada tarea, `reportar.js --recolectar` lee el registro del guardián y abre un issue por cada error del guardián, cada error interno de un script de xi-0 y cada bloqueo que se repitió 3 veces o más (agrupado por el motivo sin los comandos ni los números, así "sort" y "sort -u" cuentan como el mismo). No depende de que el modelo lo note. Los scripts (`ci.js`, `enlazar.js`, `metricas.js`) anotan sus errores internos en ese registro con `xi-0/anotar.js`.
+- `pruebas/reportar.test.js` (31 casos, con `--dry-run`, sin publicar nada).
 - **Probado contra GitHub.** La deduplicación por la lista de GitHub falló dos veces: `gh issue list` (con `--search` o con `--label`) y la API REST tardan en mostrar un issue recién creado, así que una segunda falla igual abría otro issue. Ahora `reportar.js` guarda en `~/.claude/xi-0-historial/issues.json` los issues que abre, por título, y confirma por número que siguen abiertos (eso sí es inmediato); la lista queda de respaldo. Con eso, la segunda corrida comentó en el mismo issue. Los issues de prueba (#17 a #22) quedaron cerrados.
 
 ## Lo que no se pudo implementar tal cual
