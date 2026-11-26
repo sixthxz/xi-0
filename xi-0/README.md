@@ -237,6 +237,16 @@ Sigue sin medir: la misma tarea en una sesión sola, y el aviso del vigía.
 
 Sigue sin verse un push escondido en un alias de git o en un script.
 
+## `.xi-0/` fuera de lo que se entrega (2026-11-25)
+
+Salió de una tarea real: el commit único incluía `.xi-0/` (tarea, estado, QA, seguridad, métricas) y, al unir el PR tal cual, todo eso quedó en main del proyecto.
+
+- **Durante la tarea no cambia nada.** `.xi-0/` sigue en los commits de la rama, porque los worktrees paralelos de Front end y Back end reciben el plan y los contratos por git, y la reanudación lee `estado.md`. Sacarlo del historial desde el principio (con `.gitignore` y `git add -f`) rompía eso.
+- **Al entregar, sale del commit único.** xi-0 copia `.xi-0/` a `~/.claude/xi-0-historial/<repo>/<id>/` y hace el commit sin él (`git rm -r -q --cached .xi-0` en mediana y grande; `git add -A -- . ":!.xi-0"` en chica). Los archivos se quedan en el worktree sin seguimiento: `PR.md` sigue sirviendo de cuerpo del PR.
+- **El guardián lo vigila (`"reglas": 4`).** Niega `git push` y `gh pr create` si la rama trae `.xi-0/` respecto de la rama base. En una chica niega el commit único si `.xi-0/` ya está preparado, o si el mismo comando hace `git add -A` o `git add .` sin excluirlo. Un `wip:` en Guardado sí lo lleva, para poder reanudar.
+- La habilidad abre las tareas nuevas con `"reglas": 4`. Las tareas abiertas con `"reglas": 2` o `3` siguen como antes.
+- 15 casos nuevos en `pruebas/guardian.test.js`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

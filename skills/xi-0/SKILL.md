@@ -71,9 +71,9 @@ En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]`
    ```
    git worktree add <worktrees>/<id> -b tarea/<id> <rama_base>
    ```
-4. Escribe `.claude/xi-0/activa.json` en el repo principal (a partir de aquí el guardián aplica todas las reglas; `"reglas": 3` activa las de evidencia, tamaño y relevo). `fases` son los líderes de fase que participan: `[]` en una chica:
+4. Escribe `.claude/xi-0/activa.json` en el repo principal (a partir de aquí el guardián aplica todas las reglas; `"reglas": 4` activa las de evidencia, tamaño, relevo y `.xi-0/` fuera de lo que se entrega). `fases` son los líderes de fase que participan: `[]` en una chica:
    ```json
-   { "tarea": "<id>", "tipo": "<tipo>", "reglas": 3, "tamano": "<chica | mediana | grande>", "fases": ["yunque", "meridiano"],
+   { "tarea": "<id>", "tipo": "<tipo>", "reglas": 4, "tamano": "<chica | mediana | grande>", "fases": ["yunque", "meridiano"],
      "worktree_tarea": "<ruta absoluta>", "rama": "tarea/<id>",
      "ruta": [["brujula"], ["plano"], ["forja", "prisma"], ["argos"], ["egida", "codice"], ["faro"]],
      "paso": 1, "inicio": "<ISO>", "limite_inicio": <pct o null> }
@@ -146,15 +146,22 @@ No entregues sin:
 - Veredicto `aprobado` de Égida en `.xi-0/seguridad/` si Seguridad estaba en la ruta.
 - Si no es chica: `.xi-0/PR.md` escrito por Yunque (si participa) y la verificación de Faro en `.xi-0/despliegue/verificacion.md`. En una chica la verificación está en `pruebas:` de `qa/resultado.md` y el resumen del cambio va en tu reporte.
 
-**Un solo commit.** La tarea se entrega como un commit sobre la rama base, antes de publicar nada:
+**Un solo commit, sin `.xi-0/`.** La tarea se entrega como un commit sobre la rama base, antes de publicar nada. `.xi-0/` es el rastro de trabajo: no entra en ese commit ni en el PR. Primero archívalo fuera del repo (el nombre de la carpeta del repo principal como `<repo>`):
 
-- **Chica:** con todo lo anterior comprobado, pide a quien construyó el commit único (`git add -A` y un commit con el formato del equipo; incluye las pruebas de Argos y `.xi-0/`). Comprueba que `git log <rama_base>..tarea/<id> --oneline` tiene una línea y que `git status` quedó limpio. No escribas `metricas.md`: las métricas van en tu reporte.
-- **Mediana o grande:** escribe `.xi-0/metricas.md` con la salida de `node ~/.claude/xi-0/metricas.js "<repo principal>"` más hora de fin y `five_hour.used_percentage` final. Comprueba que no queda nada sin commit y deja la rama en un commit (los `wip:` y los commits por unidad desaparecen aquí):
+```
+mkdir -p ~/.claude/xi-0-historial/<repo> && cp -r <worktree_tarea>/.xi-0 ~/.claude/xi-0-historial/<repo>/<id>
+```
+
+- **Chica:** con todo lo anterior comprobado, pide a quien construyó el commit único: `git add -A -- . ":!.xi-0"` y un commit con el formato del equipo (incluye las pruebas de Argos). El guardián niega el commit si lleva `.xi-0/`. No escribas `metricas.md`: las métricas van en tu reporte.
+- **Mediana o grande:** escribe `.xi-0/metricas.md` con la salida de `node ~/.claude/xi-0/metricas.js "<repo principal>"` más hora de fin y `five_hour.used_percentage` final, y archiva otra vez para que la copia la incluya. Comprueba que no queda nada sin commit y deja la rama en un commit (los `wip:` y los commits por unidad desaparecen aquí):
   ```
   git -C <worktree_tarea> reset --soft $(git -C <worktree_tarea> merge-base <rama_base> HEAD)
+  git -C <worktree_tarea> rm -r -q --cached .xi-0
   git -C <worktree_tarea> commit -m "<tipo(área): qué cambió>" -m "<por qué, 1 a 3 líneas>" -m "Tarea: #<id>"
   ```
   Las ramas `tarea/<id>-<equipo>` ya están unidas; no se tocan.
+
+En los dos casos comprueba: `git log <rama_base>..tarea/<id> --oneline` tiene una línea, `git diff --name-only <rama_base>...tarea/<id> -- .xi-0` no muestra nada, y `git -C <worktree_tarea> status --short` solo muestra `?? .xi-0/`. Los archivos de `.xi-0/` siguen en el worktree: `PR.md` sirve de cuerpo del PR (`--body-file`). El guardián niega subir o abrir el PR de una rama que trae `.xi-0/`.
 
 **Remotos:** mira `config.remoto`. Con `push=false` / `pr=false` no sale nada de la máquina: el "PR" es la rama `tarea/<id>` (más `.xi-0/PR.md` si no es chica). Con `push=true`, publicar es lo último y va después del commit único: se lo pides a Yunque si participa en la tarea y, si no, a Faro (`git push <remote_permitido> tarea/<id>`; el guardián no deja a nadie más, ni subir forzado). Nunca abras PRs ni hagas push al repo original. Como mucho un PR por tarea, y solo en el fork configurado.
 
