@@ -26,3 +26,5 @@ jobs:
         run: node pruebas/conformidad.test.js
       - name: Verificación en CI (ci.js)
         run: node pruebas/ci.test.js
+      - name: Dependencias enlazadas (enlazar.js)
+        run: node pruebas/enlazar.test.js

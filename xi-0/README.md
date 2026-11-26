@@ -305,6 +305,16 @@ Primer comando por fase. Corre solo la fase de Calidad sobre una rama o un PR qu
 - `instalar.js --revisar` avisa si falta `remoto.push`, si el workflow no está en la rama base o si `no_local` no coincide con `verificacion`.
 - Pruebas: `pruebas/ci.test.js` (16 casos) y 6 casos nuevos del guardián.
 
+## Dependencias enlazadas en los worktrees (2026-11-25)
+
+Cada `git worktree add` dejaba una carpeta sin `node_modules`, y cada tarea volvía a instalar: varios minutos por worktree en Windows, con el agente esperando y la caché venciendo.
+
+- **`xi-0/enlazar.js <worktree>`** enlaza el `node_modules` de cada paquete (la raíz y hasta dos niveles abajo) al del repo principal cuando `package.json` y el lockfile son iguales. En Windows es una junction, que no pide administrador. Deja el detalle en `.xi-0/dependencias.md`. `--quitar` quita los enlaces sin tocar el original.
+- **Lo que se probó antes de escribirlo:** Node crea, detecta y quita la junction sin tocar el original. `rm -rf` y `fs.rmSync` sobre un worktree enlazado borran solo el enlace. **`git worktree remove` atraviesa la junction y borra el `node_modules` del repo principal**, aun sin `--force`.
+- **Guardián (para todos, haya tarea o no):** niega instalar dependencias en una carpeta enlazada y niega `git worktree remove` sobre un worktree con enlaces, con el comando para quitarlos.
+- La habilidad enlaza al crear el worktree y quita los enlaces al terminar, así el usuario puede borrar los worktrees como quiera. Los constructores enlazan sus worktrees de equipo. `/xi-0-revisar` también enlaza.
+- Pruebas: `pruebas/enlazar.test.js` (10 casos, con un worktree real) y 10 casos nuevos en `pruebas/guardian.test.js`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

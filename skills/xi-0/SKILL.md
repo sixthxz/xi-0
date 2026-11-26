@@ -74,7 +74,9 @@ En una tarea chica la ruta es `[[<forja o prisma>], ["argos"]]`, más `["faro"]`
 3. Rama y worktree de la tarea, desde la rama base de la config:
    ```
    git worktree add <worktrees>/<id> -b tarea/<id> <rama_base>
+   node ~/.claude/xi-0/enlazar.js "<worktrees>/<id>"
    ```
+   `enlazar.js` enlaza el `node_modules` de cada paquete al del repo principal cuando `package.json` y el lockfile son iguales, así nadie instala dependencias en el worktree. Lo que no enlaza (la tarea cambia dependencias) lo dice en `.xi-0/dependencias.md`. **Nunca** borres un worktree enlazado con `git worktree remove`: borra el `node_modules` del repo principal a través del enlace (el guardián lo niega).
 4. Escribe `.claude/xi-0/activa.json` en el repo principal (a partir de aquí el guardián aplica todas las reglas; `"reglas": 4` activa las de evidencia, tamaño, relevo y `.xi-0/` fuera de lo que se entrega). `fases` son los líderes de fase que participan: `[]` en una chica:
    ```json
    { "tarea": "<id>", "tipo": "<tipo>", "reglas": 4, "tamano": "<chica | mediana | grande>", "fases": ["yunque", "meridiano"],
@@ -187,7 +189,7 @@ En los dos casos comprueba: `git log <rama_base>..tarea/<id> --oneline` tiene un
 Al terminar:
 
 1. Cierra a todos los compañeros que queden. Con `config.ci`, borra las ramas de CI de la tarea: `node ~/.claude/xi-0/ci.js "<worktree_tarea>" --limpiar`.
-2. Borra `.claude/xi-0/activa.json` (el guardián vuelve a modo pasivo). Deja los worktrees: el usuario los borra.
+2. Quita los enlaces de dependencias de cada worktree de la tarea (el de la tarea y los de equipo): `node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`. Así el usuario puede borrarlos como quiera. Borra `.claude/xi-0/activa.json` (el guardián vuelve a modo pasivo). Deja los worktrees: el usuario los borra.
 3. Reporte al usuario, en español y corto: rama (y `PR.md` si lo hay), tamaño, qué se hizo, qué decidiste tú, evidencia (criterios demostrados n/m, huecos y pruebas existentes que cambiaron), qué queda pendiente, rondas de fallas y métricas (duración, % de límite consumido, compañeros y ligeros lanzados, relevos, bloqueos del guardián, costo en USD y el agente que más gastó; en una chica, de `node ~/.claude/xi-0/metricas.js "<repo principal>"`).
 
 ## No negociables (ni tú te los saltas)
