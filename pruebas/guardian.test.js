@@ -237,6 +237,13 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Reglas 4 con CI: la suite completa no corre en local ---
+  ['ci: la suite completa no corre en local', 'r4Yunque', 'argos', bash('npm test'), /corre en el CI del proyecto[^]*\.xi-0\/ci\/ultimo\.md/, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
+  ['ci: una prueba puntual sí', 'r4Yunque', 'argos', bash('node --test spa/scripts/x.test.js'), PASA, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
+  ['ci: encadenada tampoco', 'r4Yunque', 'forja', bash('cd api && npm test'), /corre en el CI del proyecto/, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
+  ['ci: sin "ci" en la config, como antes', 'r4Yunque', 'argos', bash('npm test'), PASA],
+  ['ci: reglas 3, como antes', 'r3Yunque', 'argos', bash('npm test'), PASA, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
+  ['ci: un equipo no lanza el script de CI', 'r4Yunque', 'argos', bash('node ~/.claude/xi-0/ci.js .'), /no puede ejecutar/, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
   // --- Revisar una rama que ya existe: solo se escribe en .xi-0/ ---
   ['revisar: QA no escribe pruebas nuevas', 'revisar', 'argos', escribir(repo, 'api', 'tests', 'nuevo.cs'), /revisa una rama que ya existe[^]*cobertura/],
   ['revisar: tampoco un ligero', 'revisar', 'argos-ligero', escribir(repo, 'spa', 'src', 'app.ts'), /revisa una rama que ya existe/],

@@ -429,6 +429,9 @@ function reglaComandos(cfg, quien, comando, raizTarea, activa) {
     // Reglas 4: mirar la salida de una corrida siempre vale, aunque el equipo no tenga tail o test en su lista.
     // Antes el mensaje de la regla de esperas sugería una comprobación que la lista podía negar.
     const mira = Number((activa || {}).reglas) >= 4 && COMPROBACION.test(s) && !/\.env\b/.test(s);
+    // Reglas 4 con CI: la suite completa (ci.no_local) corre en el CI del proyecto, no en la PC.
+    if (Number((activa || {}).reglas) >= 4 && cfg.ci && cfg.ci.workflow && (cfg.ci.no_local || []).includes(s))
+      negar(`"${s}" corre en el CI del proyecto, no aquí: tarda y usa la memoria de la PC. En local corre solo las pruebas de lo que tocaste. Cuando esté listo, dile a quien te encargó que lo pase por el CI; el resultado queda en .xi-0/ci/ultimo.md.`);
     if (!(corta && +corta[1] <= ESPERA_MAX_S) && !mira && !permitidos.some(vale)) {
       negar(`${clave} no puede ejecutar "${s.slice(0, 80)}". Permitidos: ${permitidos.join(', ') || 'ninguno'}. Si de verdad lo necesitas, pídelo a Sextante por tu líder de fase.`);
     }

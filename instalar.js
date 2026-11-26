@@ -131,6 +131,15 @@ function revisar(repo) {
   if (r.pr && !r.push) avisos.push('"remoto.pr" es true pero "push" es false: no hay rama publicada para el PR.');
   if (r.pr && !r.repo_pr) avisos.push('"remoto.pr" es true pero falta "repo_pr" (<usuario>/<repo>).');
 
+  const ci = cfg.ci || {};
+  if (ci.workflow) {
+    if (!r.push) avisos.push('"ci.workflow" está puesto pero "remoto.push" es false: el CI necesita subir una rama. Pon push=true o deja workflow en null.');
+    if (cfg.rama_base && git(repo, 'cat-file', '-e', `${cfg.rama_base}:.github/workflows/${ci.workflow}`) === null)
+      avisos.push(`"ci.workflow" es "${ci.workflow}", pero .github/workflows/${ci.workflow} no está en ${cfg.rama_base}.`);
+    const todos = Object.values(cfg.verificacion || {}).flat();
+    for (const c of ci.no_local || []) if (!todos.includes(c)) avisos.push(`"ci.no_local" tiene "${c}", que no está en "verificacion": el guardián compara el comando exacto.`);
+  }
+
   const qv = cfg.qa_visual;
   if (qv && !qv.propio && !fs.existsSync(path.join(DESTINO, 'qa-visual', 'node_modules')))
     avisos.push(`hay "qa_visual" pero falta npm install en ${aTexto(path.join(DESTINO, 'qa-visual'))}.`);

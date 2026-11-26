@@ -805,6 +805,8 @@ Una corrida de hasta 10 minutos va en primer plano, en una sola llamada con `tim
 
 Los agentes ligeros no dejan relevo: lanzan la corrida desprendida y devuelven la ruta de la salida a su líder.
 
+**Verificación en el CI del proyecto.** Si el proyecto ya tiene un workflow de GitHub Actions que corre su verificación en cada push a `tarea/**`, la config lo nombra en `"ci": { "workflow": "<archivo>", "no_local": [<comandos>] }` y la suite completa deja de correr en la PC. Los equipos corren en local solo las pruebas de lo que tocaron (con `"reglas": 4` el guardián les niega los comandos de `no_local`). xi-0 lanza el CI con `~/.claude/xi-0/ci.js <worktree_tarea>`: sube una instantánea del worktree (con lo que no tiene commit, sin `.xi-0/`) a la rama desechable `tarea/<id>-ci-<n>`, espera la corrida y deja el resultado en `.xi-0/ci/ultimo.md`. La rama de la tarea no se sube a mitad de camino, así el commit único no necesita push forzado. Antes de publicar, `ci.js --comprobar` confirma que el commit único es lo que pasó en verde; al terminar, `ci.js --limpiar` borra las ramas de CI.
+
 ---
 
 ## 10. Límite de sesión
@@ -870,6 +872,7 @@ En una tarea chica, el commit wip de Guardado es el único que se permite antes 
 | Pruebas existentes que cambian, también sin commit | `TaskCompleted` de QA: además de las ramas, compara la copia de la tarea contra la rama base. |
 | Quién publica | Hook `PreToolUse` sobre `Bash`: `git push` y `gh pr create` solo para Yunque; si Yunque no está en `fases`, solo para DevOps. |
 | Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano; con `"reglas": 4`, también a un líder de equipo (usa `nohup` con relevo). |
+| Suite completa en el CI (reglas 4) | Hook `PreToolUse` sobre `Bash`: con `ci.workflow` en la config, niega a los equipos los comandos de `ci.no_local`. El push de las instantáneas lo hace `ci.js`, solo a `tarea/<id>-ci-<n>` y nunca forzado. |
 | Revisar sin cambiar código | Hook `PreToolUse` sobre `Write`/`Edit`: con `"modo": "revisar"` en `activa.json`, niega a los agentes escribir fuera de `.xi-0/`. |
 | Nombres que Claude Code niega | Hook `PreToolUse` sobre `Write`/`Edit`: dentro de `.xi-0/`, niega a los agentes `reporte.md` y `report.md` con el nombre que sí sirve (Seguridad: `veredicto.md`). |
 | Remotos de otro repo | Hook `PreToolUse` sobre `Bash`: un `git` o `gh` que actúa en otro repo con xi-0 activado (`cd <repo> && …`, `git -C <repo> …`) se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión. |
