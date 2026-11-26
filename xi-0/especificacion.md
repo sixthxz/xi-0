@@ -784,7 +784,9 @@ Nombres: rama de la tarea `tarea/<id>`; rama propia de Front end o Back end, cua
 
 **Por qué un solo commit.** El historial de `main` queda con un commit por tarea, que se revisa y se revierte entero. Y en una chica evita el commit de apertura, el de cada vuelta de QA y el de cierre, que no le sirven a quien revisa.
 
-**Relevo de corridas largas.** Una corrida de más de unos 4 minutos (una suite completa, un build, una instalación) no se espera con el contexto abierto: cada espera larga vence la caché del agente y el turno siguiente vuelve a pagar todo su contexto.
+**Relevo de corridas largas.** Una corrida de más de 10 minutos (una suite completa, un build, una instalación) no se espera con el contexto abierto: cada espera larga vence la caché del agente y el turno siguiente vuelve a pagar todo su contexto.
+
+Una corrida de hasta 10 minutos va en primer plano, en una sola llamada con `timeout` de hasta 600000: el agente paga una recarga de caché y sigue sin depender de un aviso. Nadie usa `run_in_background` para esperar un resultado (con `"reglas": 4` el guardián lo niega también a los líderes de equipo): en una tarea real (2026-11-23), tres equipos lanzaron la verificación en segundo plano y se quedaron parados esperando un aviso que no les llegó. Para mirar una corrida ya lanzada, la forma es `sleep 230; tail -n 20 <salida>` con timeout 250000, una por llamada; con `"reglas": 4`, `tail -n`, `test -f|-s|-e` y `[ -f … ]` sobre un archivo valen aunque no estén en la lista del equipo.
 
 1. Quien la lanza escribe antes `.xi-0/relevo/<equipo>.md` en la copia de la tarea: qué lanzó, el archivo de resultado, el archivo de salida, la hora tope, qué hacer al terminar y qué lleva hecho.
 2. Lanza la corrida desprendida, con la salida a un archivo y una marca de fin (`ok` o `falla`) en el archivo de resultado, y avisa con una línea: `relevo: .xi-0/relevo/<equipo>.md`.
@@ -857,7 +859,8 @@ En una tarea chica, el commit wip de Guardado es el único que se permite antes 
 | Tarea chica: un solo commit, después de QA | Hook `PreToolUse` sobre `Bash`: a quien construye le niega `git commit` mientras `qa/resultado.md` no esté completo o haya fallas abiertas. Pasa un `wip:` con el límite en Guardado o Pausa. |
 | Pruebas existentes que cambian, también sin commit | `TaskCompleted` de QA: además de las ramas, compara la copia de la tarea contra la rama base. |
 | Quién publica | Hook `PreToolUse` sobre `Bash`: `git push` y `gh pr create` solo para Yunque; si Yunque no está en `fases`, solo para DevOps. |
-| Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano. |
+| Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano; con `"reglas": 4`, también a un líder de equipo (usa `nohup` con relevo). |
+| Remotos de otro repo | Hook `PreToolUse` sobre `Bash`: un `git` o `gh` que actúa en otro repo con xi-0 activado (`cd <repo> && …`, `git -C <repo> …`) se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión. |
 | `.xi-0/` no se publica (reglas 4) | Hook `PreToolUse` sobre `Bash`: niega `git push` y `gh pr create` si la rama trae `.xi-0/` respecto de la rama base. En una chica, niega el commit único de quien construye si `.xi-0/` ya está preparado o el mismo comando hace `git add -A` o `git add .` sin excluirlo; un `wip:` en Guardado sí lo lleva. |
 | Un solo commit en mediana y grande | Lo hace xi-0 al entregar; no se automatiza. |
 | Tope de cada encargo | Criterio de quien encarga (formato en la sección 8); no se automatiza. |

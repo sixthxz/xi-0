@@ -247,14 +247,24 @@ Salió de una tarea real: el commit único incluía `.xi-0/` (tarea, estado, QA,
 - La habilidad abre las tareas nuevas con `"reglas": 4`. Las tareas abiertas con `"reglas": 2` o `3` siguen como antes.
 - 15 casos nuevos en `pruebas/guardian.test.js`.
 
-## Lo que no se pudo implementar tal cual
+## Mantener varios repos desde una sesión (2026-11-25)
 
-1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
-2. **Probador de Sextante en entorno aislado**: no hay sandbox real; Sextante solo consulta paquetes (`npm view`, `dotnet list`) y no instala.
-3. **Escrituras vía Bash** (`echo > archivo`, `sed -i`) no las ve la regla de carpetas; solo `Write/Edit/NotebookEdit`.
-4. **"Ahorro: salvo para cerrar algo ya empezado"**: el guardián no sabe si un ligero nuevo cierra algo; en Ahorro bloquea todos.
-5. **Panel visual del límite (mod)**: solo la statusline.
-6. **Agent teams en la nube / `-p`**: no crean compañeros (limitación de la plataforma).
+Salió al mantener un proyecto desde la sesión abierta en el repo de xi-0: `cd <proyecto> && gh pr create -R <su repo>` se negaba con "debe llevar -R <repo de xi-0>".
+
+- **El guardián juzga los remotos con la config del repo donde actúa el comando.** Sigue los `cd` del comando y el `-C` de git. Si el `git` o el `gh` corre en otro repo con xi-0 activado, aplica la config y la tarea abierta de ese repo: su remoto, su `repo_pr` y quién publica. Si el otro repo no tiene xi-0, aplica las del repo de la sesión, como antes; así salirse del repo nunca afloja la regla.
+- Una variable con una ruta que existe y tiene espacios (`D="D:/Git Projects/app"; cd "$D"`) se lee como una sola palabra.
+- **`instalar.js --revisar` sin avisos falsos en repos de otro dueño.** En un repo donde git responde "dubious ownership", la revisión decía que la rama base y el remoto no existían. Ahora consulta git con `safe.directory` para ese repo, y avisa solo si los settings del repo no tienen las variables `GIT_CONFIG_*` que los agentes necesitan para usar git ahí.
+- 11 casos nuevos en `pruebas/guardian.test.js`.
+
+## Esperas sin segundo plano (2026-11-25)
+
+Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm test` (unos 15 min) con `run_in_background` y se quedaron parados esperando el aviso de fin, que a un compañero no le llega. Al intentar esperar en primer plano, el guardián les negó la espera: el registro tiene 7 esperas negadas por `timeout` de 330 a 600 s y bucles `for`/`until`, y comprobaciones como `grep` o `tail` que no estaban en la lista del equipo, aunque el mensaje del guardián sugería justo "sleep 230 y una comprobación corta".
+
+- **Corridas de hasta 10 min, en primer plano.** Una llamada con `timeout` de hasta 600000. Cuesta una recarga de caché en el turno siguiente, pero el agente no depende de ningún aviso. Más de 10 min: relevo, `nohup` y cerrar el turno, como ya decía la especificación (antes el corte era a los 4 min).
+- **Sin `run_in_background` (`"reglas": 4`).** El guardián ya lo negaba a los ligeros; ahora también a los líderes de equipo, con un mensaje que dice qué hacer.
+- **La espera que sugiere el guardián ahora pasa.** Con `"reglas": 4`, `tail -n N <archivo>`, `test -f|-s|-e <archivo>` y `[ -f <archivo> ]` valen aunque no estén en la lista del equipo (`tail -f` y `.env` no). El mensaje da la forma exacta: `sleep 230; tail -n 20 <salida>` con timeout 250000, una por llamada.
+- **xi-0 no espera al usuario.** Si un compañero termina su turno esperando un aviso, xi-0 mira la salida y lo despierta, o le pide el relevo y pone el vigía.
+- Las tareas con `"reglas": 2` o `3` siguen como antes. 11 casos nuevos en `pruebas/guardian.test.js`.
 
 ## CI del repo y rutas con nombre corto (2026-11-25)
 
@@ -266,6 +276,15 @@ Salió de una tarea real: el commit único incluía `.xi-0/` (tarea, estado, QA,
 - Se quitó `disable-model-invocation` de `skills/xi-0/SKILL.md`. La sesión principal puede arrancar xi-0 sin `/xi-0` cuando el usuario pide que lo haga "el equipo", xi-0 o los agentes, o cuando da una orden de desarrollo de varios archivos en un repo con `.claude/xi-0/config.json`. La descripción excluye preguntas, revisiones sueltas, cambios de una o dos líneas y repos sin config.
 - Si arrancó sin `/xi-0`, primero confirma en una línea qué va a hacer, el tamaño que estima y que un equipo cuesta varias veces una sesión sola.
 - Solo la sesión principal puede invocarla: los agentes de xi-0 no tienen la herramienta `Skill`, y un compañero tampoco podría armar un equipo.
+
+## Lo que no se pudo implementar tal cual
+
+1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
+2. **Probador de Sextante en entorno aislado**: no hay sandbox real; Sextante solo consulta paquetes (`npm view`, `dotnet list`) y no instala.
+3. **Escrituras vía Bash** (`echo > archivo`, `sed -i`) no las ve la regla de carpetas; solo `Write/Edit/NotebookEdit`.
+4. **"Ahorro: salvo para cerrar algo ya empezado"**: el guardián no sabe si un ligero nuevo cierra algo; en Ahorro bloquea todos.
+5. **Panel visual del límite (mod)**: solo la statusline.
+6. **Agent teams en la nube / `-p`**: no crean compañeros (limitación de la plataforma).
 
 ## Puntos abiertos (sección 13) verificados en la documentación
 

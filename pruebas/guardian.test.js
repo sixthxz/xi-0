@@ -33,6 +33,14 @@ const ACTIVAS = {
   r4Chica: { tarea: 't1', reglas: 4, tamano: 'chica', fases: [], rama: 'tarea/t1', worktree_tarea: repo },
   r3Yunque: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'], rama: 'tarea/t1', worktree_tarea: repo },
 };
+// Otro repo con xi-0 activado (ruta con espacio, como "Git Projects") y uno sin xi-0, para los comandos que actúan fuera.
+const otro = fs.mkdtempSync(path.join(os.tmpdir(), 'xi0 otro-'));
+execFileSync('git', ['init', '-q', otro]);
+fs.mkdirSync(path.join(otro, '.claude', 'xi-0'), { recursive: true });
+fs.writeFileSync(path.join(otro, '.claude', 'xi-0', 'config.json'), JSON.stringify({ ...cfg, remoto: { push: true, remote_permitido: 'origin', pr: true, repo_pr: 'yo/otro', merge: false } }));
+const sinXi0 = fs.mkdtempSync(path.join(os.tmpdir(), 'xi0-sin-'));
+execFileSync('git', ['init', '-q', sinXi0]);
+const q = JSON.stringify;
 const git = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=prueba', '-c', 'user.email=prueba@example.invalid', ...a], { stdio: 'ignore' });
 const hayRama = (r) => { try { git('rev-parse', '--verify', '-q', r); return true; } catch { return false; } };
 const QA_COMPLETO = 'pruebas: npm test, 12 pasan\nrevision: aprobado\nvisual: no aplica\nvalidez: aprobado (1/1 criterios)\n';
@@ -228,6 +236,30 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Reglas 4: esperas sin segundo plano y comprobaciones que siempre valen ---
+  ['esperas r4: un líder no usa segundo plano', 'r4Yunque', 'forja', bash('npm test', { run_in_background: true }), /No uses segundo plano[^]*timeout hasta 600000/, { relevo: 'forja', minutos: 1 }],
+  ['esperas r4: nohup con relevo sí', 'r4Yunque', 'forja', bash('nohup npm test > .xi-0/relevo/forja.log 2>&1 &'), PASA, { relevo: 'forja', minutos: 1 }],
+  ['esperas r4: verificación en primer plano con 10 min', 'r4Yunque', 'forja', bash('npm test', { timeout: 600000 }), PASA],
+  ['esperas r4: mirar la salida sin tail en la lista', 'r4Yunque', 'lumen', bash('sleep 230; tail -n 20 .xi-0/relevo/forja.log', { timeout: 250000 }), PASA],
+  ['esperas r4: otras formas de mirar', 'r4Yunque', 'lumen', bash('test -s salida.log && tail -40 salida.log; [ -f salida.fin ]'), PASA],
+  ['esperas r4: tail -f no es mirar', 'r4Yunque', 'lumen', bash('tail -f salida.log'), /no puede ejecutar "tail -f/],
+  ['esperas r4: .env no se mira', 'r4Yunque', 'lumen', bash('tail -n 5 .env'), /no puede ejecutar "tail -n 5 \.env/],
+  ['esperas r4: el mensaje da la forma exacta', 'r4Yunque', 'forja', bash('sleep 230; tail -n 20 x.log', { timeout: 600000 }), /"sleep 230; tail -n 20 <archivo de salida>" con timeout 250000/],
+  ['esperas r4: un bucle de espera sigue negado', 'r4Yunque', 'lumen', bash('until test -f salida.fin; do sleep 30; done'), /no puede ejecutar "until/],
+  ['esperas r3: segundo plano con relevo como antes', 'r3Yunque', 'forja', bash('npm test', { run_in_background: true }), PASA, { relevo: 'forja', minutos: 1 }],
+  ['esperas r3: tail sin estar en la lista, como antes', 'r3Yunque', 'lumen', bash('tail -n 20 salida.log'), /no puede ejecutar "tail/],
+  // --- Un comando que actúa en otro repo se juzga con la config de ese repo ---
+  ['otro repo: xi-0 abre su PR con la config de ese repo', 'ninguna', null, bash(`cd ${q(otro)} && gh pr create -R yo/otro --fill`), PASA],
+  ['otro repo: su repo_pr manda', 'ninguna', null, bash(`cd ${q(otro)} && gh pr create -R yo/fork --fill`), /debe llevar -R yo\/otro/],
+  ['otro repo: su remoto permitido', 'ninguna', null, bash(`cd ${q(otro)} && git push origin tarea/x`), PASA],
+  ['otro repo: con git -C', 'ninguna', null, bash(`git -C ${q(otro)} push origin tarea/x`), PASA],
+  ['otro repo: nunca a main', 'ninguna', null, bash(`git -C ${q(otro)} push origin main`), /Nunca push a main/],
+  ['otro repo: ruta con espacio en una variable', 'ninguna', null, bash(`D=${q(otro)}; cd "$D" && gh pr create -R yo/otro --fill`), PASA],
+  ['otro repo: el cd vale solo para lo que sigue', 'ninguna', null, bash(`git push origin tarea/x; cd ${q(otro)}`), /Solo se permite push al remoto "fork"/],
+  ['otro repo: con su tarea abierta, xi-0 no abre el PR', 'ninguna', null, bash(`cd ${q(otro)} && gh pr create -R yo/otro --fill`), /Solo Yunque abre/, { otraActiva: { tarea: 't2', reglas: 2 } }],
+  ['otro repo: un agente de esta tarea no sube ahí', 'reglas2', 'forja', bash(`cd ${q(otro)} && git push origin tarea/x`), /Solo Yunque sube/],
+  ['repo sin xi-0: siguen las reglas de la sesión', 'ninguna', null, bash(`cd ${q(sinXi0)} && git push origin tarea/x`), /Solo se permite push al remoto "fork"/],
+  ['repo sin xi-0: tampoco a main', 'ninguna', null, bash(`git -C ${q(sinXi0)} push fork main`), /Nunca push a main/],
   // --- Reglas 4: .xi-0/ no se publica ni entra en el commit único ---
   ['rastro: no se sube una rama con .xi-0', 'r4Yunque', 'yunque', bash('git push fork tarea/t1'), /trae \.xi-0\/[^]*git rm -r -q --cached \.xi-0/, { rama: 'con' }],
   ['rastro: tampoco con refspec', 'r4Yunque', 'yunque', bash('git push -u fork tarea/t1:tarea/t1'), /trae \.xi-0/, { rama: 'con' }],
@@ -319,6 +351,8 @@ function correr(activa, quien, [herramienta, entrada], previo) {
     git('commit', '-q', '-m', 'tarea');
     git('checkout', '-q', 'main');
   }
+  const activaOtro = path.join(otro, '.claude', 'xi-0', 'activa.json');
+  if (p.otraActiva) fs.writeFileSync(activaOtro, JSON.stringify(p.otraActiva)); else fs.rmSync(activaOtro, { force: true });
   // Un archivo de .xi-0/ ya preparado para el commit (se deshace al terminar el caso).
   if (p.preparado) git('add', '-f', path.join('.xi-0', 'qa', 'resultado.md'));
   const evento = herramienta === 'TaskCompleted'
@@ -351,6 +385,6 @@ for (const [nombre, clave, quien, llamada, espera, previo] of CASOS) {
     console.log(`FALLA  ${nombre}\n       se esperaba: ${espera === PASA ? 'que pasara' : espera}\n       se obtuvo:   ${motivo === null ? 'pasó' : motivo}`);
   }
 }
-fs.rmSync(repo, { recursive: true, force: true });
+for (const d of [repo, otro, sinXi0]) fs.rmSync(d, { recursive: true, force: true });
 console.log(`${CASOS.length - fallos} de ${CASOS.length} casos bien${fallos ? `, ${fallos} con falla` : ''}.`);
 process.exit(fallos ? 1 : 0);

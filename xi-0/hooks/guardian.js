@@ -133,7 +133,59 @@ function reglaRastroEnRama(cfg, raiz, rama, activa) {
   const archivos = salida.split('\n').filter(Boolean);
   if (archivos.length) negar(`La rama ${rama} trae .xi-0/ (${archivos.length} archivos, por ejemplo ${archivos[0]}): el rastro de la tarea no se publica. ${SIN_RASTRO}`);
 }
-function reglaRemotos(cfg, quien, comando, activa, raiz) {
+// La carpeta donde corre cada pieza: sigue los cd del comando y el -C de git. Es lectura de texto, como el
+// resto de la regla: un cd dentro de $( ) o de un script no se sigue.
+function carpetasDePiezas(lista, inicio) {
+  let dir = inicio;
+  const ir = (desde, a) => path.resolve(win(desde), win(a.replace(/^~(?=[\/\\]|$)/, os.homedir())));
+  return lista.map((p) => {
+    if (/^(cd|pushd|Set-Location|sl)$/i.test(p[0] || '')) {
+      const destino = p.slice(1).filter((t) => !/^-/.test(t)).join(' '); // una ruta con espacios sin comillas
+      dir = destino ? ir(dir, destino) : os.homedir();
+      return dir;
+    }
+    const i = indicePrograma(p, esGit);
+    if (i >= 0) {
+      for (let j = i + 1; j < p.length && p[j].startsWith('-'); j += /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)$/.test(p[j]) ? 2 : 1)
+        if (p[j] === '-C' && p[j + 1]) return ir(dir, p[j + 1]);
+    }
+    return dir;
+  });
+}
+const leerConfig = (r) => JSON.parse(fs.readFileSync(path.join(r, '.claude', 'xi-0', 'config.json'), 'utf8').replace(String.fromCharCode(0xFEFF), ''));
+function leerActiva(r) {
+  const archivo = path.join(r, '.claude', 'xi-0', 'activa.json');
+  const a = leer(archivo);
+  if (!a && fs.existsSync(archivo)) throw new Error(`${archivo} existe pero no se puede leer`);
+  return a;
+}
+// Un git o gh que actúa en otro repo con xi-0 activado (cd <repo> && gh pr create …, git -C <repo> push …)
+// se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión,
+// como siempre: así salirse del repo nunca afloja la regla.
+function reglaRemotosPorRepo(cfg, quien, comando, activa, raiz, cwd) {
+  const lista = expandirVariables(piezas(comando));
+  const carpetas = carpetasDePiezas(lista, cwd || raiz);
+  const grupos = new Map([[raiz, []]]);
+  const repoDe = {};
+  lista.forEach((p, i) => {
+    let r = raiz;
+    if (subcomandoGit(p) || subcomandoGh(p)) {
+      const d = norm(carpetas[i]);
+      if (repoDe[d] === undefined) {
+        const otro = fs.existsSync(win(d)) ? raizPrincipal(d) : null;
+        repoDe[d] = otro && otro !== raiz && fs.existsSync(path.join(otro, '.claude', 'xi-0', 'config.json')) ? otro : raiz;
+      }
+      r = repoDe[d];
+    }
+    if (!grupos.has(r)) grupos.set(r, []);
+    grupos.get(r).push(p);
+  });
+  for (const [r, ps] of grupos) {
+    if (r === raiz) reglaRemotos(cfg, quien, ps, activa, raiz);
+    else reglaRemotos(leerConfig(r), quien, ps, leerActiva(r), r);
+  }
+}
+function reglaRemotos(cfg, quien, lista, activa, raiz) {
   const r = cfg.remoto || {};
   // Quién sube la rama y abre el PR: Yunque; si no está activo en la tarea (reglas 3), Faro (el líder, no sus ligeros).
   const sinYunque = Number((activa || {}).reglas) >= 3 && Array.isArray(activa.fases) && !activa.fases.includes('yunque');
@@ -141,7 +193,7 @@ function reglaRemotos(cfg, quien, comando, activa, raiz) {
   const Publica = sinYunque ? 'Faro' : 'Yunque';
   const esQuienPublica = quien.equipo === publica && quien.rol !== 'ligero';
   const protegidas = new Set(['main', 'master', cfg.rama_base].filter(Boolean));
-  for (const p of expandirVariables(piezas(comando))) {
+  for (const p of lista) {
     const g = subcomandoGit(p);
     if (g && g.sub === 'push') {
       if (!r.push) negar('git push está desactivado en este proyecto (remoto.push=false). El trabajo se queda en ramas locales.');
@@ -235,8 +287,12 @@ function expandirVariables(lista) {
       if (a && (inicio || salida[salida.length - 1] === 'export')) { valores[a[1]] = a[2]; salida.push(t); continue; }
       const v = VARIABLE.exec(t);
       const nombre = v && (v[1] || v[2]);
-      if (nombre && valores[nombre] !== undefined) salida.push(...valores[nombre].split(/\s+/).filter(Boolean));
-      else salida.push(t);
+      // Un valor que es una ruta que existe ("D:/Git Projects/app") queda en una palabra; si no, se parte como un comando.
+      if (nombre && valores[nombre] !== undefined) {
+        const val = valores[nombre];
+        if (/\s/.test(val) && /[\/\\]/.test(val) && fs.existsSync(win(val))) salida.push(val);
+        else salida.push(...val.split(/\s+/).filter(Boolean));
+      } else salida.push(t);
       if (t !== 'export') inicio = false;
     }
     return salida;
@@ -332,6 +388,10 @@ function reglaEsperas(quien, ti, activa, raices) {
     const desprendida = ti.run_in_background || /(^|[;&|(\n])\s*nohup\s/.test(cmd);
     if (quien.rol === 'ligero' && ti.run_in_background)
       negar('Un ligero no usa segundo plano: nadie recibe el aviso. Lanza la corrida con nohup y salida a archivo, y devuelve la ruta de ese archivo.');
+    // Reglas 4: tampoco un líder de equipo. En una tarea real, varios lanzaron la verificación en segundo plano
+    // y se quedaron parados esperando un aviso que a un compañero no le llega.
+    if (Number(activa.reglas) >= 4 && quien.rol === 'equipo' && ti.run_in_background)
+      negar(`No uses segundo plano: a un compañero no le llega el aviso de que terminó y te quedarías parado. Si tarda menos de 10 min, córrelo en primer plano con timeout hasta 600000. Si tarda más, escribe .xi-0/relevo/${quien.equipo}.md, lánzalo con nohup <comando> > <archivo> 2>&1 & y cierra tu turno: xi-0 vigila el archivo y lanza tu relevo.`);
     if (quien.rol === 'equipo' && desprendida && !relevoReciente(quien.equipo, raices))
       negar(`Antes de dejar una corrida en segundo plano escribe .xi-0/relevo/${quien.equipo}.md (qué lanzaste, "resultado: <archivo>" y "tope: <hora>"). Vale por ${RELEVO_MIN} min.`);
   }
@@ -346,10 +406,15 @@ function reglaEsperas(quien, ti, activa, raices) {
   if (!seg.length && !/Wait-Process|\btail\s+-f\b|Get-Content\b[^|;]*-Wait/i.test(cmd)) return;
   const tope = Number(ti.timeout) || 120000;
   if (Math.max(0, ...seg) > ESPERA_MAX_S || tope > (ESPERA_MAX_S + 30) * 1000) {
-    negar(`Ninguna llamada espera más de ${ESPERA_MAX_S / 60} min (sleep largo, o espera con timeout de ${Math.round(tope / 1000)} s): tu caché vence a los 5 min y el turno siguiente volvería a escribir todo tu contexto. Para esperar una corrida: "sleep 230" con timeout 250000 y una comprobación corta, repetido; o devuelve a tu líder el archivo de salida y que él lance un ligero nuevo que la espere.`);
+    const forma = Number((activa || {}).reglas) >= 4
+      ? 'Para mirar una corrida que ya lanzaste: "sleep 230; tail -n 20 <archivo de salida>" con timeout 250000, una vez por llamada (sin for, while ni until). Si no va a terminar pronto, deja tu relevo y cierra tu turno.'
+      : 'Para esperar una corrida: "sleep 230" con timeout 250000 y una comprobación corta, repetido; o devuelve a tu líder el archivo de salida y que él lance un ligero nuevo que la espere.';
+    negar(`Ninguna llamada espera más de ${ESPERA_MAX_S / 60} min (sleep largo, o espera con timeout de ${Math.round(tope / 1000)} s): tu caché vence a los 5 min y el turno siguiente volvería a escribir todo tu contexto. ${forma}`);
   }
 }
 
+// Comprobaciones de solo lectura sobre un archivo: tail -n 20 x.log, tail -20 x.log, test -s x.log, [ -f x.log ].
+const COMPROBACION = /^(tail\s+(?:-n\s*)?-?\d+\s+[^\s|;&<>]+|test\s+-[efs]\s+[^\s|;&<>]+|\[\s+-[efs]\s+[^\s|;&<>]+\s+\])$/;
 function reglaComandos(cfg, quien, comando, raizTarea, activa) {
   if (quien.rol === 'xi-0') return; // el líder solo prepara ramas y worktrees; lo vigila su SKILL.md
   const clave = quien.rol === 'fase' ? quien.equipo : quien.equipo;
@@ -361,7 +426,10 @@ function reglaComandos(cfg, quien, comando, raizTarea, activa) {
     // Cada permitido es un prefijo ("npm ci") o una regex con "re:" ("re:^node\\s+\\S*recorrido\\.js\\b").
     const vale = (p) => (p.startsWith('re:') ? new RegExp(p.slice(3)).test(s) : s === p || s.startsWith(p + ' '));
     const corta = /^sleep\s+(\d+(?:\.\d+)?)s?$/.exec(s); // esperar poco siempre vale (ver reglaEsperas)
-    if (!(corta && +corta[1] <= ESPERA_MAX_S) && !permitidos.some(vale)) {
+    // Reglas 4: mirar la salida de una corrida siempre vale, aunque el equipo no tenga tail o test en su lista.
+    // Antes el mensaje de la regla de esperas sugería una comprobación que la lista podía negar.
+    const mira = Number((activa || {}).reglas) >= 4 && COMPROBACION.test(s) && !/\.env\b/.test(s);
+    if (!(corta && +corta[1] <= ESPERA_MAX_S) && !mira && !permitidos.some(vale)) {
       negar(`${clave} no puede ejecutar "${s.slice(0, 80)}". Permitidos: ${permitidos.join(', ') || 'ninguno'}. Si de verdad lo necesitas, pídelo a Sextante por tu líder de fase.`);
     }
     reglaDependencias(cfg, clave, s, raizTarea);
@@ -712,7 +780,7 @@ function atender() {
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
-  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa, raiz);
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotosPorRepo(cfg, quien, e.tool_input.command || '', activa, raiz, e.cwd);
   // Lo mismo la protección de xi-0 y su configuración.
   if (e.hook_event_name === 'PreToolUse') {
     const ti = e.tool_input || {};

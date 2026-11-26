@@ -119,7 +119,7 @@ Si un líder de fase, o un equipo que te reporta a ti, pide repetir trabajo, dev
 
 ### Relevo de corridas largas
 
-Ningún agente espera una corrida larga con su contexto abierto: es lo más caro que puede pasar en una tarea. Quien lanza una corrida de más de ~4 min deja un archivo de relevo y avisa con una línea, `relevo: .xi-0/relevo/<equipo>.md` (te llega directo, o dentro del resumen de su líder de fase). Entonces:
+Ningún agente espera una corrida larga con su contexto abierto: es lo más caro que puede pasar en una tarea. Una corrida de hasta 10 min la corre el equipo en primer plano (una llamada con `timeout` de hasta 600000). Nadie usa `run_in_background` para esperar: a los compañeros no les llega el aviso. Si un compañero termina su turno diciendo que espera un aviso, o se queda callado tras lanzar algo, no esperes al usuario: mira tú la salida (`tail -n 20 <archivo>`); si terminó, despiértalo con un mensaje (por su líder de fase si participa), y si sigue corriendo, pídele su relevo y pon el vigía de abajo. Quien lanza una corrida de más de 10 min deja un archivo de relevo y avisa con una línea, `relevo: .xi-0/relevo/<equipo>.md` (te llega directo, o dentro del resumen de su líder de fase). Entonces:
 
 1. Lee el relevo (es corto): `resultado`, `tope` y `al terminar`.
 2. Cierra a ese agente. Si su líder de fase no tiene nada más en curso, ciérralo también.
