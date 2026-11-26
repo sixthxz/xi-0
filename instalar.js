@@ -50,10 +50,25 @@ function repoDe(valor) {
   return repo;
 }
 
+// Con safe.directory en la línea de comandos, git responde también en un repo de otro dueño ("dubious ownership"),
+// que sin eso daba avisos falsos: "la rama base no existe", "el remoto no existe".
 const git = (repo, ...args) => {
-  try { return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  try { return execFileSync('git', ['-c', `safe.directory=${repo.replace(/\\/g, '/')}`, '-C', repo, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
   catch { return null; }
 };
+// true si git, tal como lo corren los agentes (sin ese -c), rechaza el repo por su dueño.
+function dueñoDistinto(repo) {
+  try { execFileSync('git', ['-C', repo, 'rev-parse', '--git-dir'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); return false; }
+  catch (e) { return /dubious ownership/i.test(String(e.stderr || '')); }
+}
+// Las variables de entorno de los settings del repo (settings.json y settings.local.json).
+function entornoDeSettings(repo) {
+  const env = {};
+  for (const n of ['settings.json', 'settings.local.json']) {
+    try { Object.assign(env, JSON.parse(fs.readFileSync(path.join(repo, '.claude', n), 'utf8').replace(/^﻿/, '')).env || {}); } catch { /* sin archivo */ }
+  }
+  return env;
+}
 
 // Avisos sobre la config de un repo. No cambia nada. Con una config dañada el guardián niega todas las
 // llamadas, así que conviene verlo aquí antes que en mitad de una tarea.
@@ -69,6 +84,14 @@ function revisar(repo) {
   for (const k of ['proyecto', 'worktrees', 'rama_base', 'remoto', 'verificacion', 'carpetas', 'comandos'])
     if (cfg[k] === undefined || cfg[k] === null) avisos.push(`falta "${k}".`);
   if (/<nombre>/.test(`${cfg.proyecto} ${cfg.worktrees}`)) avisos.push('"proyecto" o "worktrees" siguen con <nombre>: pon el nombre de tu proyecto.');
+  if (dueñoDistinto(repo)) {
+    const env = entornoDeSettings(repo);
+    const n = Number(env.GIT_CONFIG_COUNT) || 0;
+    const cubierto = Array.from({ length: n }, (_, i) => [env[`GIT_CONFIG_KEY_${i}`], env[`GIT_CONFIG_VALUE_${i}`]])
+      .some(([k, v]) => k === 'safe.directory' && v);
+    if (!cubierto)
+      avisos.push('git rechaza este repo por su dueño ("dubious ownership"): los agentes no podrán usar git. Añade a "env" de .claude/settings.local.json: "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "safe.directory", "GIT_CONFIG_VALUE_0": "<ruta del repo o *>".');
+  }
   if (cfg.rama_base && git(repo, 'rev-parse', '--verify', '--quiet', `refs/heads/${cfg.rama_base}`) === null)
     avisos.push(`la rama base "${cfg.rama_base}" no existe en el repo.`);
 
