@@ -247,6 +247,15 @@ Salió de una tarea real: el commit único incluía `.xi-0/` (tarea, estado, QA,
 - La habilidad abre las tareas nuevas con `"reglas": 4`. Las tareas abiertas con `"reglas": 2` o `3` siguen como antes.
 - 15 casos nuevos en `pruebas/guardian.test.js`.
 
+## Mantener varios repos desde una sesión (2026-11-25)
+
+Salió al mantener un proyecto desde la sesión abierta en el repo de xi-0: `cd <proyecto> && gh pr create -R <su repo>` se negaba con "debe llevar -R <repo de xi-0>".
+
+- **El guardián juzga los remotos con la config del repo donde actúa el comando.** Sigue los `cd` del comando y el `-C` de git. Si el `git` o el `gh` corre en otro repo con xi-0 activado, aplica la config y la tarea abierta de ese repo: su remoto, su `repo_pr` y quién publica. Si el otro repo no tiene xi-0, aplica las del repo de la sesión, como antes; así salirse del repo nunca afloja la regla.
+- Una variable con una ruta que existe y tiene espacios (`D="D:/Git Projects/app"; cd "$D"`) se lee como una sola palabra.
+- **`instalar.js --revisar` sin avisos falsos en repos de otro dueño.** En un repo donde git responde "dubious ownership", la revisión decía que la rama base y el remoto no existían. Ahora consulta git con `safe.directory` para ese repo, y avisa solo si los settings del repo no tienen las variables `GIT_CONFIG_*` que los agentes necesitan para usar git ahí.
+- 11 casos nuevos en `pruebas/guardian.test.js`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

@@ -133,7 +133,59 @@ function reglaRastroEnRama(cfg, raiz, rama, activa) {
   const archivos = salida.split('\n').filter(Boolean);
   if (archivos.length) negar(`La rama ${rama} trae .xi-0/ (${archivos.length} archivos, por ejemplo ${archivos[0]}): el rastro de la tarea no se publica. ${SIN_RASTRO}`);
 }
-function reglaRemotos(cfg, quien, comando, activa, raiz) {
+// La carpeta donde corre cada pieza: sigue los cd del comando y el -C de git. Es lectura de texto, como el
+// resto de la regla: un cd dentro de $( ) o de un script no se sigue.
+function carpetasDePiezas(lista, inicio) {
+  let dir = inicio;
+  const ir = (desde, a) => path.resolve(win(desde), win(a.replace(/^~(?=[\/\\]|$)/, os.homedir())));
+  return lista.map((p) => {
+    if (/^(cd|pushd|Set-Location|sl)$/i.test(p[0] || '')) {
+      const destino = p.slice(1).filter((t) => !/^-/.test(t)).join(' '); // una ruta con espacios sin comillas
+      dir = destino ? ir(dir, destino) : os.homedir();
+      return dir;
+    }
+    const i = indicePrograma(p, esGit);
+    if (i >= 0) {
+      for (let j = i + 1; j < p.length && p[j].startsWith('-'); j += /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)$/.test(p[j]) ? 2 : 1)
+        if (p[j] === '-C' && p[j + 1]) return ir(dir, p[j + 1]);
+    }
+    return dir;
+  });
+}
+const leerConfig = (r) => JSON.parse(fs.readFileSync(path.join(r, '.claude', 'xi-0', 'config.json'), 'utf8').replace(String.fromCharCode(0xFEFF), ''));
+function leerActiva(r) {
+  const archivo = path.join(r, '.claude', 'xi-0', 'activa.json');
+  const a = leer(archivo);
+  if (!a && fs.existsSync(archivo)) throw new Error(`${archivo} existe pero no se puede leer`);
+  return a;
+}
+// Un git o gh que actúa en otro repo con xi-0 activado (cd <repo> && gh pr create …, git -C <repo> push …)
+// se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión,
+// como siempre: así salirse del repo nunca afloja la regla.
+function reglaRemotosPorRepo(cfg, quien, comando, activa, raiz, cwd) {
+  const lista = expandirVariables(piezas(comando));
+  const carpetas = carpetasDePiezas(lista, cwd || raiz);
+  const grupos = new Map([[raiz, []]]);
+  const repoDe = {};
+  lista.forEach((p, i) => {
+    let r = raiz;
+    if (subcomandoGit(p) || subcomandoGh(p)) {
+      const d = norm(carpetas[i]);
+      if (repoDe[d] === undefined) {
+        const otro = fs.existsSync(win(d)) ? raizPrincipal(d) : null;
+        repoDe[d] = otro && otro !== raiz && fs.existsSync(path.join(otro, '.claude', 'xi-0', 'config.json')) ? otro : raiz;
+      }
+      r = repoDe[d];
+    }
+    if (!grupos.has(r)) grupos.set(r, []);
+    grupos.get(r).push(p);
+  });
+  for (const [r, ps] of grupos) {
+    if (r === raiz) reglaRemotos(cfg, quien, ps, activa, raiz);
+    else reglaRemotos(leerConfig(r), quien, ps, leerActiva(r), r);
+  }
+}
+function reglaRemotos(cfg, quien, lista, activa, raiz) {
   const r = cfg.remoto || {};
   // Quién sube la rama y abre el PR: Yunque; si no está activo en la tarea (reglas 3), Faro (el líder, no sus ligeros).
   const sinYunque = Number((activa || {}).reglas) >= 3 && Array.isArray(activa.fases) && !activa.fases.includes('yunque');
@@ -141,7 +193,7 @@ function reglaRemotos(cfg, quien, comando, activa, raiz) {
   const Publica = sinYunque ? 'Faro' : 'Yunque';
   const esQuienPublica = quien.equipo === publica && quien.rol !== 'ligero';
   const protegidas = new Set(['main', 'master', cfg.rama_base].filter(Boolean));
-  for (const p of expandirVariables(piezas(comando))) {
+  for (const p of lista) {
     const g = subcomandoGit(p);
     if (g && g.sub === 'push') {
       if (!r.push) negar('git push está desactivado en este proyecto (remoto.push=false). El trabajo se queda en ramas locales.');
@@ -235,8 +287,12 @@ function expandirVariables(lista) {
       if (a && (inicio || salida[salida.length - 1] === 'export')) { valores[a[1]] = a[2]; salida.push(t); continue; }
       const v = VARIABLE.exec(t);
       const nombre = v && (v[1] || v[2]);
-      if (nombre && valores[nombre] !== undefined) salida.push(...valores[nombre].split(/\s+/).filter(Boolean));
-      else salida.push(t);
+      // Un valor que es una ruta que existe ("D:/Git Projects/app") queda en una palabra; si no, se parte como un comando.
+      if (nombre && valores[nombre] !== undefined) {
+        const val = valores[nombre];
+        if (/\s/.test(val) && /[\/\\]/.test(val) && fs.existsSync(win(val))) salida.push(val);
+        else salida.push(...val.split(/\s+/).filter(Boolean));
+      } else salida.push(t);
       if (t !== 'export') inicio = false;
     }
     return salida;
@@ -704,7 +760,7 @@ function atender() {
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
-  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa, raiz);
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotosPorRepo(cfg, quien, e.tool_input.command || '', activa, raiz, e.cwd);
   // Lo mismo la protección de xi-0 y su configuración.
   if (e.hook_event_name === 'PreToolUse') {
     const ti = e.tool_input || {};
