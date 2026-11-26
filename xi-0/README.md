@@ -336,6 +336,17 @@ Primer paso de las tareas que llegan por evento. `/xi-0 #12` o "resuelve el issu
 
 Siguiente paso planeado: un workflow en GitHub que, al abrirse un issue del dueño, decida si es chico (lo resuelve un Claude en la nube) o no (lo etiqueta para xi-0 en local).
 
+## Fallas de xi-0 como issues (2026-11-26)
+
+Para que lo que falle en una tarea real no se pierda en la conversación: xi-0 lo abre como issue en este repo.
+
+- `xi-0/reportar.js --titulo … --cuerpo … --proyecto <repo>` publica el issue con la etiqueta `desde-tarea`. Si ya hay uno abierto con el mismo título, comenta ahí. `--dry-run` muestra lo que saldría.
+- **El repo es público y la tarea no:** antes de publicar quita las rutas del proyecto y sus worktrees (en sus formas con `\`, `/` y de Git Bash, de la más larga a la más corta), el home, el nombre del proyecto, sus repos de GitHub, los correos, los tokens, las variables tipo `*_PASSWORD=` y las cadenas de conexión a bases de datos.
+- `instalar.js` escribe `~/.claude/xi-0/instalacion.json` con el repo de origen y el commit instalado, que van al pie del issue.
+- Qué se reporta: fallas de xi-0, no del proyecto. Los equipos lo avisan con `falla de xi-0:` en su ficha; xi-0 decide y reporta al cerrar, o en el momento si lo bloquea.
+- `pruebas/reportar.test.js` (22 casos, con `--dry-run`, sin publicar nada).
+- **Probado contra GitHub.** La deduplicación por la lista de GitHub falló dos veces: `gh issue list` (con `--search` o con `--label`) y la API REST tardan en mostrar un issue recién creado, así que una segunda falla igual abría otro issue. Ahora `reportar.js` guarda en `~/.claude/xi-0-historial/issues.json` los issues que abre, por título, y confirma por número que siguen abiertos (eso sí es inmediato); la lista queda de respaldo. Con eso, la segunda corrida comentó en el mismo issue. Los issues de prueba (#17 a #22) quedaron cerrados.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

@@ -30,3 +30,5 @@ jobs:
         run: node pruebas/enlazar.test.js
       - name: Tabla de tareas (metricas.js)
         run: node pruebas/metricas.test.js
+      - name: Issues de fallas (reportar.js)
+        run: node pruebas/reportar.test.js
