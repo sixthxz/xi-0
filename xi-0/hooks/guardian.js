@@ -126,7 +126,7 @@ function reglaRemotos(cfg, quien, comando, activa) {
   const Publica = sinYunque ? 'Faro' : 'Yunque';
   const esQuienPublica = quien.equipo === publica && quien.rol !== 'ligero';
   const protegidas = new Set(['main', 'master', cfg.rama_base].filter(Boolean));
-  for (const p of piezas(comando)) {
+  for (const p of expandirVariables(piezas(comando))) {
     const g = subcomandoGit(p);
     if (g && g.sub === 'push') {
       if (!r.push) negar('git push está desactivado en este proyecto (remoto.push=false). El trabajo se queda en ramas locales.');
@@ -147,7 +147,11 @@ function reglaRemotos(cfg, quien, comando, activa) {
       // Sin tarea abierta no hay Yunque ni Faro: la sesión principal abre el PR de su propia rama (mantenimiento).
       const mantenimiento = !activa && quien.rol === 'xi-0';
       if (!esQuienPublica && !mantenimiento) negar(`Solo ${Publica} abre el PR de la tarea.`);
-      if (!r.repo_pr || !p.some((t) => t.includes(r.repo_pr))) negar(`gh pr create debe llevar -R ${r.repo_pr || '<fork configurado>'}.`);
+      // repo_pr puede ser uno ("yo/fork") o una lista, cuando el proyecto abre PRs en repos hermanos.
+      const repos = [].concat(r.repo_pr || []).map((x) => String(x).toLowerCase());
+      const destino = repoDestino(p);
+      if (!repos.length || !destino || !repos.some((x) => destino === x || destino.endsWith(`github.com/${x}`)))
+        negar(`gh pr create debe llevar -R ${repos.join(' o ') || '<fork configurado>'}.`);
     }
     if (gh === 'merge') {
       if (!r.merge) negar('El merge está desactivado (remoto.merge=false). El usuario une el PR.');
@@ -195,9 +199,47 @@ function piezas(comando, nivel = 0) {
   }
   return salida;
 }
+// Un comando guardado en una variable (G="git -C ."; $G push fork main) se revisa con su valor:
+// las asignaciones del mismo comando se sustituyen donde aparece $G o ${G}.
+// Una variable que no se asignó ahí (viene del entorno) no se puede saber: subcomandoGit y subcomandoGh
+// la tratan como un posible git o gh.
+const VARIABLE = /^\$(?:(\w+)|\{(\w+)(?:[:\-=+?][^}]*)?\})$/; // $G, ${G} y ${G:-git}
+function expandirVariables(lista) {
+  const valores = {};
+  return lista.map((p) => {
+    const salida = [];
+    let inicio = true; // las asignaciones solo cuentan antes del comando (o tras export)
+    for (const t of p) {
+      const a = /^(\w+)=([\s\S]*)$/.exec(t);
+      if (a && (inicio || salida[salida.length - 1] === 'export')) { valores[a[1]] = a[2]; salida.push(t); continue; }
+      const v = VARIABLE.exec(t);
+      const nombre = v && (v[1] || v[2]);
+      if (nombre && valores[nombre] !== undefined) salida.push(...valores[nombre].split(/\s+/).filter(Boolean));
+      else salida.push(t);
+      if (t !== 'export') inicio = false;
+    }
+    return salida;
+  });
+}
+const esGit = (t) => /(^|[\/\\])git(\.exe)?$/i.test(t);
+const esGh = (t) => /(^|[\/\\])gh(\.exe)?$/i.test(t);
+// Índice del programa en la pieza; si no aparece por nombre, una variable sin valor conocido puede serlo.
+function indicePrograma(p, es) {
+  const i = p.findIndex(es);
+  return i >= 0 ? i : p.findIndex((t) => VARIABLE.test(t));
+}
+// El repo que nombra un gh: -R dueño/repo, --repo dueño/repo o --repo=dueño/repo (en minúsculas, sin .git).
+function repoDestino(p) {
+  for (let i = 0; i < p.length; i++) {
+    const m = /^--repo=(.+)$/.exec(p[i]);
+    const v = m ? m[1] : /^(-R|--repo)$/.test(p[i]) ? p[i + 1] : null;
+    if (v) return v.toLowerCase().replace(/\.git$/, '').replace(/\/+$/, '');
+  }
+  return null;
+}
 // El subcomando de git de una pieza, esté donde esté (env git …, xargs git …, git -C . push …).
 function subcomandoGit(p) {
-  const i = p.findIndex((t) => /(^|[\/\\])git(\.exe)?$/i.test(t));
+  const i = indicePrograma(p, esGit);
   if (i < 0) return null;
   let j = i + 1;
   while (j < p.length && p[j].startsWith('-')) j += /^(-C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)$/.test(p[j]) ? 2 : 1;
@@ -205,7 +247,7 @@ function subcomandoGit(p) {
 }
 // 'create' o 'merge' si la pieza es un gh pr create o gh pr merge.
 function subcomandoGh(p) {
-  const i = p.findIndex((t) => /(^|[\/\\])gh(\.exe)?$/i.test(t));
+  const i = indicePrograma(p, esGh);
   if (i < 0) return null;
   const resto = p.slice(i + 1);
   const k = resto.indexOf('pr'); // puede llevar opciones antes: gh -R dueño/repo pr create
