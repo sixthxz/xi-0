@@ -156,8 +156,11 @@ if (!/^[a-z]+$/.test(plantilla) || !fs.existsSync(archivoPlantilla)) {
 }
 
 const n1 = copiar(path.join(ORIGEN, 'xi-0'), DESTINO);
-const n2 = copiar(path.join(ORIGEN, 'skills', 'xi-0'), path.join(CLAUDE, 'skills', 'xi-0'));
-console.log(`Copiados ${n1} archivos a ${aTexto(DESTINO)} y ${n2} a ${aTexto(path.join(CLAUDE, 'skills', 'xi-0'))}.`);
+// Todas las habilidades del repo: xi-0 y sus comandos por fase (xi-0-revisar…).
+const habilidades = fs.readdirSync(path.join(ORIGEN, 'skills'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+let n2 = 0;
+for (const h of habilidades) n2 += copiar(path.join(ORIGEN, 'skills', h), path.join(CLAUDE, 'skills', h));
+console.log(`Copiados ${n1} archivos a ${aTexto(DESTINO)} y ${n2} de ${habilidades.length} habilidades (${habilidades.join(', ')}) a ${aTexto(path.join(CLAUDE, 'skills'))}.`);
 
 execFileSync(process.execPath, [path.join(DESTINO, 'generar-agentes.js')], { stdio: 'inherit' });
 

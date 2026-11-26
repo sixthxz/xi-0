@@ -286,6 +286,17 @@ Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm
 - El guardián niega `reporte.md` y `report.md` dentro de `.xi-0/` con el nombre que sí sirve. La escritura fallaba igual; ahora el motivo orienta. Aplica a todas las tareas.
 - 5 casos nuevos en `pruebas/guardian.test.js`.
 
+## Revisar una rama que ya existe: /xi-0-revisar (2026-11-25)
+
+Primer comando por fase. Corre solo la fase de Calidad sobre una rama o un PR que hizo otro (una persona, una sesión sola, la sesión principal al mantener el repo), sin cambiar código.
+
+- `skills/xi-0-revisar/SKILL.md` no copia la habilidad principal: dice qué cambia (entrada, worktree desde la rama o el PR, ruta, entrega) y remite a ella para lo demás.
+- Ruta: Argos siempre; Égida si el diff toca datos, dependencias o permisos. Sin líder de fase. Un PR se trae con `git fetch <remoto> pull/<n>/head`, que sirve también para forks.
+- **El guardián lo hace cumplir:** con `"modo": "revisar"` en `activa.json`, ningún agente escribe fuera de `.xi-0/`. Una prueba que falta es una falla de clase `cobertura`.
+- Sin commit único ni push. Si la entrada fue un PR y `remoto.pr=true`, xi-0 deja un comentario de revisión en el PR (`gh pr comment`).
+- `instalar.js` instala todas las carpetas de `skills/`, no solo `xi-0`.
+- 6 casos nuevos en `pruebas/guardian.test.js`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

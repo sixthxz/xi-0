@@ -22,13 +22,21 @@ Rama: tarea/exportar-csv
 
 Después cada equipo hace su parte en una copia aparte del repo. Tú solo hablas con xi-0. Al final tienes la rama `tarea/<id>` con el código, las pruebas y un registro de lo que decidió cada equipo.
 
+Para revisar una rama o un PR que ya existe, sin construir nada, solo con QA y Seguridad:
+
+```
+/xi-0-revisar #12
+```
+
+Devuelve el veredicto y las fallas; si le das un PR, deja también un comentario de revisión en él.
+
 ¿Eres un agente de IA leyendo este repo? Empieza por [`AGENTS.md`](AGENTS.md).
 
 ## Tres capas
 
 | Capa | Archivo | Qué hace |
 | :- | :- | :- |
-| Procedimiento | `skills/xi-0/SKILL.md` | El flujo que sigue la sesión principal cuando escribes `/xi-0 <orden>`. |
+| Procedimiento | `skills/xi-0/SKILL.md` | El flujo que sigue la sesión principal cuando escribes `/xi-0 <orden>`. `skills/xi-0-revisar/SKILL.md` cambia solo lo necesario para revisar una rama que ya existe. |
 | Roles | `xi-0/generar-agentes.js` | Genera los 25 agentes: quién hace qué, con qué herramientas y qué modelo. |
 | Reglas forzadas | `xi-0/hooks/guardian.js` | Un hook que niega lo que rompe las reglas, lo quiera el modelo o no. |
 
