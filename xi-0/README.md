@@ -266,6 +266,17 @@ Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm
 - **xi-0 no espera al usuario.** Si un compañero termina su turno esperando un aviso, xi-0 mira la salida y lo despierta, o le pide el relevo y pone el vigía.
 - Las tareas con `"reglas": 2` o `3` siguen como antes. 11 casos nuevos en `pruebas/guardian.test.js`.
 
+## CI del repo y rutas con nombre corto (2026-11-25)
+
+- **CI en GitHub Actions** (`.github/workflows/pruebas.yml`): corre `pruebas/guardian.test.js` y `pruebas/conformidad.test.js` en Linux y Windows en cada push a `main` o `tarea/**` y en cada PR.
+- **La primera corrida encontró un hueco en Windows.** La protección de la instalación y la config de xi-0 comparaba rutas como texto. Con el nombre corto de 8.3 de una carpeta (`C:/Users/RUNNER~1/...` en vez de `C:/Users/runneradmin/...`), no reconocía `.claude/xi-0/config.json` como protegido. Esa vez lo frenó la regla de carpetas, pero la protección tenía el hueco. Ahora resuelve la ruta real (`realpath`) antes de comparar, también para archivos que todavía no existen. Dos casos nuevos lo reproducen con el nombre corto de la carpeta de prueba; corren solo en Windows.
+
+## La habilidad se puede invocar sola (2026-11-25)
+
+- Se quitó `disable-model-invocation` de `skills/xi-0/SKILL.md`. La sesión principal puede arrancar xi-0 sin `/xi-0` cuando el usuario pide que lo haga "el equipo", xi-0 o los agentes, o cuando da una orden de desarrollo de varios archivos en un repo con `.claude/xi-0/config.json`. La descripción excluye preguntas, revisiones sueltas, cambios de una o dos líneas y repos sin config.
+- Si arrancó sin `/xi-0`, primero confirma en una línea qué va a hacer, el tamaño que estima y que un equipo cuesta varias veces una sesión sola.
+- Solo la sesión principal puede invocarla: los agentes de xi-0 no tienen la herramienta `Skill`, y un compañero tampoco podría armar un equipo.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
@@ -274,11 +285,6 @@ Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm
 4. **"Ahorro: salvo para cerrar algo ya empezado"**: el guardián no sabe si un ligero nuevo cierra algo; en Ahorro bloquea todos.
 5. **Panel visual del límite (mod)**: solo la statusline.
 6. **Agent teams en la nube / `-p`**: no crean compañeros (limitación de la plataforma).
-
-## CI del repo y rutas con nombre corto (2026-11-25)
-
-- **CI en GitHub Actions** (`.github/workflows/pruebas.yml`): corre `pruebas/guardian.test.js` y `pruebas/conformidad.test.js` en Linux y Windows en cada push a `main` o `tarea/**` y en cada PR.
-- **La primera corrida encontró un hueco en Windows.** La protección de la instalación y la config de xi-0 comparaba rutas como texto. Con el nombre corto de 8.3 de una carpeta (`C:/Users/RUNNER~1/...` en vez de `C:/Users/runneradmin/...`), no reconocía `.claude/xi-0/config.json` como protegido. Esa vez lo frenó la regla de carpetas, pero la protección tenía el hueco. Ahora resuelve la ruta real (`realpath`) antes de comparar, también para archivos que todavía no existen. Dos casos nuevos lo reproducen con el nombre corto de la carpeta de prueba; corren solo en Windows.
 
 ## Puntos abiertos (sección 13) verificados en la documentación
 

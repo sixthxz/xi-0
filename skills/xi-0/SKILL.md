@@ -1,7 +1,6 @@
 ---
 name: xi-0
-description: Equipo de desarrollo xi-0 con agent teams (3 fases, 11 equipos y sus agentes ligeros). Solo cuando el usuario invoca /xi-0 con una orden de desarrollo; no usar por iniciativa propia.
-disable-model-invocation: true
+description: Equipo de desarrollo xi-0 con agent teams (3 fases, 11 equipos y sus agentes ligeros) que lleva una orden de desarrollo hasta una rama tarea/<id> probada por QA. Usar cuando el usuario invoca /xi-0 o pide que lo haga "el equipo", xi-0 o los agentes, o da una orden de desarrollo de varios archivos (feature, mejora, bug, rediseño) en un repo con .claude/xi-0/config.json. No usar para preguntas, revisiones sueltas ni cambios de una o dos líneas, ni en un repo sin esa config.
 ---
 
 # xi-0
@@ -21,6 +20,9 @@ La especificación completa está en `~/.claude/xi-0/especificacion.md`. Si duda
 | De validación | que las pruebas demuestran que funciona | `qa/resultado.md`, `qa/validez.md`, fallas clasificadas | Meridiano |
 
 ## 0. Requisitos (compruébalos antes de nada)
+
+Si arrancaste sin que el usuario escribiera `/xi-0` (te invocaste por la descripción), confírmalo antes con una línea: qué vas a hacer, el tamaño que estimas y que un equipo cuesta varias veces una sesión sola. Si el usuario no lo quiere, sigue como sesión normal.
+
 
 1. Existe `.claude/xi-0/config.json` en el repo. Si no, dilo y ofrece crearla a partir de `~/.claude/xi-0/config.ejemplo.json` (o `config.node.json` si es un paquete de Node).
 2. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` en el entorno (`echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`). Sin eso no hay compañeros: detente y dilo.
