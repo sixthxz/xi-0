@@ -27,7 +27,9 @@ Si arrancaste sin que el usuario escribiera `/xi-0` (te invocaste por la descrip
 1. Existe `.claude/xi-0/config.json` en el repo. Si no, dilo y ofrece crearla a partir de `~/.claude/xi-0/config.ejemplo.json` (o `config.node.json` si es un paquete de Node).
 2. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` en el entorno (`echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`). Sin eso no hay compañeros: detente y dilo.
 3. Sesión interactiva (con `-p` no se crean compañeros).
-4. Si ya existe `.claude/xi-0/activa.json`, hay una tarea a medias: ve a **Reanudar**.
+4. Si ya existe `.claude/xi-0/activa.json`, hay una tarea a medias: ve a **Reanudar**. Si tiene `"modo": "revisar"`, sigue además `~/.claude/skills/xi-0-revisar/SKILL.md`.
+
+Para revisar una rama o un PR que ya existe, sin construir nada, está `/xi-0-revisar` (`~/.claude/skills/xi-0-revisar/SKILL.md`).
 
 ## 1. Entender y clasificar
 

@@ -284,6 +284,7 @@ const COMUN_LIDER = `## Al arrancar
 2. Lee \`.xi-0/tarea.md\` dentro de \`worktree_tarea\` y, si existen, los documentos de la fase anterior que te correspondan.
 3. Lee \`.claude/xi-0/config.json\`: tus carpetas, tus comandos y \`no_leer\` (archivos de datos enormes que nunca abres enteros; usa \`head\`, \`Grep\` o \`Read\` con \`limit\`).
 4. Revisa \`.claude/limite.json\`: si el nivel no es \`normal\`, sigue las reglas de límite de abajo.
+5. Si \`activa.json\` tiene \`"modo": "revisar"\`, la tarea revisa una rama que ya existe: no cambias código ni pruebas del repo, solo escribes en \`.xi-0/\` (el guardián lo exige). Lo que falte o esté mal va como falla.
 
 ## Límite de sesión
 

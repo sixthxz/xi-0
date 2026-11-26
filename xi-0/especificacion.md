@@ -610,6 +610,16 @@ El tipo dice qué equipos pueden entrar; el tamaño dice cuánta coordinación s
 - Si xi-0 duda entre dos tamaños, elige el menor. Subir es reescribir `tamano`, `fases` y la ruta en `activa.json` y lanzar a quien falte; bajar no se puede.
 - Cuando una fase no tiene líder en la tarea, xi-0 encarga directo a sus equipos y ellos le reportan a xi-0 (sección 7).
 
+### Revisar una rama que ya existe (`/xi-0-revisar`)
+
+Para pasar QA, y Seguridad si aplica, sobre una rama o un PR que hizo otro: una persona, una sesión sola o la sesión principal al mantener el repo. Solo corre la fase de Calidad y no cambia código.
+
+- **Entrada:** una rama, o un PR (`#n` o su URL). Un PR se trae con `git fetch <remoto> pull/<n>/head`, que funciona también si viene de un fork. La rama base del diff es la del PR, o `rama_base`.
+- **Ruta:** Argos siempre; Égida si el cambio toca datos, dependencias o permisos. Docs y DevOps no entran. Sin líder de fase: xi-0 encarga directo. Tamaño `chica` (sin ligeros) salvo que el diff sea grande.
+- **No toca código:** `activa.json` lleva `"modo": "revisar"`. Con eso el guardián solo deja escribir dentro de `.xi-0/`. Una prueba que falta es una falla de clase `cobertura`, no una prueba nueva.
+- **Criterios:** `tarea.md` toma como pedido literal la descripción del PR o el mensaje de los commits, y de ahí salen los `CT-n`. QA demuestra cada uno o lo deja como hueco, igual que en una tarea normal.
+- **Salida:** el veredicto (QA y, si entró, Seguridad) y las fallas, en el reporte al usuario. Si la entrada fue un PR y `remoto.pr=true`, xi-0 publica un comentario de revisión en ese PR (`gh pr comment`). Sin commit único ni push: `.xi-0/` se archiva en `~/.claude/xi-0-historial/` como en cualquier entrega.
+
 ---
 
 ## 6. No negociables y negociables
@@ -860,6 +870,7 @@ En una tarea chica, el commit wip de Guardado es el único que se permite antes 
 | Pruebas existentes que cambian, también sin commit | `TaskCompleted` de QA: además de las ramas, compara la copia de la tarea contra la rama base. |
 | Quién publica | Hook `PreToolUse` sobre `Bash`: `git push` y `gh pr create` solo para Yunque; si Yunque no está en `fases`, solo para DevOps. |
 | Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano; con `"reglas": 4`, también a un líder de equipo (usa `nohup` con relevo). |
+| Revisar sin cambiar código | Hook `PreToolUse` sobre `Write`/`Edit`: con `"modo": "revisar"` en `activa.json`, niega a los agentes escribir fuera de `.xi-0/`. |
 | Nombres que Claude Code niega | Hook `PreToolUse` sobre `Write`/`Edit`: dentro de `.xi-0/`, niega a los agentes `reporte.md` y `report.md` con el nombre que sí sirve (Seguridad: `veredicto.md`). |
 | Remotos de otro repo | Hook `PreToolUse` sobre `Bash`: un `git` o `gh` que actúa en otro repo con xi-0 activado (`cd <repo> && …`, `git -C <repo> …`) se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión. |
 | `.xi-0/` no se publica (reglas 4) | Hook `PreToolUse` sobre `Bash`: niega `git push` y `gh pr create` si la rama trae `.xi-0/` respecto de la rama base. En una chica, niega el commit único de quien construye si `.xi-0/` ya está preparado o el mismo comando hace `git add -A` o `git add .` sin excluirlo; un `wip:` en Guardado sí lo lleva. |

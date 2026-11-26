@@ -31,6 +31,7 @@ const ACTIVAS = {
   // Reglas 4: .xi-0/ no se publica ni entra en el commit único.
   r4Yunque: { tarea: 't1', reglas: 4, tamano: 'mediana', fases: ['yunque'], rama: 'tarea/t1', worktree_tarea: repo },
   r4Chica: { tarea: 't1', reglas: 4, tamano: 'chica', fases: [], rama: 'tarea/t1', worktree_tarea: repo },
+  revisar: { tarea: 't1', reglas: 4, tamano: 'chica', fases: [], modo: 'revisar', rama: 'tarea/t1', worktree_tarea: repo },
   r3Yunque: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'], rama: 'tarea/t1', worktree_tarea: repo },
 };
 // Otro repo con xi-0 activado (ruta con espacio, como "Git Projects") y uno sin xi-0, para los comandos que actúan fuera.
@@ -236,6 +237,13 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Revisar una rama que ya existe: solo se escribe en .xi-0/ ---
+  ['revisar: QA no escribe pruebas nuevas', 'revisar', 'argos', escribir(repo, 'api', 'tests', 'nuevo.cs'), /revisa una rama que ya existe[^]*cobertura/],
+  ['revisar: tampoco un ligero', 'revisar', 'argos-ligero', escribir(repo, 'spa', 'src', 'app.ts'), /revisa una rama que ya existe/],
+  ['revisar: QA escribe su resultado', 'revisar', 'argos', escribir(repo, '.xi-0', 'qa', 'resultado.md'), PASA],
+  ['revisar: Seguridad escribe su veredicto', 'revisar', 'egida', escribir(repo, '.xi-0', 'seguridad', 'veredicto.md'), PASA],
+  ['revisar: las carpetas por equipo siguen dentro de .xi-0', 'revisar', 'egida', escribir(repo, '.xi-0', 'qa', 'resultado.md'), /no es dueño/],
+  ['sin modo revisar: QA sí escribe pruebas', 'r4Yunque', 'argos', escribir(repo, 'api', 'tests', 'nuevo.cs'), PASA],
   // --- Nombres de archivo que Claude Code niega a los subagentes ---
   ['nombre: reporte.md de Seguridad', 'reglas2', 'egida', escribir(repo, '.xi-0', 'seguridad', 'reporte.md'), /No llames "reporte.md"[^]*veredicto.md/],
   ['nombre: report.md en otra carpeta de .xi-0', 'r4Yunque', 'argos', escribir(repo, '.xi-0', 'qa', 'Report.md'), /No llames "Report.md"/],

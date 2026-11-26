@@ -537,7 +537,7 @@ function reglaNombreReporte(quien, archivo) {
   if (/\/\.xi-0\//.test(abs) && /^reports?\.md$|^reportes?\.md$/i.test(path.posix.basename(abs)))
     negar(`No llames "${path.posix.basename(abs)}" a un archivo: Claude Code niega a los subagentes escribir archivos con ese nombre. Usa el nombre de tu entrega (Seguridad: .xi-0/seguridad/veredicto.md; si no, uno descriptivo como informe.md) y escribe ahí el mismo contenido.`);
 }
-function reglaCarpetas(cfg, quien, archivo, raiz) {
+function reglaCarpetas(cfg, quien, archivo, raiz, activa) {
   const abs = norm(archivo);
   const home = norm(path.join(os.homedir(), '.claude'));
   const tmp = norm(os.tmpdir());
@@ -545,6 +545,9 @@ function reglaCarpetas(cfg, quien, archivo, raiz) {
   const wt = raizWorktree(abs);
   if (!wt || raizPrincipal(wt) !== raiz) negar(`${quien.equipo} no puede escribir fuera del repo y sus worktrees: ${abs}`);
   const rel = abs.slice(wt.length + 1);
+  // Revisar una rama que ya existe (/xi-0-revisar): nadie cambia el código revisado, solo se escribe en .xi-0/.
+  if ((activa || {}).modo === 'revisar' && quien.rol !== 'xi-0' && !rel.startsWith('.xi-0/'))
+    negar(`Esta tarea revisa una rama que ya existe: no se cambia "${rel}". Escribe solo en .xi-0/; lo que falte o esté mal va como falla (una prueba que falta es clase "cobertura").`);
   if (quien.rol === 'equipo' && rel === `.xi-0/relevo/${quien.equipo}.md`) return; // su relevo, sin tocar la config del repo
   const reglas = (cfg.carpetas || {})[quien.equipo] || { incluye: [] };
   const incluye = Array.isArray(reglas) ? reglas : reglas.incluye;
@@ -811,7 +814,7 @@ function atender() {
         if (quien.rol === 'desconocido') negar(`"${quien.equipo}" no pertenece al equipo xi-0 y no puede escribir mientras hay una tarea activa.`);
         const archivo = e.tool_input.file_path || e.tool_input.notebook_path;
         reglaNombreReporte(quien, archivo);
-        reglaCarpetas(cfg, quien, archivo, raiz);
+        reglaCarpetas(cfg, quien, archivo, raiz, activa);
         if (v2 && e.tool_name === 'Write') reglaFallaQA(archivo, e.tool_input.content);
       }
       else if (e.tool_name === 'Agent') reglaAgent(cfg, quien, e, raiz, limite, activa);
