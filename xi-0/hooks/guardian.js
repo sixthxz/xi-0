@@ -118,7 +118,22 @@ function identificar(agentType) {
 }
 
 // ---------- reglas ----------
-function reglaRemotos(cfg, quien, comando, activa) {
+// Reglas 4: .xi-0/ es el rastro de trabajo de la tarea. Viaja en los commits de la rama mientras se trabaja
+// (lo leen los worktrees paralelos y la reanudación), pero no entra en el commit único ni en lo que se publica:
+// un PR unido tal cual lo dejaba en main del proyecto.
+const reglasRastro = (activa) => Number((activa || {}).reglas) >= 4;
+const SIN_RASTRO = 'Al entregar, xi-0 archiva .xi-0/ fuera del repo y lo saca del commit único (git rm -r -q --cached .xi-0 antes del commit; en una chica, git add -A -- . ":!.xi-0").';
+function reglaRastroEnRama(cfg, raiz, rama, activa) {
+  const base = cfg.rama_base || 'main';
+  const donde = rama === 'HEAD' && activa.worktree_tarea ? win(activa.worktree_tarea) : win(raiz);
+  let salida = '';
+  try {
+    salida = execFileSync('git', ['-c', 'core.quotepath=false', '-C', donde, 'diff', '--name-only', `${base}...${rama}`, '--', '.xi-0'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch { return; } // la rama o la base no existen aquí: esta regla no bloquea por eso
+  const archivos = salida.split('\n').filter(Boolean);
+  if (archivos.length) negar(`La rama ${rama} trae .xi-0/ (${archivos.length} archivos, por ejemplo ${archivos[0]}): el rastro de la tarea no se publica. ${SIN_RASTRO}`);
+}
+function reglaRemotos(cfg, quien, comando, activa, raiz) {
   const r = cfg.remoto || {};
   // Quién sube la rama y abre el PR: Yunque; si no está activo en la tarea (reglas 3), Faro (el líder, no sus ligeros).
   const sinYunque = Number((activa || {}).reglas) >= 3 && Array.isArray(activa.fases) && !activa.fases.includes('yunque');
@@ -140,6 +155,7 @@ function reglaRemotos(cfg, quien, comando, activa) {
       if (opciones.some((o) => /^--force/.test(o) || /^-[a-zA-Z]*f/.test(o)) || ramas.some((x) => x.startsWith('+'))) negar('Nada de push forzado.');
       if (!ramas.length || opciones.some((o) => /^--(all|mirror|branches)$/.test(o)))
         negar(`El push nombra la rama que sube: git push ${r.remote_permitido} tarea/<id>. Sin rama, o con --all o --mirror, podría subir main.`);
+      if (reglasRastro(activa)) for (const x of ramas) reglaRastroEnRama(cfg, raiz, x.replace(/^\+/, '').split(':')[0] || 'HEAD', activa);
     }
     const gh = subcomandoGh(p);
     if (gh === 'create') {
@@ -152,6 +168,11 @@ function reglaRemotos(cfg, quien, comando, activa) {
       const destino = repoDestino(p);
       if (!repos.length || !destino || !repos.some((x) => destino === x || destino.endsWith(`github.com/${x}`)))
         negar(`gh pr create debe llevar -R ${repos.join(' o ') || '<fork configurado>'}.`);
+      if (reglasRastro(activa)) {
+        const h = p.findIndex((t) => /^(-H|--head)$/.test(t));
+        const cabeza = h >= 0 ? p[h + 1] : ((p.find((t) => t.startsWith('--head=')) || '').slice(7) || activa.rama);
+        if (cabeza) reglaRastroEnRama(cfg, raiz, cabeza.replace(/^[^:]+:/, ''), activa);
+      }
     }
     if (gh === 'merge') {
       if (!r.merge) negar('El merge está desactivado (remoto.merge=false). El usuario une el PR.');
@@ -352,7 +373,13 @@ function reglaComandos(cfg, quien, comando, raizTarea, activa) {
 function reglaCommitChica(quien, comando, activa, raizTarea, limite) {
   if (Number((activa || {}).reglas) < 3 || activa.tamano !== 'chica' || !raizTarea) return;
   if (!['equipo', 'ligero'].includes(quien.rol) || !['prisma', 'forja'].includes(quien.equipo)) return;
-  for (const p of piezas(comando)) {
+  const lista = piezas(comando);
+  // Reglas 4: el commit único no lleva .xi-0/. Un "git add -A" (o "git add .") en el mismo comando lo metería.
+  const agregaRastro = reglasRastro(activa) && lista.some((q) => {
+    const a = subcomandoGit(q);
+    return a && a.sub === 'add' && a.args.some((x) => /^(-A|--all|\.|\.xi-0(\/.*)?)$/.test(x)) && !a.args.some((x) => /^:(!|\(exclude\))\/?\.xi-0/.test(x));
+  });
+  for (const p of lista) {
     const g = subcomandoGit(p);
     if (!g || g.sub !== 'commit') continue;
     let mensaje = '';
@@ -366,7 +393,16 @@ function reglaCommitChica(quien, comando, activa, raizTarea, limite) {
     const abiertas = leerFallas(raizTarea).filter((x) => /^abiert/i.test(x.estado || ''));
     if (faltan.length || abiertas.length)
       negar(`En una tarea chica el commit es uno solo y va después de QA: ${faltan.length ? `a .xi-0/qa/resultado.md le faltan ${faltan.join(' · ')}` : `hay fallas abiertas (${abiertas.map((a) => a.f).join(', ')})`}. Deja los cambios sin commit, avisa a xi-0 que están listos para QA y espera su visto bueno. Solo con el límite en Guardado vale un commit "wip: ...".`);
+    if (reglasRastro(activa) && (agregaRastro || rastroPreparado(raizTarea)))
+      negar('El commit único no lleva .xi-0/ (es el rastro de la tarea, no se entrega). Prepáralo así: git add -A -- . ":!.xi-0" y después el commit. Si ya lo agregaste: git reset -q -- .xi-0');
   }
+}
+
+// Archivos de .xi-0/ ya preparados para el commit en la copia de la tarea.
+function rastroPreparado(raizTarea) {
+  try {
+    return execFileSync('git', ['-C', win(raizTarea), 'diff', '--cached', '--name-only', '--', '.xi-0'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() !== '';
+  } catch { return false; }
 }
 
 function reglaDependencias(cfg, clave, s, raizTarea) {
@@ -668,7 +704,7 @@ function atender() {
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
-  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa);
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotos(cfg, quien, e.tool_input.command || '', activa, raiz);
   // Lo mismo la protección de xi-0 y su configuración.
   if (e.hook_event_name === 'PreToolUse') {
     const ti = e.tool_input || {};

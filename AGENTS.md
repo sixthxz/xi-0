@@ -45,6 +45,7 @@ Reglas principales: ningún agente escribe en la instalación de xi-0, en los se
 
 - **Estable**: reglas de carpetas, comandos, mensajes, máximos, remotos y evidencia. Las tareas abiertas con `"reglas": 2` en `activa.json` siguen como antes.
 - **Escrito y con pruebas del guardián, sin medir en una tarea real (ruta por tamaño y relevo)**: la habilidad abre las tareas con `"reglas": 3`, `tamano` (chica, mediana o grande) y `fases` (líderes de fase que participan). Con eso: mensajes directos cuando un líder de fase no participa, tarea chica sin ligeros y con un solo commit después de QA, Faro publica si Yunque no participa, y relevo escrito antes de una corrida desprendida. Está en la especificación (secciones 5, 7, 9 y 11). Falta comprobar en uso real que la corrida desprendida sobrevive al cierre del agente y que el aviso del vigía llega.
+- **Escrito y con pruebas del guardián, sin usar en una tarea real (`.xi-0/` fuera de lo que se entrega)**: la habilidad abre las tareas con `"reglas": 4`. `.xi-0/` viaja en la rama durante la tarea, pero xi-0 lo archiva en `~/.claude/xi-0-historial/` y lo saca del commit único; el guardián niega publicar una rama que lo traiga. Está en la especificación (secciones 9 y 11).
 
 ## Comandos
 

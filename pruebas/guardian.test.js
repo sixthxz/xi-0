@@ -28,7 +28,13 @@ const ACTIVAS = {
   chicaCopia: { tarea: 't1', reglas: 3, tamano: 'chica', fases: [], worktree_tarea: repo },
   medianaCopia: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'], worktree_tarea: repo },
   reglas2Copia: { tarea: 't1', reglas: 2, worktree_tarea: repo },
+  // Reglas 4: .xi-0/ no se publica ni entra en el commit único.
+  r4Yunque: { tarea: 't1', reglas: 4, tamano: 'mediana', fases: ['yunque'], rama: 'tarea/t1', worktree_tarea: repo },
+  r4Chica: { tarea: 't1', reglas: 4, tamano: 'chica', fases: [], rama: 'tarea/t1', worktree_tarea: repo },
+  r3Yunque: { tarea: 't1', reglas: 3, tamano: 'mediana', fases: ['yunque'], rama: 'tarea/t1', worktree_tarea: repo },
 };
+const git = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=prueba', '-c', 'user.email=prueba@example.invalid', ...a], { stdio: 'ignore' });
+const hayRama = (r) => { try { git('rev-parse', '--verify', '-q', r); return true; } catch { return false; } };
 const QA_COMPLETO = 'pruebas: npm test, 12 pasan\nrevision: aprobado\nvisual: no aplica\nvalidez: aprobado (1/1 criterios)\n';
 const cierreQA = ['TaskCompleted', { task_title: 'qa' }];
 const palabras = (n) => Array(n).fill('palabra').join(' ');
@@ -222,6 +228,22 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Reglas 4: .xi-0/ no se publica ni entra en el commit único ---
+  ['rastro: no se sube una rama con .xi-0', 'r4Yunque', 'yunque', bash('git push fork tarea/t1'), /trae \.xi-0\/[^]*git rm -r -q --cached \.xi-0/, { rama: 'con' }],
+  ['rastro: tampoco con refspec', 'r4Yunque', 'yunque', bash('git push -u fork tarea/t1:tarea/t1'), /trae \.xi-0/, { rama: 'con' }],
+  ['rastro: sin .xi-0 se sube', 'r4Yunque', 'yunque', bash('git push fork tarea/t1'), PASA, { rama: 'sin' }],
+  ['rastro: no se abre el PR de una rama con .xi-0', 'r4Yunque', 'yunque', bash('gh pr create -R yo/fork --fill'), /trae \.xi-0/, { rama: 'con' }],
+  ['rastro: PR de la rama sin .xi-0', 'r4Yunque', 'yunque', bash('gh pr create -R yo/fork --fill'), PASA, { rama: 'sin' }],
+  ['rastro: con --head explícito', 'r4Yunque', 'yunque', bash('gh pr create -R yo/fork --head tarea/t1 --fill'), /trae \.xi-0/, { rama: 'con' }],
+  ['rastro: reglas 3 sigue como antes', 'r3Yunque', 'yunque', bash('git push fork tarea/t1'), PASA, { rama: 'con' }],
+  ['rastro: reglas 2 sigue como antes', 'reglas2', 'yunque', bash('git push fork tarea/t1'), PASA, { rama: 'con' }],
+  ['rastro: chica, git add -A mete .xi-0', 'r4Chica', 'forja', bash('git add -A && git commit -m "fix: fecha"'), /no lleva \.xi-0/, { qa: QA_COMPLETO }],
+  ['rastro: chica, git add . también', 'r4Chica', 'prisma', bash('git add . && git commit -m "fix: fecha"'), /no lleva \.xi-0/, { qa: QA_COMPLETO }],
+  ['rastro: chica, .xi-0 ya preparado', 'r4Chica', 'forja', bash('git commit -m "fix: fecha"'), /no lleva \.xi-0/, { qa: QA_COMPLETO, preparado: true }],
+  ['rastro: chica, sin .xi-0 pasa', 'r4Chica', 'forja', bash('git add -A -- . ":!.xi-0" && git commit -m "fix: fecha"'), PASA, { qa: QA_COMPLETO }],
+  ['rastro: chica, con :(exclude) pasa', 'r4Chica', 'forja', bash('git add -A -- . ":(exclude).xi-0" && git commit -m "fix: fecha"'), PASA, { qa: QA_COMPLETO }],
+  ['rastro: chica, un wip en Guardado sí lleva .xi-0', 'r4Chica', 'forja', bash('git add -A && git commit -m "wip: a medias"'), PASA, { limite: 90 }],
+  ['rastro: chica reglas 3, git add -A como antes', 'chicaCopia', 'forja', bash('git add -A && git commit -m "fix: fecha"'), PASA, { qa: QA_COMPLETO }],
 ];
 
 function correr(activa, quien, [herramienta, entrada], previo) {
@@ -269,13 +291,25 @@ function correr(activa, quien, [herramienta, entrada], previo) {
     if (!fs.existsSync(vieja)) {
       fs.mkdirSync(path.dirname(vieja), { recursive: true });
       fs.writeFileSync(vieja, 'prueba original\n');
-      const git = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=prueba', '-c', 'user.email=prueba@example.invalid', ...a], { stdio: 'ignore' });
       git('checkout', '-q', '-B', 'main');
       git('add', 'api/tests/viejo.cs');
       git('commit', '-q', '-m', 'base');
     }
     fs.writeFileSync(vieja, 'prueba debilitada\n');
   }
+  // Rama tarea/t1 que sale de main con un commit que trae .xi-0/ ("con") o solo código ("sin").
+  if (p.rama) {
+    if (!hayRama('main')) { git('symbolic-ref', 'HEAD', 'refs/heads/main'); git('commit', '-q', '--allow-empty', '-m', 'base'); }
+    git('checkout', '-q', '-B', 'tarea/t1', 'main');
+    const f = p.rama === 'con' ? path.join('.xi-0', 'tarea.md') : path.join('src', 'x.txt');
+    fs.mkdirSync(path.join(repo, path.dirname(f)), { recursive: true });
+    fs.writeFileSync(path.join(repo, f), 'x\n');
+    git('add', '-f', f);
+    git('commit', '-q', '-m', 'tarea');
+    git('checkout', '-q', 'main');
+  }
+  // Un archivo de .xi-0/ ya preparado para el commit (se deshace al terminar el caso).
+  if (p.preparado) git('add', '-f', path.join('.xi-0', 'qa', 'resultado.md'));
   const evento = herramienta === 'TaskCompleted'
     ? { hook_event_name: 'TaskCompleted', cwd: repo, ...entrada }
     : { hook_event_name: 'PreToolUse', tool_name: herramienta, tool_use_id: 'x', cwd: (previo || {}).fuera ? os.tmpdir() : repo, tool_input: entrada };
@@ -287,6 +321,7 @@ function correr(activa, quien, [herramienta, entrada], previo) {
   if ((previo || {}).sinGit) env.GIT_DIR = path.join(repo, 'no-existe'); // git deja de reconocer el repo
   const r = spawnSync(process.execPath, [guardian], { input: JSON.stringify(evento), encoding: 'utf8', env });
   if (p.config) fs.writeFileSync(archivoCfg, JSON.stringify(cfg));
+  if (p.preparado) git('reset', '-q', '--', '.xi-0');
   let motivo = null;
   try {
     const o = JSON.parse(r.stdout).hookSpecificOutput;
