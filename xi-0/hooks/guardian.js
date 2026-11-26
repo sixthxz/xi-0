@@ -185,6 +185,48 @@ function reglaRemotosPorRepo(cfg, quien, comando, activa, raiz, cwd) {
     else reglaRemotos(leerConfig(r), quien, ps, leerActiva(r), r);
   }
 }
+// node_modules enlazado al del repo principal (enlazar.js). Aplica a todos, xi-0 incluido, haya tarea o no:
+// - instalar dependencias en esa carpeta escribiría en el node_modules del repo principal;
+// - git worktree remove atraviesa el enlace y borra el original (probado en Windows con una junction).
+const esEnlace = (p) => { try { return fs.lstatSync(win(p)).isSymbolicLink(); } catch { return false; } };
+function enlacesBajo(dir) {
+  const salida = [];
+  const mirar = (d, nivel) => {
+    if (esEnlace(path.join(d, 'node_modules'))) salida.push(path.join(d, 'node_modules'));
+    if (nivel >= 2) return;
+    let items = [];
+    try { items = fs.readdirSync(win(d), { withFileTypes: true }); } catch { return; }
+    for (const it of items) if (it.isDirectory() && !/^(node_modules|\.git)$/.test(it.name)) mirar(path.join(d, it.name), nivel + 1);
+  };
+  mirar(dir, 0);
+  return salida;
+}
+const GESTOR = /(^|[\/\\])(pnpm|npm|yarn)(\.cmd|\.exe)?$/i;
+const INSTALA = /^(install|i|ci|add|remove|rm|uninstall|un|update|up|upgrade|dedupe|prune|link)$/;
+function reglaEnlaces(comando, cwd, raiz) {
+  const lista = expandirVariables(piezas(comando));
+  const carpetas = carpetasDePiezas(lista, cwd || raiz);
+  lista.forEach((p, i) => {
+    const g = subcomandoGit(p);
+    if (g && g.sub === 'worktree' && g.args[0] === 'remove') {
+      const destino = g.args.slice(1).find((a) => !a.startsWith('-'));
+      const abs = destino && path.resolve(win(carpetas[i]), win(destino));
+      if (abs && enlacesBajo(abs).length)
+        negar(`Ese worktree tiene node_modules enlazado al del repo principal, y git worktree remove borraría el original a través del enlace. Primero quita los enlaces: node ~/.claude/xi-0/enlazar.js "${norm(abs)}" --quitar`);
+    }
+    const k = p.findIndex((t) => GESTOR.test(t));
+    if (k < 0) return;
+    // El subcomando es la primera palabra que no es opción ni el valor de -C/--dir/--prefix/--cwd.
+    const resto = p.slice(k + 1);
+    const sub = resto.find((t, j) => !t.startsWith('-') && !/^(-C|--dir|--prefix|--cwd)$/.test(resto[j - 1] || ''));
+    if (!(INSTALA.test(sub || '') || (/yarn/i.test(p[k]) && !sub))) return;
+    let dir = carpetas[i];
+    const o = p.findIndex((t) => /^(-C|--dir|--prefix|--cwd)$/.test(t));
+    if (o >= 0 && p[o + 1]) dir = path.resolve(win(dir), win(p[o + 1]));
+    if (esEnlace(path.join(dir, 'node_modules')))
+      negar(`node_modules de ${norm(dir)} es un enlace al del repo principal: "${p.slice(k).join(' ').slice(0, 60)}" escribiría allá. Si la tarea cambia dependencias, pide a xi-0 que quite el enlace (enlazar.js <worktree> --quitar) y entonces instala aquí.`);
+  });
+}
 function reglaRemotos(cfg, quien, lista, activa, raiz) {
   const r = cfg.remoto || {};
   // Quién sube la rama y abre el PR: Yunque; si no está activo en la tarea (reglas 3), Faro (el líder, no sus ligeros).
@@ -795,7 +837,10 @@ function atender() {
   const raizTarea = activa && activa.worktree_tarea ? norm(activa.worktree_tarea) : null;
 
   // La regla de remotos aplica siempre en el proyecto, haya tarea xi-0 activa o no.
-  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') reglaRemotosPorRepo(cfg, quien, e.tool_input.command || '', activa, raiz, e.cwd);
+  if (e.hook_event_name === 'PreToolUse' && e.tool_name === 'Bash') {
+    reglaRemotosPorRepo(cfg, quien, e.tool_input.command || '', activa, raiz, e.cwd);
+    reglaEnlaces(e.tool_input.command || '', e.cwd, raiz);
+  }
   // Lo mismo la protección de xi-0 y su configuración.
   if (e.hook_event_name === 'PreToolUse') {
     const ti = e.tool_input || {};

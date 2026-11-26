@@ -55,6 +55,7 @@ node instalar.js --activar <repo>     # deja config y hooks en un repo
 node pruebas/guardian.test.js         # pruebas del guardián en un repo temporal
 node pruebas/conformidad.test.js      # números y líneas de los documentos contra equipos.json
 node pruebas/ci.test.js               # ci.js con un remoto local, sin GitHub
+node pruebas/enlazar.test.js          # enlazar.js con un worktree real
 node ~/.claude/xi-0/metricas.js <repo>  # costo y bloqueos por agente
 ```
 

@@ -30,6 +30,8 @@ Si arrancaste sin que el usuario escribiera `/xi-0-revisar`, confirma antes en u
   # PR
   git fetch <remote_permitido o origin> pull/<n>/head
   git worktree add <worktrees>/<id> -b tarea/<id> FETCH_HEAD
+  # en los dos casos, después
+  node ~/.claude/xi-0/enlazar.js "<worktrees>/<id>"
   ```
 - `activa.json` como siempre, más `"modo": "revisar"`, `"revisa": "<rama o #n>"` y `"base": "<rama base>"`. Con `"modo": "revisar"` el guardián solo deja escribir dentro de `.xi-0/`.
 - `tarea.md`: el pedido literal es la descripción del PR, o los mensajes de los commits de la rama (`git log <base>..<cabeza>`). Los `CT-n` salen de ahí, como comportamiento observable. Agrega siempre uno: "la verificación del proyecto pasa" (`config.verificacion`). No hagas commit de `tarea.md`.
@@ -59,5 +61,5 @@ Modo revisar: la rama ya está hecha. No cambias código ni pruebas del repo; so
    gh pr comment <n> -R <repo> --body-file <archivo>
    ```
    El comentario es para quien lee el PR, no para ti: veredicto, criterios demostrados n/m, cada falla en una línea (clase, archivo:línea, qué pasa), y qué se corrió (comandos y resultado). Sin rutas de `.xi-0/` ni nombres de agentes.
-5. Cierra a los compañeros, borra `.claude/xi-0/activa.json` y deja el worktree.
+5. Cierra a los compañeros, quita los enlaces (`node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`), borra `.claude/xi-0/activa.json` y deja el worktree.
 6. Reporte al usuario, corto: qué se revisó, veredicto, fallas (las graves primero), enlace al comentario si lo publicaste, y métricas (duración y costo en USD de `node ~/.claude/xi-0/metricas.js "<repo principal>"`).

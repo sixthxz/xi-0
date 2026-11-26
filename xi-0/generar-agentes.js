@@ -426,7 +426,9 @@ function dondeTrabaja(id, e) {
   git -C <worktree_tarea> worktree add <worktrees>/<id>-${id} -b tarea/<id>-${id} tarea/<id>
   \`\`\`
 
-  (\`<worktrees>\` está en \`.claude/xi-0/config.json\`; si el worktree ya existe, reutilízalo). No haces merge a \`tarea/<id>\`: eso lo hace Yunque.
+  (\`<worktrees>\` está en \`.claude/xi-0/config.json\`; si el worktree ya existe, reutilízalo). Recién creado, enlaza sus dependencias para no instalar: \`node ~/.claude/xi-0/enlazar.js <worktrees>/<id>-${id}\`. Si tu cambio agrega o actualiza dependencias, ese paquete no se enlaza y ahí sí instalas. No haces merge a \`tarea/<id>\`: eso lo hace Yunque.
+
+Si un \`node_modules\` es un enlace (lo dice \`.xi-0/dependencias.md\`), nunca instales ahí (el guardián lo niega: escribiría en el del repo principal) y nunca borres el worktree con \`git worktree remove\` (borraría el original). Si el servidor de desarrollo o el build fallan por rutas fuera de la carpeta del proyecto, pide a quien te encargó que quite el enlace (\`enlazar.js <worktree> --quitar\`) e instala.
 
 Tus agentes ligeros hacen commits donde tú trabajas, sobre archivos distintos; si dos necesitan el mismo archivo, los pones en fila. Salvo en chica, antes de entregar deja todo con commit. Nunca abres PRs.`;
   }

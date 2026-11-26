@@ -42,6 +42,11 @@ fs.writeFileSync(path.join(otro, '.claude', 'xi-0', 'config.json'), JSON.stringi
 const sinXi0 = fs.mkdtempSync(path.join(os.tmpdir(), 'xi0-sin-'));
 execFileSync('git', ['init', '-q', sinXi0]);
 const q = JSON.stringify;
+// Un worktree con node_modules enlazado (junction en Windows) al de otra carpeta, como lo deja enlazar.js.
+const enl = path.join(repo, 'wt-enlazado');
+fs.mkdirSync(path.join(repo, 'nm-original', 'pkg'), { recursive: true });
+fs.mkdirSync(enl, { recursive: true });
+fs.symlinkSync(path.join(repo, 'nm-original'), path.join(enl, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 const git = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=prueba', '-c', 'user.email=prueba@example.invalid', ...a], { stdio: 'ignore' });
 const hayRama = (r) => { try { git('rev-parse', '--verify', '-q', r); return true; } catch { return false; } };
 const QA_COMPLETO = 'pruebas: npm test, 12 pasan\nrevision: aprobado\nvisual: no aplica\nvalidez: aprobado (1/1 criterios)\n';
@@ -237,6 +242,17 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- node_modules enlazado: no se instala ahí ni se borra el worktree con git ---
+  ['enlace: no se instala en un worktree enlazado', 'ninguna', null, bash(`cd ${q(enl)} && pnpm install`), /es un enlace al del repo principal/],
+  ['enlace: tampoco con --prefix', 'ninguna', null, bash(`npm --prefix ${q(enl)} install left-pad`), /es un enlace/],
+  ['enlace: tampoco npm ci desde un equipo', 'reglas2', 'forja', bash(`cd ${q(enl)} && npm ci`), /es un enlace/],
+  ['enlace: yarn solo también instala', 'ninguna', null, bash(`cd ${q(enl)} && yarn`), /es un enlace/],
+  ['enlace: correr pruebas sí', 'ninguna', null, bash(`cd ${q(enl)} && pnpm test`), PASA],
+  ['enlace: instalar donde no hay enlace sí', 'ninguna', null, bash('pnpm install'), PASA],
+  ['enlace: git worktree remove de un worktree enlazado', 'ninguna', null, bash(`git worktree remove ${q(enl)}`), /borraría el original[^]*--quitar/],
+  ['enlace: tampoco con --force', 'ninguna', null, bash(`git worktree remove --force ${q(enl)}`), /borraría el original/],
+  ['enlace: tampoco con ruta relativa', 'ninguna', null, bash(`cd ${q(repo)} && git worktree remove wt-enlazado`), /borraría el original/],
+  ['enlace: un worktree sin enlaces sí se borra', 'ninguna', null, bash(`git worktree remove ${q(sinXi0)}`), PASA],
   // --- Reglas 4 con CI: la suite completa no corre en local ---
   ['ci: la suite completa no corre en local', 'r4Yunque', 'argos', bash('npm test'), /corre en el CI del proyecto[^]*\.xi-0\/ci\/ultimo\.md/, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
   ['ci: una prueba puntual sí', 'r4Yunque', 'argos', bash('node --test spa/scripts/x.test.js'), PASA, { config: (c) => { c.ci = { workflow: 'v.yml', no_local: ['npm test'] }; } }],
