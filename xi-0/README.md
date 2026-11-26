@@ -315,6 +315,16 @@ Cada `git worktree add` dejaba una carpeta sin `node_modules`, y cada tarea volv
 - La habilidad enlaza al crear el worktree y quita los enlaces al terminar, así el usuario puede borrar los worktrees como quiera. Los constructores enlazan sus worktrees de equipo. `/xi-0-revisar` también enlaza.
 - Pruebas: `pruebas/enlazar.test.js` (10 casos, con un worktree real) y 10 casos nuevos en `pruebas/guardian.test.js`.
 
+## Tabla de tareas (2026-11-26)
+
+Idea tomada del modelo de "sistemas de registro": una tabla única con lo que pasó en cada tarea, para medir con datos reales. Hasta ahora el costo y la duración se sacaban a mano tarea por tarea, y la comparación entre la chica ($6.51) y la mediana ($21.10) vivía en este registro como texto.
+
+- `metricas.js <repo> --registrar --veredicto <…> --pr <…>`: al cerrar una tarea o una revisión, antes de borrar `activa.json`, agrega una fila a `~/.claude/xi-0-historial/indice.jsonl` con repo, tarea, tipo, tamaño, modo, ruta, duración, lanzamientos, bloqueos, costo (total, con la caché vencida y el agente más caro), límite al inicio y al final, veredicto y PR.
+- `metricas.js --historial [repo]`: la tabla (últimas 20) y el promedio de minutos y USD por tamaño, con las revisiones aparte.
+- El informe de siempre no cambia: se comparó la salida antes y después con los datos de una tarea real.
+- La habilidad principal y `/xi-0-revisar` registran al cerrar.
+- `pruebas/metricas.test.js` (13 casos), con la tabla en una carpeta temporal (`XI0_HISTORIAL`).
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.

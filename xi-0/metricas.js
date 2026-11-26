@@ -2,13 +2,27 @@
 // Resume .claude/xi-0/registro.jsonl de un repo: lanzamientos, bloqueos del guardián y duración,
 // y el costo por agente leyendo los transcripts de la sesión (id en la columna "sesion" del registro).
 // Uso: node ~/.claude/xi-0/metricas.js "<repo principal>" [desde ISO] [id de sesión]
+//      node ~/.claude/xi-0/metricas.js "<repo principal>" --registrar [--veredicto <texto>] [--pr <url>] [--nota <texto>]
+//        al entregar, antes de borrar activa.json: agrega la tarea a la tabla ~/.claude/xi-0-historial/indice.jsonl
+//      node ~/.claude/xi-0/metricas.js --historial [repo]
+//        la tabla de tareas y el promedio por tamaño
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const repo = process.argv[2] || process.cwd();
-const desde = process.argv[3] || (JSON.parse(safe(path.join(repo, '.claude', 'xi-0', 'activa.json')) || '{}').inicio);
+const CON_VALOR = ['--veredicto', '--pr', '--nota'];
+const flags = {}; const pos = [];
+for (let i = 2; i < process.argv.length; i++) {
+  const a = process.argv[i];
+  if (a.startsWith('--')) flags[a] = CON_VALOR.includes(a) ? (process.argv[++i] || '') : true;
+  else pos.push(a);
+}
+const HISTORIAL = process.env.XI0_HISTORIAL || path.join(os.homedir(), '.claude', 'xi-0-historial', 'indice.jsonl');
+if (flags['--historial']) { mostrarHistorial(pos[0]); process.exit(0); }
+
+const repo = pos[0] || process.cwd();
+const desde = pos[1] || (JSON.parse(safe(path.join(repo, '.claude', 'xi-0', 'activa.json')) || '{}').inicio);
 function safe(p) { try { return fs.readFileSync(p, 'utf8'); } catch { return null; } }
 
 const filas = (safe(path.join(repo, '.claude', 'xi-0', 'registro.jsonl')) || '')
@@ -98,7 +112,8 @@ function transcripts(id) {
   return [];
 }
 
-const sesiones = process.argv[4] ? [process.argv[4]] : [...new Set(filas.map((r) => r.sesion).filter(Boolean))];
+let costo = null;
+const sesiones = pos[2] ? [pos[2]] : [...new Set(filas.map((r) => r.sesion).filter(Boolean))];
 if (!sesiones.length) {
   console.log('- Costo: el registro no trae id de sesión (se guarda desde el 2026-11-03). Pásalo como tercer argumento.');
 } else {
@@ -110,11 +125,70 @@ if (!sesiones.length) {
       for (const k of Object.keys(todo)) todo[k] += r[k];
     }
   }
+  costo = { todo, porAgente };
   const pct = (x) => `${todo.usd ? Math.round((100 * x) / todo.usd) : 0}%`;
   console.log(`- Costo a precio de API (aprox.): $${todo.usd.toFixed(2)} en ${todo.turnos} turnos (sesión ${sesiones.map((s) => s.slice(0, 8)).join(', ')})`);
   console.log(`  - Turnos que siguen a una espera: $${todo.espera.toFixed(2)} (${pct(todo.espera)}). Turnos con la caché vencida: $${todo.vencida.toFixed(2)} (${pct(todo.vencida)}).`);
   console.log('\n| agente | turnos | USD | % |\n| :- | -: | -: | -: |');
   for (const [quien, a] of Object.entries(porAgente).sort((x, y) => y[1].usd - x[1].usd)) {
     if (a.usd >= 0.01) console.log(`| ${quien} | ${a.turnos} | ${a.usd.toFixed(2)} | ${pct(a.usd)} |`);
+  }
+}
+
+if (flags['--registrar']) registrar();
+
+// ---------- tabla de tareas ----------
+// Una fila por tarea entregada, en ~/.claude/xi-0-historial/indice.jsonl (fuera de la instalación, junto a los
+// .xi-0/ archivados). Sirve para comparar tamaños, rutas y cambios de xi-0 con números de tareas reales.
+function registrar() {
+  const activa = JSON.parse(safe(path.join(repo, '.claude', 'xi-0', 'activa.json')) || 'null');
+  if (!activa) { console.error('--registrar necesita la tarea abierta (.claude/xi-0/activa.json): córrelo antes de borrarla.'); process.exit(2); }
+  const limite = JSON.parse(safe(path.join(repo, '.claude', 'limite.json')) || 'null');
+  const caro = costo ? Object.entries(costo.porAgente).sort((a, b) => b[1].usd - a[1].usd)[0] : null;
+  const dos = (x) => Math.round(x * 100) / 100;
+  const fila = {
+    fin: new Date().toISOString(),
+    repo: path.basename(path.resolve(repo)),
+    tarea: activa.tarea || null,
+    tipo: activa.tipo || null,
+    tamano: activa.tamano || null,
+    modo: activa.modo || 'tarea',
+    reglas: activa.reglas || null,
+    ruta: (activa.ruta || []).flat(),
+    inicio: activa.inicio || desde || null,
+    minutos: activa.inicio ? Math.round((Date.now() - new Date(activa.inicio)) / 60000) : min,
+    companeros: total(lideres),
+    ligeros: total(ligeros),
+    bloqueos: bloqueos.length,
+    usd: costo ? dos(costo.todo.usd) : null,
+    usd_cache_vencida: costo ? dos(costo.todo.vencida) : null,
+    agente_mas_caro: caro ? { agente: caro[0], usd: dos(caro[1].usd) } : null,
+    limite_inicio: activa.limite_inicio ?? null,
+    limite_fin: limite && limite.five_hour ? limite.five_hour.used_percentage : null,
+    veredicto: flags['--veredicto'] || null,
+    pr: flags['--pr'] || null,
+    nota: flags['--nota'] || null,
+  };
+  fs.mkdirSync(path.dirname(HISTORIAL), { recursive: true });
+  fs.appendFileSync(HISTORIAL, JSON.stringify(fila) + '\n');
+  console.log(`\nRegistrada en ${HISTORIAL}: ${fila.repo} ${fila.tarea} (${fila.tamano}), ${fila.minutos} min, ${fila.usd != null ? '$' + fila.usd : 'sin costo'}.`);
+}
+
+function mostrarHistorial(soloRepo) {
+  const filas = (safe(HISTORIAL) || '').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .filter((f) => f && (!soloRepo || f.repo === path.basename(path.resolve(soloRepo)) || f.repo === soloRepo));
+  if (!filas.length) { console.log(`Sin tareas registradas${soloRepo ? ` de ${soloRepo}` : ''} en ${HISTORIAL}.`); return; }
+  const usd = (x) => (x == null ? '–' : x.toFixed(2));
+  console.log('| fecha | repo | tarea | tamaño | modo | min | USD | más caro | bloqueos | veredicto | PR |\n| :- | :- | :- | :- | :- | -: | -: | :- | -: | :- | :- |');
+  for (const f of filas.slice(-20)) {
+    console.log(`| ${(f.fin || '').slice(0, 10)} | ${f.repo} | ${f.tarea} | ${f.tamano || '–'} | ${f.modo} | ${f.minutos ?? '–'} | ${usd(f.usd)} | ${f.agente_mas_caro ? f.agente_mas_caro.agente : '–'} | ${f.bloqueos} | ${f.veredicto || '–'} | ${f.pr || '–'} |`);
+  }
+  const grupos = {};
+  for (const f of filas) { const k = `${f.modo === 'revisar' ? 'revisar ' : ''}${f.tamano || '?'}`; (grupos[k] = grupos[k] || []).push(f); }
+  const prom = (xs) => { const v = xs.filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  console.log('\n| tamaño | tareas | min promedio | USD promedio |\n| :- | -: | -: | -: |');
+  for (const [k, fs_] of Object.entries(grupos)) {
+    const m = prom(fs_.map((f) => f.minutos)), u = prom(fs_.map((f) => f.usd));
+    console.log(`| ${k} | ${fs_.length} | ${m == null ? '–' : Math.round(m)} | ${u == null ? '–' : u.toFixed(2)} |`);
   }
 }

@@ -56,7 +56,9 @@ node pruebas/guardian.test.js         # pruebas del guardián en un repo tempora
 node pruebas/conformidad.test.js      # números y líneas de los documentos contra equipos.json
 node pruebas/ci.test.js               # ci.js con un remoto local, sin GitHub
 node pruebas/enlazar.test.js          # enlazar.js con un worktree real
+node pruebas/metricas.test.js         # tabla de tareas de metricas.js
 node ~/.claude/xi-0/metricas.js <repo>  # costo y bloqueos por agente
+node ~/.claude/xi-0/metricas.js --historial  # tabla de tareas y promedio por tamaño
 ```
 
 No hay dependencias que instalar salvo `xi-0/qa-visual` (opcional, `npm install`). Requiere Node.js 18 o más reciente, git y Claude Code con agent teams.

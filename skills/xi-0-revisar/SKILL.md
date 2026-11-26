@@ -61,5 +61,5 @@ Modo revisar: la rama ya está hecha. No cambias código ni pruebas del repo; so
    gh pr comment <n> -R <repo> --body-file <archivo>
    ```
    El comentario es para quien lee el PR, no para ti: veredicto, criterios demostrados n/m, cada falla en una línea (clase, archivo:línea, qué pasa), y qué se corrió (comandos y resultado). Sin rutas de `.xi-0/` ni nombres de agentes.
-5. Cierra a los compañeros, quita los enlaces (`node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`), borra `.claude/xi-0/activa.json` y deja el worktree.
+5. Cierra a los compañeros, quita los enlaces (`node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`) y registra la revisión antes de borrar `activa.json`: `node ~/.claude/xi-0/metricas.js "<repo principal>" --registrar --veredicto <aprobado | con fallas> --pr <url del PR o la rama revisada>`. Después borra `.claude/xi-0/activa.json` y deja el worktree.
 6. Reporte al usuario, corto: qué se revisó, veredicto, fallas (las graves primero), enlace al comentario si lo publicaste, y métricas (duración y costo en USD de `node ~/.claude/xi-0/metricas.js "<repo principal>"`).

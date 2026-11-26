@@ -28,3 +28,5 @@ jobs:
         run: node pruebas/ci.test.js
       - name: Dependencias enlazadas (enlazar.js)
         run: node pruebas/enlazar.test.js
+      - name: Tabla de tareas (metricas.js)
+        run: node pruebas/metricas.test.js
