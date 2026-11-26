@@ -20,6 +20,7 @@ const { execFileSync } = require('child_process');
 const LOCKS = ['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'npm-shrinkwrap.json'];
 const args = process.argv.slice(2);
 const wt = args[0] && !args[0].startsWith('--') ? path.resolve(args[0]) : null;
+require('./anotar.js').alFallar('enlazar.js', wt);
 if (!wt || !fs.existsSync(wt)) { console.error('Uso: node enlazar.js <worktree> [--quitar]'); process.exit(2); }
 
 // Carpetas de paquete del worktree (la raíz y hasta dos niveles abajo), sin entrar a node_modules ni a .git.

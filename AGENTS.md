@@ -57,6 +57,7 @@ node pruebas/conformidad.test.js      # números y líneas de los documentos con
 node pruebas/ci.test.js               # ci.js con un remoto local, sin GitHub
 node pruebas/enlazar.test.js          # enlazar.js con un worktree real
 node pruebas/metricas.test.js         # tabla de tareas de metricas.js
+node pruebas/reportar.test.js         # limpieza de los issues de reportar.js (sin publicar)
 node ~/.claude/xi-0/metricas.js <repo>  # costo y bloqueos por agente
 node ~/.claude/xi-0/metricas.js --historial  # tabla de tareas y promedio por tamaño
 ```

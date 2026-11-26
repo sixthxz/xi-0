@@ -203,8 +203,35 @@ En los dos casos comprueba: `git log <rama_base>..tarea/<id> --oneline` tiene un
 Al terminar:
 
 1. Cierra a todos los compañeros que queden. Con `config.ci`, borra las ramas de CI de la tarea: `node ~/.claude/xi-0/ci.js "<worktree_tarea>" --limpiar`.
-2. Quita los enlaces de dependencias de cada worktree de la tarea (el de la tarea y los de equipo): `node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`. Así el usuario puede borrarlos como quiera. Registra la tarea en la tabla de tareas (antes de borrar `activa.json`, que es de donde lee): `node ~/.claude/xi-0/metricas.js "<repo principal>" --registrar --veredicto <entregada | con fallas | cancelada> --pr <url del PR, o la rama si no hay PR>`. Después borra `.claude/xi-0/activa.json` (el guardián vuelve a modo pasivo). Deja los worktrees: el usuario los borra.
+2. Quita los enlaces de dependencias de cada worktree de la tarea (el de la tarea y los de equipo): `node ~/.claude/xi-0/enlazar.js "<worktree>" --quitar`. Así el usuario puede borrarlos como quiera. Reporta las fallas de xi-0: primero `reportar.js --recolectar` y después las que notaste tú (ver **Fallas de xi-0**). Registra la tarea en la tabla de tareas (antes de borrar `activa.json`, que es de donde lee): `node ~/.claude/xi-0/metricas.js "<repo principal>" --registrar --veredicto <entregada | con fallas | cancelada> --pr <url del PR, o la rama si no hay PR>`. Después borra `.claude/xi-0/activa.json` (el guardián vuelve a modo pasivo). Deja los worktrees: el usuario los borra.
 3. Reporte al usuario, en español y corto: rama (y `PR.md` si lo hay), tamaño, qué se hizo, qué decidiste tú, evidencia (criterios demostrados n/m, huecos y pruebas existentes que cambiaron), qué queda pendiente, rondas de fallas y métricas (duración, % de límite consumido, compañeros y ligeros lanzados, relevos, bloqueos del guardián, costo en USD y el agente que más gastó; en una chica, de `node ~/.claude/xi-0/metricas.js "<repo principal>"`).
+
+## Fallas de xi-0
+
+Lo que falla de xi-0 durante una tarea se reporta como issue en el repo de xi-0, para corregirlo después. Una parte es automática y otra la decides tú.
+
+**Automática, siempre al cerrar:** `node ~/.claude/xi-0/reportar.js --recolectar --proyecto "<repo principal>"` lee el registro del guardián de esta tarea y abre un issue por cada error del guardián, cada error interno de un script de xi-0 y cada bloqueo que se repitió 3 veces o más. No depende de que lo notes.
+
+**A tu criterio,** lo que el registro no ve: **Solo fallas de xi-0, no del proyecto:** que una prueba del proyecto falle o un requisito esté mal es trabajo normal de la tarea.
+
+Sí se reporta:
+- el guardián falla ("El guardián falló…") o niega algo legítimo y eso cuesta turnos;
+- un script de xi-0 (`ci.js`, `enlazar.js`, `metricas.js`) da error o hace algo distinto de lo que dice;
+- instrucciones que se contradicen (dos equipos con órdenes opuestas, la habilidad contra el guardián);
+- un agente atascado por cómo está diseñado el flujo (esperando un aviso que no llega, sin poder entregar);
+- algo de Claude Code que rompe el flujo (como el nombre `reporte.md`).
+
+Los equipos te lo avisan en su ficha con una línea `falla de xi-0: <qué pasó>`; tú decides si va.
+
+Cómo: escribe el cuerpo en un archivo de la carpeta temporal (**Qué pasó**, **Qué se esperaba**, **Cómo se reproduce**: comando y mensaje exactos, agente y regla) y corre:
+
+```
+node ~/.claude/xi-0/reportar.js --titulo "<qué falla, en una línea>" --cuerpo <archivo> --proyecto "<repo principal>"
+```
+
+El repo de xi-0 es público: el script quita rutas, nombre y repo del proyecto, correos y lo que parezca un secreto, y si ya hay un issue abierto con el mismo título comenta ahí. Aun así, no pegues código ni datos del proyecto en el cuerpo: describe la falla de xi-0. Si quieres ver qué saldría, primero con `--dry-run`.
+
+Cuándo: al cerrar la tarea, antes de registrarla; o en el momento, si la falla te impide seguir. En tu reporte final, lista los issues abiertos con su enlace.
 
 ## No negociables (ni tú te los saltas)
 

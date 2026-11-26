@@ -22,6 +22,7 @@ const HISTORIAL = process.env.XI0_HISTORIAL || path.join(os.homedir(), '.claude'
 if (flags['--historial']) { mostrarHistorial(pos[0]); process.exit(0); }
 
 const repo = pos[0] || process.cwd();
+require('./anotar.js').alFallar('metricas.js', repo);
 const desde = pos[1] || (JSON.parse(safe(path.join(repo, '.claude', 'xi-0', 'activa.json')) || '{}').inicio);
 function safe(p) { try { return fs.readFileSync(p, 'utf8'); } catch { return null; } }
 

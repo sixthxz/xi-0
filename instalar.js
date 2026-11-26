@@ -171,6 +171,15 @@ let n2 = 0;
 for (const h of habilidades) n2 += copiar(path.join(ORIGEN, 'skills', h), path.join(CLAUDE, 'skills', h));
 console.log(`Copiados ${n1} archivos a ${aTexto(DESTINO)} y ${n2} de ${habilidades.length} habilidades (${habilidades.join(', ')}) a ${aTexto(path.join(CLAUDE, 'skills'))}.`);
 
+// De dónde salió esta instalación: el repo de GitHub donde se reportan las fallas de xi-0 (reportar.js) y la versión.
+{
+  const remoto = git(ORIGEN, 'remote', 'get-url', 'origin') || '';
+  const m = /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(remoto);
+  const instalacion = { repo: m ? m[1] : null, commit: git(ORIGEN, 'rev-parse', '--short', 'HEAD'), fecha: new Date().toISOString() };
+  fs.writeFileSync(path.join(DESTINO, 'instalacion.json'), JSON.stringify(instalacion, null, 1) + '\n');
+  if (!instalacion.repo) console.log('Aviso: el repo de origen no tiene un remoto "origin" de GitHub; reportar.js no sabrá dónde abrir los issues.');
+}
+
 execFileSync(process.execPath, [path.join(DESTINO, 'generar-agentes.js')], { stdio: 'inherit' });
 
 if (argumento('--activar') === null) {

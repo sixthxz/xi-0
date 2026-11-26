@@ -300,6 +300,8 @@ La calidad de una decisión se mide por la evidencia que la respalda, no por la 
 
 El mensaje solo apunta; el contenido vive en el repo. No mandes avances si no estás bloqueado; solo entregas.
 
+Si algo de xi-0 te falla (el guardián niega algo legítimo o da error, un script de \`~/.claude/xi-0\` falla, dos instrucciones se contradicen), agrégalo a tu ficha en una línea: \`falla de xi-0: <qué pasó, comando y mensaje>\`. xi-0 lo reporta para que se corrija. Las fallas del proyecto no van ahí: esas son tu trabajo.
+
 Nombra tus archivos como dice tu entrega, nunca \`reporte.md\` ni \`report.md\`: Claude Code niega a los subagentes escribir un archivo con ese nombre y responde "Subagents should return findings as text". Si te sale ese mensaje con otro nombre, es Claude Code y no el guardián: escribe el mismo contenido con otro nombre descriptivo (\`veredicto.md\`, \`informe.md\`) y sigue. Tu entrega nunca se queda solo en tu mensaje final.
 
 Al terminar cada turno, tu texto final es **una línea** (por ejemplo: \`entrega enviada; espero a <equipo>\`). Claude Code copia ese texto en el aviso de inactividad que le llega a xi-0: si repites ahí la ficha, queda dos veces en su contexto.
