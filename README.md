@@ -78,6 +78,11 @@ Cada líder de equipo puede lanzar agentes ligeros propios (`<equipo>-ligero`, e
 - **Cada tarea vive en su rama** `tarea/<id>`, en una copia aparte del repo (worktree). Nadie trabaja sobre tu rama principal.
 - **Los mensajes siguen líneas fijas.** Un equipo habla con su líder de fase y con los equipos con los que tiene línea, con un máximo de palabras. El detalle va en archivos dentro de `.xi-0/`.
 - **Las decisiones valen por su evidencia.** QA no cierra sin pruebas, revisión de código, validez de las pruebas y cada criterio de la tarea cubierto.
+- **El PR llega limpio.** El rastro de trabajo de la tarea (`.xi-0/`: plan, QA, estado) viaja en la rama mientras se trabaja, pero no entra en el commit que se entrega; queda archivado en `~/.claude/xi-0-historial/`.
+- **La suite completa corre en tu CI, no en tu PC.** Si el proyecto ya tiene un workflow de GitHub Actions, xi-0 le manda una instantánea de la tarea y espera el resultado; los equipos corren en local solo las pruebas de lo que tocaron.
+- **Sin instalar dependencias en cada tarea.** El `node_modules` de cada copia del repo se enlaza al del repo principal cuando las dependencias no cambian.
+- **Cada tarea queda medida.** Al cerrar, xi-0 agrega una fila a una tabla de tareas (duración, costo, bloqueos, veredicto, PR).
+- **xi-0 reporta sus propias fallas.** Lo que falle de xi-0 en una tarea (el guardián, un script, un bloqueo que se repite) se abre como issue en este repo, sin datos del proyecto.
 
 ## Límite de uso
 
@@ -100,6 +105,10 @@ El porcentaje es el del límite de 5 horas. El de 7 días solo cuenta cuando lle
 - Esperar más de 4 minutos dentro de una llamada (la caché de un agente vence a los 5 y el turno siguiente reescribe todo su contexto).
 - Cerrar QA sin evidencia, o debilitar una prueba que ya existía sin justificarlo.
 - Que un agente cambie xi-0 o su configuración: la instalación en `~/.claude`, los `settings` y la carpeta `.claude/xi-0` del repo. Eso solo lo hace la sesión principal, contigo.
+- Publicar una rama que trae `.xi-0/`.
+- Correr en local la suite que va al CI, cuando el proyecto tiene CI configurado.
+- Instalar dependencias en una copia con `node_modules` enlazado, o borrarla con `git worktree remove` (borraría el `node_modules` original a través del enlace).
+- En una revisión (`/xi-0-revisar`), cambiar algo fuera de `.xi-0/`.
 
 Si el guardián falla (por ejemplo, una config mal escrita), niega la llamada y dice qué revisar; no deja pasar.
 
@@ -154,17 +163,36 @@ En Claude Code, dentro del repo:
 
 xi-0 responde con el tipo de tarea, la ruta y los equipos que entran. Al terminar, la rama `tarea/<id>` queda lista y el estado de todo el trabajo está en `.xi-0/` dentro de esa rama.
 
-Para ver cuánto costó una tarea, por agente:
+También sirven, sin escribir `/xi-0`:
+
+```
+que el equipo agregue un filtro por fecha a la lista de pedidos
+resuelve el issue 12
+/xi-0-revisar #14
+```
+
+Para ver cuánto costó una tarea, por agente, y la tabla de todas las tareas con el promedio por tamaño:
 
 ```bash
 node ~/.claude/xi-0/metricas.js /ruta/a/tu/repo
+node ~/.claude/xi-0/metricas.js --historial
+```
+
+Para que xi-0 use el CI del proyecto, agrega a su `.claude/xi-0/config.json` el workflow y los comandos que solo deben correr ahí, y revisa la config:
+
+```json
+"ci": { "workflow": "verificacion.yml", "no_local": ["pnpm test"] }
+```
+
+```bash
+node instalar.js --revisar /ruta/a/tu/repo
 ```
 
 ## Costo
 
 Un equipo de agentes gasta varias veces lo que una sesión sola: cada agente carga su propio contexto. Vale la pena cuando la tarea necesita planear, construir y comprobar por separado; para un cambio de pocas líneas, una sesión sola es más barata. Empieza con una tarea chica y mira lo que costó con `metricas.js` antes de lanzar algo grande. En una tarea real de 21 horas medida con `metricas.js`, casi la mitad del costo fue caché vencida: agentes esperando corridas largas. De ahí salieron la regla de los 4 minutos y el trabajo en curso.
 
-**Ruta por tamaño y relevo.** Una corrección chica usa 2 agentes en lugar de 9 o más, sin líderes de fase ni agentes ligeros. Un agente que lanza una corrida larga deja un archivo de relevo y se cierra en vez de esperar; otro agente retoma cuando la corrida termina. Todavía falta medirlo en una tarea real: cuánto baja el costo y si el relevo funciona de punta a punta están sin comprobar.
+**Ruta por tamaño y relevo.** Una corrección chica usa 2 agentes en lugar de 9 o más, sin líderes de fase ni agentes ligeros. Medida en una tarea real: $6.51 a precio de API contra $21.10 de una mediana. Un agente que lanza una corrida de más de 10 minutos deja un archivo de relevo y se cierra en vez de esperar; otro agente retoma cuando la corrida termina. Que el relevo funcione de punta a punta todavía no está comprobado en uso real. Con el CI del proyecto y las dependencias enlazadas, las corridas largas en la PC deberían casi desaparecer; la tabla de tareas (`metricas.js --historial`) es donde se va a ver si bajan el tiempo y el costo.
 
 ## Estructura
 
@@ -173,6 +201,8 @@ instalar.js               instalador
 AGENTS.md                 resumen para agentes de IA que lean el repo
 docs/flujo.svg            la imagen de arriba
 skills/xi-0/SKILL.md      la habilidad /xi-0
+skills/xi-0-revisar/      /xi-0-revisar: QA y Seguridad sobre una rama o un PR que ya existe
+.github/workflows/        CI de este repo: las pruebas en Linux y Windows
 xi-0/
   especificacion.md       el diseño completo; manda sobre todo lo demás
   README.md               notas de implementación y cambios
@@ -180,24 +210,31 @@ xi-0/
   equipos.json            fases, equipos, máximos, líneas y niveles del límite
   hooks/guardian.js       las reglas forzadas
   statusline.js           barra de estado con el nivel del límite
-  metricas.js             lanzamientos, bloqueos y costo por agente
+  metricas.js             lanzamientos, bloqueos y costo por agente; tabla de tareas
+  ci.js                   verificación de una tarea en el CI del proyecto
+  enlazar.js              node_modules de un worktree enlazado al del repo principal
+  reportar.js             fallas de xi-0 como issues en este repo, sin datos del proyecto
+  anotar.js               los scripts anotan sus errores internos para reportar.js
   config.ejemplo.json     plantilla de config por repo (ejemplo con .NET y Angular)
   config.node.json        plantilla mínima para un paquete de Node
   settings.ejemplo.json   plantilla de settings por repo
   qa-visual/recorrido.js  capturas de escritorio y móvil para el QA visual
   mapa.html               mapa interactivo
-pruebas/guardian.test.js  pruebas del guardián
-pruebas/conformidad.test.js  los números de los documentos contra equipos.json
+pruebas/                  pruebas del guardián, de los documentos y de cada script
 ```
 
-## Probar el guardián
+## Probar
 
 ```bash
-node pruebas/guardian.test.js
-node pruebas/conformidad.test.js
+node pruebas/guardian.test.js      # el guardián: eventos de hook sintéticos en un repo temporal
+node pruebas/conformidad.test.js   # los números de los documentos contra equipos.json
+node pruebas/ci.test.js            # ci.js contra un remoto local, sin GitHub
+node pruebas/enlazar.test.js       # enlazar.js con un worktree real
+node pruebas/metricas.test.js      # la tabla de tareas
+node pruebas/reportar.test.js      # la limpieza de los issues, sin publicar nada
 ```
 
-Crea un repo temporal, le pasa eventos de hook y compara cada decisión. No toca ningún repo real.
+Ninguna toca un repo real ni publica nada. El CI del repo las corre en Linux y Windows en cada PR.
 
 ## Idioma
 
