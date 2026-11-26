@@ -1,0 +1,26 @@
+name: pruebas
+
+on:
+  push:
+    branches: [main, 'tarea/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Guardián
+        run: node pruebas/guardian.test.js
+      - name: Conformidad de documentos
+        run: node pruebas/conformidad.test.js
