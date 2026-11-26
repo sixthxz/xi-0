@@ -424,10 +424,18 @@ function reglaDependencias(cfg, clave, s, raizTarea) {
 // Lo que hace cumplir las reglas no lo cambia un agente: la instalación de xi-0, los settings (ahí están
 // los hooks) y la carpeta .claude/xi-0 del repo (config, tarea activa, registro). Solo la sesión principal,
 // que es la que conduce la persona. Aplica en cualquier repo con xi-0 activado, haya tarea o no.
+// La ruta real: resuelve nombres cortos de Windows (C:/Users/RUNNER~1) y enlaces. Si el archivo todavía no
+// existe (Write de uno nuevo), resuelve la carpeta más cercana que sí existe y le pega el resto.
+function real(p) {
+  const n = norm(p);
+  try { return norm(fs.realpathSync.native(win(n))); } catch { /* no existe */ }
+  const padre = path.posix.dirname(n);
+  return padre === n ? n : `${real(padre)}/${path.posix.basename(n)}`;
+}
 function esProtegido(abs, raiz) {
-  const a = abs.toLowerCase();
-  const home = norm(path.join(os.homedir(), '.claude')).toLowerCase();
-  const repo = `${raiz.toLowerCase()}/.claude`;
+  const a = real(abs).toLowerCase();
+  const home = real(path.join(os.homedir(), '.claude')).toLowerCase();
+  const repo = `${real(raiz).toLowerCase()}/.claude`;
   const dentro = (base) => a === base || a.startsWith(base + '/');
   return dentro(`${home}/xi-0`) || dentro(`${home}/skills/xi-0`) || dentro(`${home}/agents/xi-0`) || dentro(`${repo}/xi-0`)
     || [home, repo].some((b) => a.startsWith(`${b}/settings`) && a.endsWith('.json') && !a.slice(b.length + 1).includes('/'));
