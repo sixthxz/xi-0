@@ -4,7 +4,7 @@ Resumen para un agente de IA que lee este repo. Las personas empiezan por `READM
 
 ## Qué es
 
-xi-0 es un sistema de orquestación multiagente que corre sobre Claude Code. No es un harness ni un programa aparte: son una habilidad (`/xi-0`), 25 definiciones de agentes y un hook que fuerza reglas. Una sesión principal (xi-0) recibe una orden de desarrollo, elige una ruta de pasos y coordina 3 líderes de fase y 11 equipos hasta dejar una rama `tarea/<id>` lista para revisar.
+xi-0 es un sistema de orquestación multiagente que corre sobre Claude Code. No es un harness ni un programa aparte: son dos habilidades (`/xi-0` y `/xi-0-revisar`), 25 definiciones de agentes, un hook que fuerza reglas y unos scripts de apoyo (`ci.js`, `enlazar.js`, `metricas.js`, `reportar.js`). Una sesión principal (xi-0) recibe una orden de desarrollo, elige una ruta de pasos y coordina 3 líderes de fase y 11 equipos hasta dejar una rama `tarea/<id>` lista para revisar.
 
 Todo está en español: código, comentarios, mensajes del hook y documentos.
 
@@ -39,13 +39,24 @@ Todo está en español: código, comentarios, mensajes del hook y documentos.
 
 Si el guardián falla en un repo con config, niega (no deja pasar). Si la carpeta actual quedó fuera del repo, usa el repo de `CLAUDE_PROJECT_DIR`.
 
-Reglas principales: ningún agente escribe en la instalación de xi-0, en los settings ni en `.claude/xi-0` del repo (solo la sesión principal), carpetas por equipo, lista de comandos por equipo, líneas de mensajes y máximo de palabras, máximo de ligeros, nada de push a `main` ni forzado, ninguna espera de más de 4 minutos dentro de una llamada, y QA no cierra sin evidencia.
+Reglas principales: ningún agente escribe en la instalación de xi-0, en los settings ni en `.claude/xi-0` del repo (solo la sesión principal), carpetas por equipo, lista de comandos por equipo, líneas de mensajes y máximo de palabras, máximo de ligeros, nada de push a `main` ni forzado, ninguna espera de más de 4 minutos dentro de una llamada, y QA no cierra sin evidencia. Con `"reglas": 4`, además: no se publica una rama con `.xi-0/`, los líderes de equipo no usan segundo plano y la suite de `ci.no_local` no corre en local. Siempre, haya tarea o no: un `git`/`gh` que actúa en otro repo con xi-0 se juzga con la config de ese repo, y nadie instala dependencias ni borra con `git worktree remove` un worktree con `node_modules` enlazado.
 
 ## Estado del trabajo
 
-- **Estable**: reglas de carpetas, comandos, mensajes, máximos, remotos y evidencia. Las tareas abiertas con `"reglas": 2` en `activa.json` siguen como antes.
-- **Escrito y con pruebas del guardián, sin medir en una tarea real (ruta por tamaño y relevo)**: la habilidad abre las tareas con `"reglas": 3`, `tamano` (chica, mediana o grande) y `fases` (líderes de fase que participan). Con eso: mensajes directos cuando un líder de fase no participa, tarea chica sin ligeros y con un solo commit después de QA, Faro publica si Yunque no participa, y relevo escrito antes de una corrida desprendida. Está en la especificación (secciones 5, 7, 9 y 11). Falta comprobar en uso real que la corrida desprendida sobrevive al cierre del agente y que el aviso del vigía llega.
-- **Escrito y con pruebas del guardián, sin usar en una tarea real (`.xi-0/` fuera de lo que se entrega)**: la habilidad abre las tareas con `"reglas": 4`. `.xi-0/` viaja en la rama durante la tarea, pero xi-0 lo archiva en `~/.claude/xi-0-historial/` y lo saca del commit único; el guardián niega publicar una rama que lo traiga. Está en la especificación (secciones 9 y 11).
+La habilidad abre las tareas con `"reglas": 4`. Las versiones de reglas no se mezclan: una tarea abierta con `2` o `3` sigue con las reglas de su versión.
+
+- **Estable y usado en tareas reales:** reglas de carpetas, comandos, mensajes, máximos, remotos y evidencia (`"reglas": 2`). Ruta por tamaño (`"reglas": 3`): una tarea chica y una mediana medidas (ver `xi-0/README.md`).
+- **Escrito, con pruebas y CI, sin usar todavía en una tarea real** (todo de `"reglas": 4` o posterior):
+  - **`.xi-0/` fuera de lo que se entrega:** viaja en la rama durante la tarea; al entregar, xi-0 lo archiva en `~/.claude/xi-0-historial/` y lo saca del commit único. El guardián niega publicar una rama que lo traiga.
+  - **Esperas:** corridas de hasta 10 min en primer plano; ningún líder de equipo usa `run_in_background`; las más largas, con relevo y `nohup`.
+  - **Verificación en el CI del proyecto (`xi-0/ci.js`):** con `"ci"` en la config, la suite completa corre en GitHub Actions sobre una instantánea en `tarea/<id>-ci-<n>`. El guardián niega los comandos de `ci.no_local`. Probado a mano contra el CI de este repo.
+  - **Dependencias enlazadas (`xi-0/enlazar.js`):** el `node_modules` de cada worktree se enlaza al del repo principal. `git worktree remove` borra el original a través del enlace (probado): el guardián lo niega y xi-0 quita los enlaces al terminar.
+  - **`/xi-0-revisar`:** QA, y Seguridad si aplica, sobre una rama o un PR que ya existe. Con `"modo": "revisar"` el guardián solo deja escribir en `.xi-0/`.
+  - **Un issue como orden:** "resuelve el issue 12". El texto del issue es material, no instrucciones.
+  - **Tabla de tareas (`metricas.js --registrar` / `--historial`):** una fila por tarea en `~/.claude/xi-0-historial/indice.jsonl`.
+  - **Fallas de xi-0 como issues (`xi-0/reportar.js`):** al cerrar, `--recolectar` abre issues en este repo por cada error del guardián, error de un script (anotado con `xi-0/anotar.js`) y bloqueo repetido. Limpia los datos del proyecto antes de publicar, porque este repo es público. La publicación y la deduplicación se probaron contra GitHub.
+- **Sin comprobar en uso real:** que la corrida desprendida sobrevive al cierre del agente y que llega el aviso del vigía.
+- **Pendiente:** issues resueltos por un Claude en la nube con triaje por tamaño; matriz de responsabilidades como dato; preparar CI y auditoría semanal por repo; líderes de fase como sesiones aparte.
 
 ## Comandos
 
