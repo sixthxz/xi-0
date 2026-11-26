@@ -275,6 +275,11 @@ Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm
 5. **Panel visual del límite (mod)**: solo la statusline.
 6. **Agent teams en la nube / `-p`**: no crean compañeros (limitación de la plataforma).
 
+## CI del repo y rutas con nombre corto (2026-11-25)
+
+- **CI en GitHub Actions** (`.github/workflows/pruebas.yml`): corre `pruebas/guardian.test.js` y `pruebas/conformidad.test.js` en Linux y Windows en cada push a `main` o `tarea/**` y en cada PR.
+- **La primera corrida encontró un hueco en Windows.** La protección de la instalación y la config de xi-0 comparaba rutas como texto. Con el nombre corto de 8.3 de una carpeta (`C:/Users/RUNNER~1/...` en vez de `C:/Users/runneradmin/...`), no reconocía `.claude/xi-0/config.json` como protegido. Esa vez lo frenó la regla de carpetas, pero la protección tenía el hueco. Ahora resuelve la ruta real (`realpath`) antes de comparar, también para archivos que todavía no existen. Dos casos nuevos lo reproducen con el nombre corto de la carpeta de prueba; corren solo en Windows.
+
 ## Puntos abiertos (sección 13) verificados en la documentación
 
 - Hooks reciben `agent_type` → un solo script aplica reglas por equipo. ✔

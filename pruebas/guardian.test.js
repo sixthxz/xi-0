@@ -278,6 +278,17 @@ const CASOS = [
   ['rastro: chica reglas 3, git add -A como antes', 'chicaCopia', 'forja', bash('git add -A && git commit -m "fix: fecha"'), PASA, { qa: QA_COMPLETO }],
 ];
 
+// Windows: la misma carpeta con su nombre corto de 8.3 (C:/Users/RUNNER~1/...). La protección de xi-0 debe
+// reconocerla igual; antes comparaba texto y no la reconocía.
+if (process.platform === 'win32') {
+  let corto = '';
+  try { corto = execFileSync('cmd', ['/d', '/s', '/c', `"for %I in ("${repo}") do @echo %~sI"`], { encoding: 'utf8', windowsVerbatimArguments: true }).trim(); } catch { /* sin nombres cortos */ }
+  if (corto && corto.toLowerCase() !== repo.toLowerCase()) {
+    CASOS.push(['protegido: la config con el nombre corto de la carpeta', 'reglas2', 'forja', escribir(corto, '.claude', 'xi-0', 'config.json'), /es parte de xi-0/]);
+    CASOS.push(['protegido: un archivo nuevo con el nombre corto', 'reglas2', 'forja', escribir(corto, '.claude', 'xi-0', 'nuevo.json'), /es parte de xi-0/]);
+  }
+}
+
 function correr(activa, quien, [herramienta, entrada], previo) {
   const relevos = path.join(repo, '.xi-0', 'relevo');
   fs.rmSync(relevos, { recursive: true, force: true });
