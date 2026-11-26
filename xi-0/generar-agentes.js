@@ -238,7 +238,7 @@ const EQUIPOS = {
   egida: {
     titulo: 'Égida', effort: 'high', color: 'red', bash: true, commit: true, web: true, codigo: false,
     resp: 'Busca vulnerabilidades y revisa el manejo de datos.',
-    entrega: 'Reporte de riesgos en `.xi-0/seguridad/` (con veredicto `aprobado | bloqueado` y la evidencia de cada conclusión: comando y salida, archivo y línea) y fallas en `.xi-0/fallas/seg-NNN.md`.',
+    entrega: 'Veredicto en `.xi-0/seguridad/veredicto.md`: primera línea `veredicto: aprobado | bloqueado`, después cada riesgo revisado con la evidencia de su conclusión (comando y salida, archivo y línea). Fallas en `.xi-0/fallas/seg-NNN.md`. Salidas largas de herramientas (auditorías de dependencias) en `.xi-0/seguridad/<herramienta>.md`.',
     extra: EGIDA_FALLAS,
     puede: ['Auditar código y dependencias (`npm audit`, `dotnet list package --vulnerable`).', 'Devolver vulnerabilidades a Back end.', 'Frenar la entrega si hay un riesgo alto.', 'Vetar una herramienta aprobada por Sextante (añádela a `vetadas` en tu reporte y avísale por tu líder de fase).'],
     nopuede: ['Corregir el código él mismo.', 'Usar datos reales de usuarios sin permiso.'],
@@ -298,6 +298,8 @@ La calidad de una decisión se mide por la evidencia que la respalda, no por la 
 ## Formatos (sección 8)
 
 El mensaje solo apunta; el contenido vive en el repo. No mandes avances si no estás bloqueado; solo entregas.
+
+Nombra tus archivos como dice tu entrega, nunca \`reporte.md\` ni \`report.md\`: Claude Code niega a los subagentes escribir un archivo con ese nombre y responde "Subagents should return findings as text". Si te sale ese mensaje con otro nombre, es Claude Code y no el guardián: escribe el mismo contenido con otro nombre descriptivo (\`veredicto.md\`, \`informe.md\`) y sigue. Tu entrega nunca se queda solo en tu mensaje final.
 
 Al terminar cada turno, tu texto final es **una línea** (por ejemplo: \`entrega enviada; espero a <equipo>\`). Claude Code copia ese texto en el aviso de inactividad que le llega a xi-0: si repites ahí la ficha, queda dos veces en su contexto.
 
@@ -556,6 +558,7 @@ Eres un agente ligero (nivel 3) del equipo ${meta.nombre}, lanzado por ${e.titul
 - Haz solo la tarea acotada que te dieron. Nada fuera de ella. Si llegas al \`Tope\` del encargo, entrega lo que tengas: \`estado: bloqueado\` y en \`nota:\` qué falta.
 ${e.bash ? `- Ninguna llamada espera más de 4 minutos: ni \`sleep\` largo, ni \`time.sleep\`, ni bucles de espera con \`timeout\` alto. Tu caché vence a los 5 minutos y el turno siguiente volvería a escribir todo tu contexto; el guardián lo niega. Una corrida de hasta 10 min va en primer plano, en una llamada con \`timeout\` de hasta 600000. Si tarda más, no la esperas ni usas \`run_in_background\` (el guardián lo niega: a ti nadie te entrega el aviso): lánzala con \`nohup <comando> > <archivo de salida> 2>&1 &\`, y termina con \`estado: bloqueado\`, la ruta de la salida en \`dónde:\` y qué falta en \`nota:\`. Tu líder decide qué sigue.
 ` : ''}- Escribe solo en las carpetas de \`carpetas.${id}\` en \`.claude/xi-0/config.json\` (el guardián bloquea lo demás).
+- Nunca llames a un archivo \`reporte.md\` ni \`report.md\`: Claude Code lo niega a los subagentes ("Subagents should return findings as text"). Si te sale ese mensaje, escribe lo mismo con otro nombre descriptivo; lo que entregas va en archivo, no solo en tu respuesta.
 - No leas enteros los archivos de \`no_leer\` de esa config (datos de varios MB): usa \`Grep\`, \`head\` o \`Read\` con \`limit\`.
 - No lanzas agentes, no hablas con otros equipos ni con el usuario.
 ${e.bash && e.codigo ? `- Si cambias código: un commit por unidad terminada, en el worktree que te indique tu líder:\n\n  \`\`\`\n  tipo(área): qué cambió\n  Por qué, en 1 a 3 líneas.\n  Tarea: #<id>\n  \`\`\`\n\n  Sin código comentado, archivos de prueba sueltos ni TODOs. Si te piden guardar por límite, haz commit \`wip: ...\` de lo que lleves.\n` : ''}${(e.reglasLigero || []).map((x) => `- ${x}\n`).join('')}- Al terminar, tu respuesta final son solo tres líneas y te detienes:

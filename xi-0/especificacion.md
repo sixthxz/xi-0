@@ -456,7 +456,7 @@ Agentes ligeros que puede lanzar según el tipo de tarea (– = el equipo no ent
 Busca vulnerabilidades y revisa el manejo de datos.
 
 - **Fase:** Calidad y entrega, reporta a Meridiano.
-- **Entrega:** Reporte de riesgos, con la evidencia de cada conclusión (comando y salida, archivo y línea).
+- **Entrega:** Veredicto en `seguridad/veredicto.md` (`veredicto: aprobado | bloqueado`), con la evidencia de cada conclusión (comando y salida, archivo y línea). Ningún archivo se llama `reporte.md` ni `report.md`: Claude Code niega a los subagentes escribir archivos con ese nombre.
 - **Esfuerzo del líder:** high.
 - **Carpetas propias:** `/seguridad`.
 - **Puede:**
@@ -860,6 +860,7 @@ En una tarea chica, el commit wip de Guardado es el único que se permite antes 
 | Pruebas existentes que cambian, también sin commit | `TaskCompleted` de QA: además de las ramas, compara la copia de la tarea contra la rama base. |
 | Quién publica | Hook `PreToolUse` sobre `Bash`: `git push` y `gh pr create` solo para Yunque; si Yunque no está en `fases`, solo para DevOps. |
 | Relevo antes de una corrida desprendida | Hook `PreToolUse` sobre `Bash`: a un líder de equipo le niega una corrida en segundo plano o con `nohup` si no hay un relevo reciente suyo en `.xi-0/relevo/`. A un ligero le niega el segundo plano; con `"reglas": 4`, también a un líder de equipo (usa `nohup` con relevo). |
+| Nombres que Claude Code niega | Hook `PreToolUse` sobre `Write`/`Edit`: dentro de `.xi-0/`, niega a los agentes `reporte.md` y `report.md` con el nombre que sí sirve (Seguridad: `veredicto.md`). |
 | Remotos de otro repo | Hook `PreToolUse` sobre `Bash`: un `git` o `gh` que actúa en otro repo con xi-0 activado (`cd <repo> && …`, `git -C <repo> …`) se juzga con la config y la tarea de ese repo. Si el otro repo no tiene config, con las del repo de la sesión. |
 | `.xi-0/` no se publica (reglas 4) | Hook `PreToolUse` sobre `Bash`: niega `git push` y `gh pr create` si la rama trae `.xi-0/` respecto de la rama base. En una chica, niega el commit único de quien construye si `.xi-0/` ya está preparado o el mismo comando hace `git add -A` o `git add .` sin excluirlo; un `wip:` en Guardado sí lo lleva. |
 | Un solo commit en mediana y grande | Lo hace xi-0 al entregar; no se automatiza. |

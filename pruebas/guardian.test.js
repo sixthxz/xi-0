@@ -236,6 +236,12 @@ const CASOS = [
   ['chica: QA no cierra con una prueba existente cambiada sin commit', 'chicaCopia', 'argos', cierreQA, /Cambiaron o se borraron pruebas[^]*api\/tests\/viejo\.cs/, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
   ['chica: sí cierra si el cambio está anotado', 'chicaCopia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: '## Pruebas existentes que cambiaron\n\n| api/tests/viejo.cs | pedía un nombre interno | CT-1 |\n', pruebaCambiada: true }],
   ['reglas 2: los cambios sin commit no cuentan, como antes', 'reglas2Copia', 'argos', cierreQA, PASA, { qa: QA_COMPLETO, validez: 'sin notas', pruebaCambiada: true }],
+  // --- Nombres de archivo que Claude Code niega a los subagentes ---
+  ['nombre: reporte.md de Seguridad', 'reglas2', 'egida', escribir(repo, '.xi-0', 'seguridad', 'reporte.md'), /No llames "reporte.md"[^]*veredicto.md/],
+  ['nombre: report.md en otra carpeta de .xi-0', 'r4Yunque', 'argos', escribir(repo, '.xi-0', 'qa', 'Report.md'), /No llames "Report.md"/],
+  ['nombre: veredicto.md sí', 'reglas2', 'egida', escribir(repo, '.xi-0', 'seguridad', 'veredicto.md'), PASA],
+  ['nombre: un reporte con otro nombre sí', 'reglas2', 'egida', escribir(repo, '.xi-0', 'seguridad', 'reporte-dependencias.md'), PASA],
+  ['nombre: fuera de .xi-0 no aplica', 'reglas2', 'codice', escribir(repo, 'docs', 'reporte.md'), /no es dueño/],
   // --- Reglas 4: esperas sin segundo plano y comprobaciones que siempre valen ---
   ['esperas r4: un líder no usa segundo plano', 'r4Yunque', 'forja', bash('npm test', { run_in_background: true }), /No uses segundo plano[^]*timeout hasta 600000/, { relevo: 'forja', minutos: 1 }],
   ['esperas r4: nohup con relevo sí', 'r4Yunque', 'forja', bash('nohup npm test > .xi-0/relevo/forja.log 2>&1 &'), PASA, { relevo: 'forja', minutos: 1 }],

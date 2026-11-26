@@ -277,6 +277,15 @@ Salió de una tarea grande real (2026-11-23): Argos, Faro y Forja lanzaron `pnpm
 - Si arrancó sin `/xi-0`, primero confirma en una línea qué va a hacer, el tamaño que estima y que un equipo cuesta varias veces una sesión sola.
 - Solo la sesión principal puede invocarla: los agentes de xi-0 no tienen la herramienta `Skill`, y un compañero tampoco podría armar un equipo.
 
+## Seguridad sin reporte.md (2026-11-25)
+
+Égida no podía guardar su veredicto: Claude Code le respondía "Subagents should return findings as text, not write report files" y el agente dejaba la entrega solo en su mensaje. Revisando todas las escrituras de subagentes en las sesiones guardadas, la única negada fue `.xi-0/seguridad/reporte.md` (5 de 5 intentos). `veredicto.md`, `informe.md`, `pip-audit.md` y las fallas `seg-*.md` se escribieron sin problema. Lo dispara el nombre del archivo, no el agente.
+
+- La entrega de Égida nombra el archivo: `.xi-0/seguridad/veredicto.md`, con `veredicto: aprobado | bloqueado` en la primera línea. Antes decía "reporte de riesgos" y el agente lo llamaba `reporte.md`.
+- Líderes y ligeros: nunca `reporte.md` ni `report.md`; si Claude Code niega un archivo con ese mensaje, escriben lo mismo con otro nombre.
+- El guardián niega `reporte.md` y `report.md` dentro de `.xi-0/` con el nombre que sí sirve. La escritura fallaba igual; ahora el motivo orienta. Aplica a todas las tareas.
+- 5 casos nuevos en `pruebas/guardian.test.js`.
+
 ## Lo que no se pudo implementar tal cual
 
 1. **Esfuerzo por tarea** (negociable): el esfuerzo viene fijo en el archivo de cada agente; la herramienta Agent no lo recibe al lanzar. xi-0 solo puede sugerir "esfuerzo bajo" en el prompt.
